@@ -637,11 +637,19 @@ function HangmanGame({ lang, t, restartFlag }) {
   const learning = swap ? current.native : current.learning;
   const native = swap ? current.learning : current.native;
   const letters = learning.toUpperCase().split("");
+
+  // Only require guessing for A-Z letters
+  const isGuessable = (char) => /^[A-Z]$/.test(char);
+
   // Track which letters have been guessed incorrectly for this round
-  const incorrect = guesses.filter(g => !letters.includes(g));
+  const incorrect = guesses.filter(
+    g => !letters.some(l => isGuessable(l) && l === g)
+  );
 
   // Track which letters have been guessed correctly for this round
-  const correctGuesses = guesses.filter(g => letters.includes(g));
+  const correctGuesses = guesses.filter(
+    g => letters.some(l => isGuessable(l) && l === g)
+  );
 
   // Helper to count how many times a letter appears in the word
   const countLetterInWord = (letter, wordArr) =>
@@ -673,7 +681,10 @@ function HangmanGame({ lang, t, restartFlag }) {
     setGuesses([...guesses, letter]);
   };
 
-  const isWon = letters.every(l => l === ' ' || guesses.includes(l));
+  // Win if all guessable letters are guessed
+  const isWon = letters.every(
+    l => !isGuessable(l) || guesses.includes(l)
+  );
   const isLost = incorrect.length >= MAX_ATTEMPTS;
 
   // Track if the round has been scored already
@@ -800,14 +811,18 @@ function HangmanGame({ lang, t, restartFlag }) {
           <div className="text-2xl tracking-widest my-4">
             {letters.map((l, i) => (
               <span key={i} className="inline-block w-6">
-                {l === ' ' ? ' ' : guesses.includes(l) ? l : "_"}
+                {l === ' '
+                  ? ' '
+                  : isGuessable(l)
+                    ? (guesses.includes(l) ? l : "_")
+                    : l}
               </span>
             ))}
           </div>
           <div className="text-red-500">{t.wrongGuesses}: {incorrect.join(", ")}</div>
           <div className="mt-4 flex flex-wrap gap-2 justify-center">
             {"ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("").map(l => {
-              const isIncorrect = guesses.includes(l) && !letters.includes(l);
+              const isIncorrect = guesses.includes(l) && !letters.some(wl => isGuessable(wl) && wl === l);
               return (
                 <Button
                   key={l}

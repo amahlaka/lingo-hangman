@@ -7,6 +7,7 @@ import {
   Routes,
   Route,
   useSearchParams,
+  useNavigate,
 } from "react-router-dom";
 import { Dialog } from "@headlessui/react"; // or use your modal/dialog component
 import { COMMON_WORDS } from "./commonWords";
@@ -467,7 +468,17 @@ function URLGenerator({ lang, t }) {
     const langParam = `&learningLang=${learningLang}&nativeLang=${nativeLang}`;
     const url = `${window.location.origin}${window.location.pathname}play?words=${encoded}${swapParam}${langParam}`;
     setLink(url);
+    return url; // Return for use in Start Game
   };
+
+  const handleStartGame = () => {
+    const url = generateLink();
+    // Extract the query string from the generated link
+    const query = url.split("play?")[1] || "";
+    navigate(`/play?${query}`);
+  };
+
+  const navigate = useNavigate();
 
   return (
     <Card className="mb-6">
@@ -507,12 +518,6 @@ function URLGenerator({ lang, t }) {
               ))}
             </select>
           </div>
-          <Button
-            type="button"
-            onClick={addRandomCommonWords}
-          >
-            {t.addCommonWords || "Add 5 common words"}
-          </Button>
         </div>
         <div className="flex gap-4 mb-2 items-end">
           <Button
@@ -575,6 +580,14 @@ function URLGenerator({ lang, t }) {
         </div>
         <Button onClick={addPair}>{t.addWord}</Button>
         <Button onClick={generateLink}>{t.generateLink}</Button>
+        {/* Add Start Game button */}
+        <Button
+          variant="secondary"
+          onClick={handleStartGame}
+          disabled={pairs.length === 0 || pairs.some(p => !p.learning || !p.native)}
+        >
+          Start Game
+        </Button>
         <Button
           variant="destructive"
           onClick={() => setPairs([])}

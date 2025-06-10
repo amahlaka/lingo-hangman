@@ -41,7 +41,25 @@ const i18n = {
     swapModeLabel: "Occasionally swap question/answer direction",
     learningLangLabel: "Learning language",
     nativeLangLabel: "Native language",
-    addCommonWords: "Add 5 common words"
+    addCommonWords: "Add 5 common words",
+    newGame: "New Game",
+    presets: "Presets",
+    selectCategories: "Select categories",
+    howManyToAdd: "How many to add:",
+    addSelected: "Add selected",
+    close: "Close",
+    unexclude: "Unexclude",
+    exclude: "Exclude",
+    word: "word",
+    s: "s",
+    match: "match",
+    the: "the",
+    selected: "selected",
+    categories: "categories",
+    removeWord: "Remove word",
+    removeIcon: "×",
+    presetsMatchCount: "{count} matching words in selected categories.",
+    removeAllWords: "Remove all words"
   },
   fi: {
     generateLink: "Luo linkki",
@@ -61,19 +79,47 @@ const i18n = {
     generateGameLinkTitle: "Luo pelilinkki",
     selectLanguage: "Valitse kieli",
     congratsTitle: "Onnittelut!",
-    congratsMsg: "Arvasit kaikki sanat oikein ainakin kerran!",
-    close: "Sulje",
+    congratsMsg: "Arvasit kaikki sanat oikein!",
+    closeStr: "Sulje",
     restart: "Aloita alusta",
     swapModeLabel: "Vaihda kysymyksen ja vastauksen suuntaa satunnaisesti",
     learningLangLabel: "Opittava kieli",
     nativeLangLabel: "Oma kieli",
-    addCommonWords: "Lisää 5 yleistä sanaa"
+    addCommonWords: "Lisää 5 yleistä sanaa",
+    newGame: "Uusi peli",
+    presets: "Oletukset",
+    selectCategories: "Valitse kategoriat",
+    howManyToAdd: "Kuinka monta lisätään:",
+    addSelected: "Lisää valitut",
+    closeStr: "Sulje",
+    unexclude: "Poista sulku",
+    exclude: "Sulje pois",
+    word: "sana",
+    s: "t",
+    match: "ottelu",
+    the: "se",
+    selected: "valitut",
+    categories: "kategoriat",
+    removeWord: "Poista sana",
+    removeIcon: "×",
+    presetsMatchCount: "{count} sanaa valituissa kategorioissa.",
+    removeAllWords: "Poista kaikki sanat"
   }
 };
 
+// Unicode-safe base64 encode/decode helpers
+function toBase64Unicode(str) {
+  // Encode to base64, handling Unicode
+  return btoa(unescape(encodeURIComponent(str)));
+}
+function fromBase64Unicode(str) {
+  // Decode from base64, handling Unicode
+  return decodeURIComponent(escape(atob(str)));
+}
+
 function decodeWords(encoded) {
   try {
-    const decoded = atob(decodeURIComponent(encoded));
+    const decoded = fromBase64Unicode(decodeURIComponent(encoded));
     return JSON.parse(decoded);
   } catch {
     return [
@@ -216,6 +262,16 @@ function HamburgerMenu({ lang, setLang, onRestart }) {
             >
               {i18n[lang].restart || "Restart"}
             </button>
+            <button
+              className="w-full px-3 py-1 rounded border border-blue-400 text-blue-600 bg-white dark:bg-gray-900"
+              onClick={() => {
+                setOpen(false);
+                window.location.href = window.location.origin + window.location.pathname + "#/";
+              }}
+              type="button"
+            >
+              {i18n[lang].newGame || "New Game"}
+            </button>
           </div>
         </div>
       )}
@@ -223,7 +279,7 @@ function HamburgerMenu({ lang, setLang, onRestart }) {
   );
 }
 
-function PresetsModal({ open, onClose, categories, setCategories, allCategories, onAdd, matchCount, numToAdd, setNumToAdd, excludedCategories, setExcludedCategories }) {
+function PresetsModal({ open, onClose, categories, setCategories, allCategories, onAdd, matchCount, numToAdd, setNumToAdd, excludedCategories, setExcludedCategories, t }) {
   // Helper to toggle exclusion
   const toggleExclude = (cat) => {
     if (excludedCategories.includes(cat)) {
@@ -249,7 +305,7 @@ function PresetsModal({ open, onClose, categories, setCategories, allCategories,
     <Dialog open={open} onClose={onClose} className="fixed z-50 inset-0 flex items-center justify-center">
       <div className="fixed inset-0 bg-black/40" aria-hidden="true" />
       <div className="relative bg-white dark:bg-gray-900 rounded-lg shadow-lg max-w-md w-full p-6 z-10">
-        <Dialog.Title className="text-lg font-bold mb-2">Select categories</Dialog.Title>
+        <Dialog.Title className="text-lg font-bold mb-2">{t.selectCategories || "Select categories"}</Dialog.Title>
         <div className="flex flex-wrap gap-2 mb-4">
           {allCategories.map(cat => (
             <div key={cat} className="flex items-center gap-1 cursor-pointer border rounded px-2 py-1"
@@ -278,19 +334,22 @@ function PresetsModal({ open, onClose, categories, setCategories, allCategories,
                 type="button"
                 className={`ml-1 text-xs px-1 rounded ${excludedCategories.includes(cat) ? "bg-red-500 text-white" : "bg-gray-200 dark:bg-gray-700"}`}
                 onClick={() => toggleExclude(cat)}
-                aria-label={excludedCategories.includes(cat) ? "Unexclude" : "Exclude"}
+                aria-label={excludedCategories.includes(cat) ? (t.unexclude || "Unexclude") : (t.exclude || "Exclude")}
                 style={{ minWidth: 22 }}
               >
-                {excludedCategories.includes(cat) ? "✖" : "🚫"}
+                {excludedCategories.includes(cat) ? (t.unexcludeIcon || "✖") : (t.excludeIcon || "🚫")}
               </button>
             </div>
           ))}
         </div>
         <div className="mb-4 text-sm">
-          {matchCount} word{matchCount === 1 ? "" : "s"} match the selected categories.
+          {/* Use a full sentence from translation with template values */}
+          {t.presetsMatchCount
+            ? t.presetsMatchCount.replace("{count}", matchCount)
+            : `${matchCount} matching words in selected categories.`}
         </div>
         <div className="mb-4 flex items-center gap-2">
-          <label htmlFor="numToAdd" className="text-sm">How many to add:</label>
+          <label htmlFor="numToAdd" className="text-sm">{t.howManyToAdd || "How many to add:"}</label>
           <input
             id="numToAdd"
             type="number"
@@ -303,8 +362,8 @@ function PresetsModal({ open, onClose, categories, setCategories, allCategories,
           />
         </div>
         <div className="flex gap-2">
-          <Button onClick={onAdd} disabled={matchCount === 0}>Add selected</Button>
-          <Button variant="outline" onClick={onClose}>Close</Button>
+          <Button onClick={onAdd} disabled={matchCount === 0}>{t.addSelected || "Add selected"}</Button>
+          <Button variant="outline" onClick={onClose}>{t.closeStr || "Close"}</Button>
         </div>
       </div>
     </Dialog>
@@ -344,7 +403,8 @@ function URLGenerator({ lang, t }) {
   const allCategories = Array.from(
     new Set(COMMON_WORDS.flatMap(w => w.categories || []))
   ).sort();
-  const [selectedCategories, setSelectedCategories] = useState(allCategories);
+  // By default, no categories selected
+  const [selectedCategories, setSelectedCategories] = useState([]);
 
   // New: excluded categories state
   const [excludedCategories, setExcludedCategories] = useState([]);
@@ -404,7 +464,7 @@ function URLGenerator({ lang, t }) {
     const mapLang = code => (code === "en-GB" ? "en" : code);
     const validPairs = pairs.filter(p => p.learning && p.native);
     const json = JSON.stringify(validPairs);
-    const encoded = encodeURIComponent(btoa(json));
+    const encoded = encodeURIComponent(toBase64Unicode(json));
     const swapParam = swapMode ? "&swap=1" : "";
     const langParam = `&learningLang=${learningLang}&nativeLang=${nativeLang}`;
     const url = `${window.location.origin}${window.location.pathname}play?words=${encoded}${swapParam}${langParam}`;
@@ -461,7 +521,7 @@ function URLGenerator({ lang, t }) {
             type="button"
             onClick={() => setPresetsOpen(true)}
           >
-            Presets
+            {t.presets || "Presets"}
           </Button>
         </div>
         <PresetsModal
@@ -476,6 +536,7 @@ function URLGenerator({ lang, t }) {
           setNumToAdd={setNumToAdd}
           excludedCategories={excludedCategories}
           setExcludedCategories={setExcludedCategories}
+          t={t}
         />
         {pairs.map((pair, idx) => (
           <div key={idx} className="flex gap-2 items-center">
@@ -495,10 +556,10 @@ function URLGenerator({ lang, t }) {
               size="icon"
               className="h-8 w-8 px-0 py-0"
               onClick={() => removePair(idx)}
-              aria-label="Remove word"
+              aria-label={t.removeWord || "Remove word"}
               disabled={pairs.length <= 1}
             >
-              ×
+              {t.removeIcon || "×"}
             </Button>
           </div>
         ))}
@@ -516,6 +577,13 @@ function URLGenerator({ lang, t }) {
         </div>
         <Button onClick={addPair}>{t.addWord}</Button>
         <Button onClick={generateLink}>{t.generateLink}</Button>
+        <Button
+          variant="destructive"
+          onClick={() => setPairs([])}
+          disabled={pairs.length === 0}
+        >
+          {t.removeAllWords || "Remove all words"}
+        </Button>
         {link && (
           <div className="mt-2">
             <Input readOnly value={link} onClick={(e) => e.target.select()} />
@@ -558,7 +626,7 @@ function CongratsModal({ open, onClose, t, guessedStats, words, onRestart }) {
           </table>
         </div>
         <div className="flex flex-col gap-2">
-          <Button onClick={onClose}>{t.close || "Close"}</Button>
+          <Button onClick={onClose}>{t.closeStr || "Close"}</Button>
           <Button variant="outline" onClick={onRestart}>{t.restart || "Restart"}</Button>
         </div>
       </div>
@@ -577,12 +645,36 @@ function HangmanGame({ lang, t, restartFlag }) {
     { learning: "traffic light", native: "liikennevalo" }
   ];
 
-  const [currentIndex, setCurrentIndex] = useState(() => {
+  // Pick a random index for the first word on initial mount, only from unguessed words
+  const getInitialIndex = () => {
     const saved = localStorage.getItem(STORAGE_KEY);
-    return saved ? parseInt(saved, 10) || 0 : 0;
-  });
+    if (saved) return parseInt(saved, 10) || 0;
+    // Only pick from unguessed words
+    const guessed = JSON.parse(localStorage.getItem("lingoHangmanGuessedWords") || "[]");
+    const unguessedIndexes = words
+      .map((w, i) => (!guessed.includes((w.learning || "").toLowerCase()) ? i : null))
+      .filter(i => i !== null);
+    if (unguessedIndexes.length === 0) return 0;
+    return unguessedIndexes[Math.floor(Math.random() * unguessedIndexes.length)];
+  };
 
-  const [guesses, setGuesses] = useState([]);
+  // Restore guesses from localStorage if available and for the same word
+  const getInitialGuesses = () => {
+    try {
+      const saved = JSON.parse(localStorage.getItem("lingoHangmanGuesses") || "[]");
+      const savedIndex = parseInt(localStorage.getItem(STORAGE_KEY), 10);
+      if (
+        Array.isArray(saved) &&
+        savedIndex === getInitialIndex()
+      ) {
+        return saved;
+      }
+    } catch {}
+    return [];
+  };
+
+  const [currentIndex, setCurrentIndex] = useState(getInitialIndex);
+  const [guesses, setGuesses] = useState(getInitialGuesses);
   const [score, setScore] = useState(() => {
     const saved = localStorage.getItem(SCORE_KEY);
     return saved ? JSON.parse(saved) : { correct: 0, incorrect: 0 };
@@ -613,12 +705,13 @@ function HangmanGame({ lang, t, restartFlag }) {
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, currentIndex.toString());
+    localStorage.setItem("lingoHangmanGuesses", JSON.stringify(guesses));
     localStorage.setItem(SCORE_KEY, JSON.stringify(score));
     localStorage.setItem("lingoHangmanGuessedWords", JSON.stringify(guessedWords));
     localStorage.setItem("lingoHangmanGuessedStats", JSON.stringify(guessedStats));
     localStorage.setItem("lingoHangmanWordAttempts", JSON.stringify(wordAttempts));
     localStorage.setItem("lingoHangmanTotalScore", totalScore.toString());
-  }, [currentIndex, score, guessedWords, guessedStats, wordAttempts, totalScore]);
+  }, [currentIndex, guesses, score, guessedWords, guessedStats, wordAttempts, totalScore]);
 
   // For each round, randomly decide if swap is active (if swapMode is enabled)
   const [swap, setSwap] = useState(false);
@@ -716,13 +809,86 @@ function HangmanGame({ lang, t, restartFlag }) {
     // eslint-disable-next-line
   }, [isWon, isLost, roundScored]);
 
+  // Helper to get the next unguessed word index
+  const getNextUnguessedIndex = (currentIdx, guessedWordsArr) => {
+    const total = words.length;
+    for (let i = 1; i <= total; ++i) {
+      const idx = (currentIdx + i) % total;
+      const wordKey = (words[idx].learning || "").toLowerCase();
+      if (!guessedWordsArr.includes(wordKey)) return idx;
+    }
+    return null;
+  };
+
+  // When the user wins, mark the word as guessed
+  useEffect(() => {
+    if (isWon) {
+      const wordKey = (learning || "").toLowerCase();
+      if (!guessedWords.includes(wordKey)) {
+        setGuessedWords(prev => [...prev, wordKey]);
+      }
+    }
+    // eslint-disable-next-line
+  }, [isWon]);
+
+  // Helper to get the set of unique learning words (case-insensitive)
+  const uniqueLearningWords = Array.from(new Set(words.map(w => (w.learning || "").toLowerCase())));
+
+  // If all words are guessed, show congrats modal
+  useEffect(() => {
+    if (
+      words.length > 0 &&
+      guessedWords.length === words.length
+    ) {
+      setShowCongrats(true);
+    }
+  }, [guessedWords, words.length]);
+
+  // Block further play if all words are guessed
+  if (showCongrats) {
+    return (
+      <CongratsModal
+        open={showCongrats}
+        onClose={handleCloseCongrats}
+        onRestart={handleRestart}
+        t={{
+          ...t,
+          congratsTitle: t.congratsTitle || "Congratulations!",
+          congratsMsg: t.congratsMsg || "You've guessed all words correctly at least once!",
+          close: t.closeStr || "Close",
+          attempts: t.attempts || "Attempts",
+          restart: t.restart || "Restart"
+        }}
+        guessedStats={guessedStats}
+        words={Array.from(new Set(words.map(w => JSON.stringify(w)))).map(s => JSON.parse(s))}
+      />
+    );
+  }
+
   const handleNext = () => {
+    // Prevent advancing if all words are guessed
+    if (guessedWords.length === words.length) {
+      setShowCongrats(true);
+      return;
+    }
     if (isWon) setScore(prev => ({ ...prev, correct: prev.correct + 1 }));
     if (isLost) setScore(prev => ({ ...prev, incorrect: prev.incorrect + 1 }));
-    setCurrentIndex((prev) => (prev + 1) % words.length);
+
+    // Find next unguessed word
+    const nextIndex = getNextUnguessedIndex(currentIndex, isWon
+      ? [...guessedWords, (learning || "").toLowerCase()]
+      : guessedWords
+    );
+    if (nextIndex === null) {
+      setShowCongrats(true);
+      return;
+    }
+    setCurrentIndex(nextIndex);
     setGuesses([]);
     setCurrentAttempts(0);
     setRoundScored(false);
+    localStorage.setItem(STORAGE_KEY, nextIndex.toString());
+    localStorage.setItem("lingoHangmanGuesses", JSON.stringify([]));
   };
 
   const handleRestart = () => {
@@ -740,6 +906,7 @@ function HangmanGame({ lang, t, restartFlag }) {
     localStorage.removeItem("lingoHangmanGuessedStats");
     localStorage.removeItem("lingoHangmanWordAttempts");
     localStorage.removeItem("lingoHangmanTotalScore");
+    localStorage.removeItem("lingoHangmanGuesses");
   };
 
   const handleCloseCongrats = () => {
@@ -762,6 +929,7 @@ function HangmanGame({ lang, t, restartFlag }) {
     localStorage.removeItem("lingoHangmanGuessedStats");
     localStorage.removeItem("lingoHangmanWordAttempts");
     localStorage.removeItem("lingoHangmanTotalScore");
+    localStorage.removeItem("lingoHangmanGuesses");
     // eslint-disable-next-line
   }, [restartFlag]);
 
@@ -786,7 +954,7 @@ function HangmanGame({ lang, t, restartFlag }) {
           ...t,
           congratsTitle: t.congratsTitle || "Congratulations!",
           congratsMsg: t.congratsMsg || "You've guessed all words correctly at least once!",
-          close: t.close || "Close",
+          close: t.closeStr || "Close",
           attempts: t.attempts || "Attempts",
           restart: t.restart || "Restart"
         }}
@@ -821,7 +989,7 @@ function HangmanGame({ lang, t, restartFlag }) {
           </div>
           <div className="text-red-500">{t.wrongGuesses}: {incorrect.join(", ")}</div>
           <div className="mt-4 flex flex-wrap gap-2 justify-center">
-            {"ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("").map(l => {
+            {getAlphabet(learningLang).map(l => {
               const isIncorrect = guesses.includes(l) && !letters.some(wl => isGuessable(wl) && wl === l);
               return (
                 <Button
@@ -853,6 +1021,43 @@ function HangmanGame({ lang, t, restartFlag }) {
     </div>
   );
 }
+
+// Helper: get alphabet for the current learning language
+const getAlphabet = (lang) => {
+  switch (lang) {
+    case "fi": // Finnish
+      return "ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖ".split("");
+    case "de": // German
+      return "AÄBCDEFGHIJKLMNOÖPQRSßTUÜVWXYZ".split("");
+    case "fr": // French
+      // French uses accents but for hangman, base letters are enough
+      return "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+    case "es": // Spanish
+      return "AÁBCDEÉFGHIÍJKLMNÑOÓPQRSTUÚÜVWXYZ".split("");
+    case "it": // Italian
+      return "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+    case "sv": // Swedish
+      return "AÅÄBCDEFGHIJKLMNOPQRSTUVWXYZÖ".split("");
+    case "pt": // Portuguese
+      return "AÁÂÃÀBCÇDEÉÊFGHIÍJKLMNOÓÔÕPQRSTUÚÜVWXYZ".split("");
+    case "nl": // Dutch
+      return "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+    case "pl": // Polish
+      return "AĄBCĆDEĘFGHIJKLŁMNŃOÓPQRSŚTUVWXYZŹŻ".split("");
+    case "cs": // Czech
+      return "AÁBCČDĎEÉĚFGHIÍJKLMNŇOÓPQRŘSŠTŤUÚŮVWXZÝŽ".split("");
+    case "ro": // Romanian
+      return "AĂÂBCDEFGHIÎJKLMNOPQRSȘTȚUVWXYZ".split("");
+    case "hu": // Hungarian
+      return "AÁBCDEÉFGHIÍJKLMNOÓÖŐPQRSTUÚÜŰVWXYZ".split("");
+    case "tr": // Turkish
+      return "AÂBCÇDEFGĞHIİJKLMNOÖPRSŞTUÜVYZ".split("");
+    case "en-GB":
+    case "en":
+    default:
+      return "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+  }
+};
 
 export default function LingoHangman() {
   const detectBrowserLanguage = () => {

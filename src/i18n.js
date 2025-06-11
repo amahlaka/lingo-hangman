@@ -50,6 +50,16 @@ const i18n = {
     gameOver: "Game Over",
     playAgain: "Play Again",
     gameLinkGenerated: "Game link generated successfully!",
+    removeIncorrect: "Bomb",
+    removeIncorrectDesc: "Remove an incorrect letter (25 points)",
+    fiftyFifty: "50-50",
+    fiftyFiftyDesc: "Highlight 2 letters, one is correct (15 points)",
+    nuke: "Nuke",
+    nukeDesc: "Nuke: Remove 2-6 incorrect letters (100 points)",
+    startGame: "Start Game",
+    addWordPlaceholder: "Add a new word pair",
+    removeAllWordsDesc: "Are you sure you want to remove all words? This action cannot be undone.",
+    removeWordDesc: "Are you sure you want to remove this word? This action cannot be undone.",
   },
   fi: {
     generateLink: "Luo linkki",
@@ -102,6 +112,16 @@ const i18n = {
     gameOver: "Peli ohi",
     playAgain: "Pelaa uudelleen",
     gameLinkGenerated: "Pelilinkki luotu onnistuneesti!",
+    removeIncorrect: "Pommi",
+    removeIncorrectDesc: "Poista satunnainen väärä kirjain (25 pistettä)",
+    fiftyFifty: "50-50",
+    fiftyFiftyDesc: "Korosta 2 kirjainta, joista toinen on oikea (15 pistettä)",
+    nuke: "Ydinpommi",
+    nukeDesc: "Ydinisku: Poistaa 2-6 väärää kirjainta (100 pistettä)",
+    startGame: "Aloita peli",
+    addWordPlaceholder: "Lisää uusi sanapari",
+    removeAllWordsDesc: "Haluatko varmasti poistaa kaikki sanat? Tätä toimintoa ei voi peruuttaa.",
+    removeWordDesc: "Haluatko varmasti poistaa tämän sanan? Tätä toimintoa ei voi peruuttaa.",
   }
 };
 

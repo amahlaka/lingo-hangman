@@ -10,6 +10,7 @@
   "dependencies": {
     "@headlessui/react": "^2.2.4",
     "@tailwindcss/vite": "^4.1.9",
+    "jest-fixed-jsdom": "^0.0.9",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-router-dom": "^7.6.2"

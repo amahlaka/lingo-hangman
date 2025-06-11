@@ -214,7 +214,7 @@ export default function URLGenerator({ lang, t, setLang, darkMode, setDarkMode }
           disabled={pairs.length === 0 || pairs.some(p => !p.learning || !p.native)}
           className="mr-2"
         >
-          Start Game
+          {t.startGame || "Start Game"}
         </Button>
         <Button
           variant="destructive"

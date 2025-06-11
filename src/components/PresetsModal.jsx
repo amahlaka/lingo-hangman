@@ -1,0 +1,89 @@
+import React from "react";
+import { Dialog } from "@headlessui/react";
+import { Button } from "@/components/ui/button";
+
+export default function PresetsModal({ open, onClose, categories, setCategories, allCategories, onAdd, matchCount, numToAdd, setNumToAdd, excludedCategories, setExcludedCategories, t }) {
+  const toggleExclude = (cat) => {
+    if (excludedCategories.includes(cat)) {
+      setExcludedCategories(excludedCategories.filter(c => c !== cat));
+    } else {
+      setExcludedCategories([...excludedCategories, cat]);
+      setCategories(categories.filter(c => c !== cat));
+    }
+  };
+  const toggleInclude = (cat) => {
+    if (categories.includes(cat)) {
+      setCategories(categories.filter(c => c !== cat));
+    } else {
+      setCategories([...categories, cat]);
+      setExcludedCategories(excludedCategories.filter(c => c !== cat));
+    }
+  };
+
+  return (
+    <Dialog open={open} onClose={onClose} className="fixed z-50 inset-0 flex items-center justify-center">
+      <div className="fixed inset-0 bg-black/40" aria-hidden="true" />
+      <div className="relative bg-white dark:bg-gray-900 rounded-lg shadow-lg max-w-md w-full p-6 z-10">
+        <Dialog.Title className="text-lg font-bold mb-2">{t.selectCategories || "Select categories"}</Dialog.Title>
+        <div className="flex flex-wrap gap-2 mb-4">
+          {allCategories.map(cat => (
+            <div key={cat} className="flex items-center gap-1 cursor-pointer border rounded px-2 py-1"
+              style={{
+                background: excludedCategories.includes(cat)
+                  ? "#fee2e2"
+                  : categories.includes(cat)
+                  ? "#d1fae5"
+                  : undefined,
+                borderColor: excludedCategories.includes(cat)
+                  ? "#f87171"
+                  : categories.includes(cat)
+                  ? "#34d399"
+                  : "#d1d5db"
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={categories.includes(cat)}
+                onChange={() => toggleInclude(cat)}
+                className="accent-blue-600"
+                disabled={excludedCategories.includes(cat)}
+              />
+              <span className="text-sm">{cat}</span>
+              <button
+                type="button"
+                className={`ml-1 text-xs px-1 rounded ${excludedCategories.includes(cat) ? "bg-red-500 text-white" : "bg-gray-200 dark:bg-gray-700"}`}
+                onClick={() => toggleExclude(cat)}
+                aria-label={excludedCategories.includes(cat) ? (t.unexclude || "Unexclude") : (t.exclude || "Exclude")}
+                style={{ minWidth: 22 }}
+              >
+                {excludedCategories.includes(cat) ? (t.unexcludeIcon || "✖") : (t.excludeIcon || "🚫")}
+              </button>
+            </div>
+          ))}
+        </div>
+        <div className="mb-4 text-sm">
+          {t.presetsMatchCount
+            ? t.presetsMatchCount.replace("{count}", matchCount)
+            : `${matchCount} matching words in selected categories.`}
+        </div>
+        <div className="mb-4 flex items-center gap-2">
+          <label htmlFor="numToAdd" className="text-sm">{t.howManyToAdd || "How many to add:"}</label>
+          <input
+            id="numToAdd"
+            type="number"
+            min={1}
+            max={matchCount}
+            value={numToAdd}
+            onChange={e => setNumToAdd(Math.max(1, Math.min(matchCount, Number(e.target.value) || 1)))}
+            className="w-16 border rounded px-2 py-1 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+            disabled={matchCount === 0}
+          />
+        </div>
+        <div className="flex gap-2">
+          <Button onClick={onAdd} disabled={matchCount === 0}>{t.addSelected || "Add selected"}</Button>
+          <Button variant="outline" onClick={onClose}>{t.closeStr || "Close"}</Button>
+        </div>
+      </div>
+    </Dialog>
+  );
+}

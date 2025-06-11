@@ -12,7 +12,7 @@ function toBase64Unicode(str) {
   return btoa(unescape(encodeURIComponent(str)));
 }
 
-export default function URLGenerator({ lang, t, setLang }) {
+export default function URLGenerator({ lang, t, setLang, darkMode, setDarkMode }) {
   const languageOptions = [
     { code: "en-GB", label: "English (UK)" },
     { code: "en", label: "English (US)" },
@@ -113,7 +113,7 @@ export default function URLGenerator({ lang, t, setLang }) {
     <Card className="mb-6">
       <CardContent className="p-4 space-y-4">
         <div className="flex justify-end mb-2">
-          <HamburgerMenu lang={lang} setLang={setLang} onRestart={() => {}} />
+          <HamburgerMenu lang={lang} setLang={setLang} onRestart={() => {}} darkMode={darkMode} setDarkMode={setDarkMode} />
         </div>
         <h2 className="text-lg font-bold">{t.generateGameLinkTitle}</h2>
         <div className="flex gap-4 mb-2 items-end">
@@ -152,6 +152,7 @@ export default function URLGenerator({ lang, t, setLang }) {
           <Button
             type="button"
             onClick={() => setPresetsOpen(true)}
+            className="mr-2"
           >
             {t.presets || "Presets"}
           </Button>
@@ -159,7 +160,7 @@ export default function URLGenerator({ lang, t, setLang }) {
         <Button
           type="button"
           variant="outline"
-          className="mb-2"
+          className="mb-2 mr-2"
           onClick={() => setShowWords(v => !v)}
         >
           {showWords ? (t.hideWords || "Hide words") : (t.showWords || "Show words")}
@@ -205,12 +206,13 @@ export default function URLGenerator({ lang, t, setLang }) {
             {t.swapModeLabel || "Occasionally swap question/answer direction"}
           </label>
         </div>
-        <Button onClick={addPair}>{t.addWord}</Button>
-        <Button onClick={generateLink}>{t.generateLink}</Button>
+        <Button onClick={addPair} className="mr-2">{t.addWord}</Button>
+        <Button onClick={generateLink} className="mr-2">{t.generateLink}</Button>
         <Button
           variant="secondary"
           onClick={handleStartGame}
           disabled={pairs.length === 0 || pairs.some(p => !p.learning || !p.native)}
+          className="mr-2"
         >
           Start Game
         </Button>
@@ -227,6 +229,21 @@ export default function URLGenerator({ lang, t, setLang }) {
           </div>
         )}
       </CardContent>
+      {/* Add PresetsModal to control its visibility */}
+      <PresetsModal
+        open={presetsOpen}
+        onClose={() => setPresetsOpen(false)}
+        categories={selectedCategories}
+        setCategories={setSelectedCategories}
+        allCategories={allCategories}
+        onAdd={addRandomCommonWords}
+        matchCount={filteredWords.length}
+        numToAdd={numToAdd}
+        setNumToAdd={setNumToAdd}
+        excludedCategories={excludedCategories}
+        setExcludedCategories={setExcludedCategories}
+        t={t}
+      />
     </Card>
   );
 }

@@ -41,7 +41,15 @@ const i18n = {
     removeIcon: "×",
     presetsMatchCount: "{count} matching words in selected categories.",
     removeAllWords: "Remove all words",
-    selectCategoryLabel: "Select category: {category}"
+    selectCategoryLabel: "Select category: {category}",
+    systemMode: "System",
+    lightMode: "Light",
+    darkMode: "Dark",
+    round: "Round",
+    rounds: "Rounds",
+    gameOver: "Game Over",
+    playAgain: "Play Again",
+    gameLinkGenerated: "Game link generated successfully!",
   },
   fi: {
     generateLink: "Luo linkki",
@@ -85,7 +93,15 @@ const i18n = {
     removeIcon: "×",
     presetsMatchCount: "{count} sanaa valituissa kategorioissa.",
     removeAllWords: "Poista kaikki sanat",
-    selectCategoryLabel: "Valitse kategoria: {category}"
+    selectCategoryLabel: "Valitse kategoria: {category}",
+    systemMode: "Järjestelmä",
+    lightMode: "Vaalea",
+    darkMode: "Tumma",
+    round: "Kierros",
+    rounds: "Kierrosta",
+    gameOver: "Peli ohi",
+    playAgain: "Pelaa uudelleen",
+    gameLinkGenerated: "Pelilinkki luotu onnistuneesti!",
   }
 };
 

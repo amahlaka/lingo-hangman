@@ -57,7 +57,7 @@ function shuffleArray(arr) {
   return a;
 }
 
-export default function HangmanGame({ lang, t, restartFlag, testWords = "", setLang }) {
+export default function HangmanGame({ lang, t, restartFlag, testWords = "", setLang, darkMode, setDarkMode }) {
   const [params] = useSearchParams();
   if (testWords !== "") {
     // If testWords is provided, use it instead of URL params
@@ -150,7 +150,18 @@ export default function HangmanGame({ lang, t, restartFlag, testWords = "", setL
   // Handle a letter guess
   const handleGuess = (letter) => {
     if (guesses.includes(letter)) return;
-    setGuesses([...guesses, letter]);
+    setGuesses(prevGuesses => {
+      const newGuesses = [...prevGuesses, letter];
+      // Calculate score increment for this guess
+      let scoreDelta = 0;
+      if (letters.some(l => isGuessable(l) && l === letter)) {
+        scoreDelta += 10 * countLetterInWord(letter, letters);
+      } else {
+        scoreDelta -= 10;
+      }
+      setTotalScore(prev => prev + scoreDelta);
+      return newGuesses;
+    });
   };
 
   // Check win/loss conditions
@@ -177,10 +188,6 @@ export default function HangmanGame({ lang, t, restartFlag, testWords = "", setL
   useEffect(() => {
     if ((isWon || isLost) && !roundScored) {
       let roundScore = 0;
-      for (const g of correctGuesses) {
-        roundScore += 10 * countLetterInWord(g, letters);
-      }
-      roundScore -= 10 * incorrect.length;
       if (isWon) {
         roundScore += 50;
         if (incorrect.length === 0) {
@@ -274,7 +281,11 @@ export default function HangmanGame({ lang, t, restartFlag, testWords = "", setL
       <Card>
         <CardContent className="text-center p-4">
           <div className="flex justify-end mb-2">
-            <HamburgerMenu lang={lang} setLang={setLang} onRestart={handleRestart} />
+            <HamburgerMenu lang={lang} setLang={setLang} onRestart={handleRestart} darkMode={darkMode} setDarkMode={setDarkMode} />
+          </div>
+          {/* Show current round and rounds left */}
+          <div className="mb-2 text-sm font-semibold text-gray-700 dark:text-gray-200">
+            {t.round || "Round"}: {currentIndex + 1} / {wordsOrder.length}
           </div>
           <h2 className="text-xl font-semibold" data-testid="native-word">{t.meaning}: {native}</h2>
           {timeValue && (
@@ -286,19 +297,41 @@ export default function HangmanGame({ lang, t, restartFlag, testWords = "", setL
             {t.score}: {totalScore}
           </div>
           <HangmanDrawing incorrect={incorrect.length} t={t} />
+          {/* Split word into lines if too long */}
           <div className="text-2xl tracking-widest my-4">
-            {letters.map((l, i) => (
-              <span key={i} className="inline-block w-6" data-testid={`letter-${i}`}>
-                {l === ' '
-                  ? ' '
-                  : isGuessable(l)
-                    ? (guesses.includes(l) ? l : "_")
-                    : l}
-              </span>
-            ))}
+            {(() => {
+              const maxPerLine = 12;
+              const wordGroups = [];
+              let currentGroup = [];
+              let currentLen = 0;
+              for (let i = 0; i < letters.length; i++) {
+                const l = letters[i];
+                if (l === ' ' && currentLen >= maxPerLine) {
+                  wordGroups.push(currentGroup);
+                  currentGroup = [];
+                  currentLen = 0;
+                }
+                currentGroup.push({ l, i });
+                currentLen++;
+              }
+              if (currentGroup.length) wordGroups.push(currentGroup);
+              return wordGroups.map((group, idx) => (
+                <div key={idx} className="flex justify-center">
+                  {group.map(({ l, i }) => (
+                    <span key={i} className="inline-block w-6" data-testid={`letter-${i}`}>
+                      {l === ' '
+                        ? ' '
+                        : isGuessable(l)
+                          ? (guesses.includes(l) ? l : "_")
+                          : l}
+                    </span>
+                  ))}
+                </div>
+              ));
+            })()}
           </div>
           <div className="text-red-500" data-testid="word-display">{t.wrongGuesses}: {incorrect.join(", ")}</div>
-          <div className="mt-4 flex flex-wrap gap-2 justify-center">
+          <div className="mt-4 flex flex-wrap gap-2 justify-center relative">
             {getAlphabet(swap ? nativeLang : learningLang).map(l => {
               const isIncorrect = guesses.includes(l) && !letters.some(wl => isGuessable(wl) && wl === l);
               return (
@@ -314,20 +347,28 @@ export default function HangmanGame({ lang, t, restartFlag, testWords = "", setL
                 </Button>
               );
             })}
+            {(isWon || isLost) && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/80 dark:bg-slate-900/80 rounded z-10">
+                <p className="text-lg font-semibold mb-2" data-testid="guessed">
+                  {isWon ? t.guessed : `${t.answerWas}: ${learning.toUpperCase()}`}
+                </p>
+                <p className="mb-2">
+                  {isWon
+                    ? `${t.score}: ${t.correct} ${score.correct + 1} / ${t.incorrect} ${score.incorrect}`
+                    : `${t.score}: ${t.correct} ${score.correct} / ${t.incorrect} ${score.incorrect + 1}`}
+                </p>
+                <p className="mb-2">
+                  {t.totalScore || "Total score"}: {totalScore} 
+
+                </p>
+                <Button onClick={handleNext}>
+                  {t.nextWord}
+                </Button>
+              </div>
+            )}
           </div>
-          {(isWon || isLost) && (
-            <div className="mt-4 space-y-2">
-              <p className="text-lg font-semibold" data-testid="guessed">
-                {isWon ? t.guessed : `${t.answerWas}: ${learning.toUpperCase()}`}
-              </p>
-              <p>{t.score}: {t.correct} {score.correct} / {t.incorrect} {score.incorrect}</p>
-              <Button onClick={handleNext}>
-                {t.nextWord}
-              </Button>
-            </div>
-          )}
           {showAllGuessed && (
-            <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+            <div className="fixed inset-0 flex items-center justify-center bg-neutral-950/80 z-50">
               <div className="bg-white dark:bg-gray-800 p-8 rounded shadow-lg text-center">
                 <h3 className="text-2xl font-bold mb-4">{t.allGuessed || "All words completed!"}</h3>
                 <p className="mb-4">{t.score}: {totalScore}</p>

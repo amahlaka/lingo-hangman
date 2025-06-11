@@ -210,7 +210,13 @@ export default function HangmanGame({ lang, t, restartFlag, testWords = "", setL
     if (isWon) {
       const wordKey = (learning || "").toLowerCase();
       if (!guessedWords.includes(wordKey)) {
-        setGuessedWords(prev => [...prev, wordKey]);
+        if (swapMode) {
+          // Mark both directions as guessed
+          const altKey = (swap ? current.learning : current.native).toLowerCase();
+          setGuessedWords(prev => Array.from(new Set([...prev, wordKey, altKey])));
+        } else {
+          setGuessedWords(prev => [...prev, wordKey]);
+        }
       }
     }
   }, [isWon]);

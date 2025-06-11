@@ -1,3 +1,14 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Safe area for PWA status bar (iOS/Android) */
+.safe-top {
+  padding-top: env(safe-area-inset-top, 16px);
+}
+
+@media (min-width: 768px) {
+  .safe-top {
+    padding-top: calc(env(safe-area-inset-top, 16px) + 32px);
+  }
+}

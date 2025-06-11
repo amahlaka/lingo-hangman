@@ -8,8 +8,6 @@ import { useSearchParams } from "react-router-dom";
 import { COMMON_WORDS } from "../commonWords";
 
 const MAX_ATTEMPTS = 6;
-const STORAGE_KEY = "lingoHangmanProgress";
-const SCORE_KEY = "lingoHangmanScore";
 
 function fromBase64Unicode(str) {
   return decodeURIComponent(escape(atob(str)));
@@ -49,77 +47,62 @@ const getAlphabet = (lang) => {
   }
 };
 
-export default function HangmanGame({ lang, t, restartFlag }) {
+// Utility to shuffle an array (Fisher-Yates)
+function shuffleArray(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+export default function HangmanGame({ lang, t, restartFlag, testWords = "", setLang }) {
   const [params] = useSearchParams();
+  if (testWords !== "") {
+    // If testWords is provided, use it instead of URL params
+    params.set("words", testWords);
+  }
   const encoded = params.get("words");
   const swapMode = params.get("swap") === "1";
   const learningLang = params.get("learningLang") || "en";
   const nativeLang = params.get("nativeLang") || "fi";
-  const words = encoded ? decodeWords(encoded) : [
-    { learning: "car", native: "auto" },
-    { learning: "traffic light", native: "liikennevalo" }
-  ];
+  // Shuffle words if loaded from URL param, otherwise pick 5 random from COMMON_WORDS (en-GB/fi)
+  const words = React.useMemo(() => {
+    if (encoded) {
+      return shuffleArray(decodeWords(encoded));
+    }
+    // Pick 5 random words from COMMON_WORDS with en-GB and fi
+    const filtered = COMMON_WORDS.filter(w => w["en-GB"] && w["fi"]);
+    const shuffled = shuffleArray(filtered);
+    return shuffled.slice(0, 5).map(w => ({ learning: w["en-GB"], native: w["fi"] }));
+  }, [encoded]);
 
   const getInitialIndex = () => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) return parseInt(saved, 10) || 0;
-    const guessed = JSON.parse(localStorage.getItem("lingoHangmanGuessedWords") || "[]");
-    const unguessedIndexes = words
-      .map((w, i) => (!guessed.includes((w.learning || "").toLowerCase()) ? i : null))
-      .filter(i => i !== null);
-    if (unguessedIndexes.length === 0) return 0;
-    return unguessedIndexes[Math.floor(Math.random() * unguessedIndexes.length)];
+    return 0;
   };
 
   const getInitialGuesses = () => {
-    try {
-      const saved = JSON.parse(localStorage.getItem("lingoHangmanGuesses") || "[]");
-      const savedIndex = parseInt(localStorage.getItem(STORAGE_KEY), 10);
-      if (
-        Array.isArray(saved) &&
-        savedIndex === getInitialIndex()
-      ) {
-        return saved;
-      }
-    } catch {}
     return [];
   };
 
   const [currentIndex, setCurrentIndex] = useState(getInitialIndex);
   const [guesses, setGuesses] = useState(getInitialGuesses);
-  const [score, setScore] = useState(() => {
-    const saved = localStorage.getItem(SCORE_KEY);
-    return saved ? JSON.parse(saved) : { correct: 0, incorrect: 0 };
-  });
-  const [guessedWords, setGuessedWords] = useState(() => {
-    const saved = localStorage.getItem("lingoHangmanGuessedWords");
-    return saved ? JSON.parse(saved) : [];
-  });
-  const [guessedStats, setGuessedStats] = useState(() => {
-    const saved = localStorage.getItem("lingoHangmanGuessedStats");
-    return saved ? JSON.parse(saved) : {};
-  });
-  const [wordAttempts, setWordAttempts] = useState(() => {
-    const saved = localStorage.getItem("lingoHangmanWordAttempts");
-    return saved ? JSON.parse(saved) : {};
-  });
-  const [totalScore, setTotalScore] = useState(() => {
-    const saved = localStorage.getItem("lingoHangmanTotalScore");
-    return saved ? parseInt(saved, 10) : 0;
-  });
+  const [score, setScore] = useState({ correct: 0, incorrect: 0 });
+  // State for tracking guessed stats, attempts per word, and total score
+  const [guessedWords, setGuessedWords] = useState([]);
+  const [guessedStats, setGuessedStats] = useState({});
+  const [wordAttempts, setWordAttempts] = useState({});
+  const [totalScore, setTotalScore] = useState(0);
+  // Track words order for moving lost words to end
+  const [wordsOrder, setWordsOrder] = useState(words.map((_, i) => i));
+  // Popup for all words guessed
+  const [showAllGuessed, setShowAllGuessed] = useState(false);
 
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, currentIndex.toString());
-    localStorage.setItem("lingoHangmanGuesses", JSON.stringify(guesses));
-    localStorage.setItem(SCORE_KEY, JSON.stringify(score));
-    localStorage.setItem("lingoHangmanGuessedWords", JSON.stringify(guessedWords));
-    localStorage.setItem("lingoHangmanGuessedStats", JSON.stringify(guessedStats));
-    localStorage.setItem("lingoHangmanWordAttempts", JSON.stringify(wordAttempts));
-    localStorage.setItem("lingoHangmanTotalScore", totalScore.toString());
-  }, [currentIndex, guesses, score, guessedWords, guessedStats, wordAttempts, totalScore]);
-
+  // State for swapping learning/native word display
   const [swap, setSwap] = useState(false);
   useEffect(() => {
+    // Randomly swap question/answer if swapMode is enabled
     if (swapMode) {
       setSwap(Math.random() < 0.5);
     } else {
@@ -127,19 +110,27 @@ export default function HangmanGame({ lang, t, restartFlag }) {
     }
   }, [currentIndex, restartFlag]);
 
-  const current = words[currentIndex % words.length];
+  // Get the current word and its display forms
+  const current = words[wordsOrder[currentIndex % wordsOrder.length]];
   const learning = swap ? current.native : current.learning;
   const native = swap ? current.learning : current.native;
   const letters = learning.toUpperCase().split("");
-  const isGuessable = (char) => /^[A-Z]$/.test(char);
+  // Helper to check if a character is guessable (must be in the current alphabet for the language)
+  const alphabet = getAlphabet(swap ? nativeLang : learningLang);
+  const isGuessable = (char) => alphabet.includes(char);
+  // Incorrect guesses: guessed letters not in the word
   const incorrect = guesses.filter(
     g => !letters.some(l => isGuessable(l) && l === g)
   );
+  // Correct guesses: guessed letters that are in the word
   const correctGuesses = guesses.filter(
     g => letters.some(l => isGuessable(l) && l === g)
   );
+  // Count occurrences of a letter in the word
   const countLetterInWord = (letter, wordArr) =>
     wordArr.reduce((acc, l) => (l === letter ? acc + 1 : acc), 0);
+
+  // Track attempts for each word
   useEffect(() => {
     const wordKey = learning.toLowerCase();
     if (!guessedWords.includes(wordKey)) {
@@ -149,19 +140,40 @@ export default function HangmanGame({ lang, t, restartFlag }) {
       }));
     }
   }, [currentIndex]);
+
+  // Track number of guesses for the current word
   const [currentAttempts, setCurrentAttempts] = useState(0);
   useEffect(() => {
     setCurrentAttempts(guesses.length);
   }, [guesses]);
+
+  // Handle a letter guess
   const handleGuess = (letter) => {
     if (guesses.includes(letter)) return;
     setGuesses([...guesses, letter]);
   };
+
+  // Check win/loss conditions
   const isWon = letters.every(
     l => !isGuessable(l) || guesses.includes(l)
   );
   const isLost = incorrect.length >= MAX_ATTEMPTS;
   const [roundScored, setRoundScored] = useState(false);
+
+  // Keyboard support for guessing letters
+  useEffect(() => {
+    if (isWon || isLost) return;
+    const onKeyDown = (e) => {
+      const key = e.key.toUpperCase();
+      if (key.length === 1 && getAlphabet(learningLang).includes(key)) {
+        handleGuess(key);
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [guesses, isWon, isLost, learningLang]);
+
+  // Score the round when won or lost
   useEffect(() => {
     if ((isWon || isLost) && !roundScored) {
       let roundScore = 0;
@@ -181,15 +193,19 @@ export default function HangmanGame({ lang, t, restartFlag }) {
       setRoundScored(true);
     }
   }, [isWon, isLost, roundScored]);
+
+  // Find the next unguessed word index
   const getNextUnguessedIndex = (currentIdx, guessedWordsArr) => {
-    const total = words.length;
+    const total = wordsOrder.length;
     for (let i = 1; i <= total; ++i) {
       const idx = (currentIdx + i) % total;
-      const wordKey = (words[idx].learning || "").toLowerCase();
+      const wordKey = (words[wordsOrder[idx]].learning || "").toLowerCase();
       if (!guessedWordsArr.includes(wordKey)) return idx;
     }
     return null;
   };
+
+  // Mark word as guessed if won
   useEffect(() => {
     if (isWon) {
       const wordKey = (learning || "").toLowerCase();
@@ -198,22 +214,30 @@ export default function HangmanGame({ lang, t, restartFlag }) {
       }
     }
   }, [isWon]);
+
   const handleNext = () => {
     if (isWon) setScore(prev => ({ ...prev, correct: prev.correct + 1 }));
     if (isLost) setScore(prev => ({ ...prev, incorrect: prev.incorrect + 1 }));
+    let newWordsOrder = [...wordsOrder];
+    if (isLost) {
+      // Move current word to end
+      const idx = currentIndex % wordsOrder.length;
+      const [lostIdx] = newWordsOrder.splice(idx, 1);
+      newWordsOrder.push(lostIdx);
+      setWordsOrder(newWordsOrder);
+    }
     const nextIndex = getNextUnguessedIndex(currentIndex, isWon
       ? [...guessedWords, (learning || "").toLowerCase()]
       : guessedWords
     );
     if (nextIndex === null) {
+      setShowAllGuessed(true);
       return;
     }
     setCurrentIndex(nextIndex);
     setGuesses([]);
     setCurrentAttempts(0);
     setRoundScored(false);
-    localStorage.setItem(STORAGE_KEY, nextIndex.toString());
-    localStorage.setItem("lingoHangmanGuesses", JSON.stringify([]));
   };
   const handleRestart = () => {
     setScore({ correct: 0, incorrect: 0 });
@@ -223,13 +247,8 @@ export default function HangmanGame({ lang, t, restartFlag }) {
     setCurrentIndex(0);
     setGuesses([]);
     setTotalScore(0);
-    localStorage.removeItem(STORAGE_KEY);
-    localStorage.removeItem(SCORE_KEY);
-    localStorage.removeItem("lingoHangmanGuessedWords");
-    localStorage.removeItem("lingoHangmanGuessedStats");
-    localStorage.removeItem("lingoHangmanWordAttempts");
-    localStorage.removeItem("lingoHangmanTotalScore");
-    localStorage.removeItem("lingoHangmanGuesses");
+    setWordsOrder(words.map((_, i) => i));
+    setShowAllGuessed(false);
   };
   useEffect(() => {
     setScore({ correct: 0, incorrect: 0 });
@@ -239,13 +258,8 @@ export default function HangmanGame({ lang, t, restartFlag }) {
     setCurrentIndex(0);
     setGuesses([]);
     setTotalScore(0);
-    localStorage.removeItem(STORAGE_KEY);
-    localStorage.removeItem(SCORE_KEY);
-    localStorage.removeItem("lingoHangmanGuessedWords");
-    localStorage.removeItem("lingoHangmanGuessedStats");
-    localStorage.removeItem("lingoHangmanWordAttempts");
-    localStorage.removeItem("lingoHangmanTotalScore");
-    localStorage.removeItem("lingoHangmanGuesses");
+    setWordsOrder(words.map((_, i) => i));
+    setShowAllGuessed(false);
   }, [restartFlag]);
   if (!current) return <div>{t.noWords}</div>;
   const timeValue = COMMON_WORDS.find(w => w[learningLang] === current.learning)?.time;
@@ -254,9 +268,9 @@ export default function HangmanGame({ lang, t, restartFlag }) {
       <Card>
         <CardContent className="text-center p-4">
           <div className="flex justify-end mb-2">
-            <HamburgerMenu lang={lang} setLang={() => {}} onRestart={handleRestart} />
+            <HamburgerMenu lang={lang} setLang={setLang} onRestart={handleRestart} />
           </div>
-          <h2 className="text-xl font-semibold">{t.meaning}: {native}</h2>
+          <h2 className="text-xl font-semibold" data-testid="native-word">{t.meaning}: {native}</h2>
           {timeValue && (
             <div className="mb-2 text-blue-600 dark:text-blue-300 text-base">
               {Array.isArray(timeValue) ? timeValue.join(" / ") : timeValue}
@@ -268,7 +282,7 @@ export default function HangmanGame({ lang, t, restartFlag }) {
           <HangmanDrawing incorrect={incorrect.length} t={t} />
           <div className="text-2xl tracking-widest my-4">
             {letters.map((l, i) => (
-              <span key={i} className="inline-block w-6">
+              <span key={i} className="inline-block w-6" data-testid={`letter-${i}`}>
                 {l === ' '
                   ? ' '
                   : isGuessable(l)
@@ -277,9 +291,9 @@ export default function HangmanGame({ lang, t, restartFlag }) {
               </span>
             ))}
           </div>
-          <div className="text-red-500">{t.wrongGuesses}: {incorrect.join(", ")}</div>
+          <div className="text-red-500" data-testid="word-display">{t.wrongGuesses}: {incorrect.join(", ")}</div>
           <div className="mt-4 flex flex-wrap gap-2 justify-center">
-            {getAlphabet(learningLang).map(l => {
+            {getAlphabet(swap ? nativeLang : learningLang).map(l => {
               const isIncorrect = guesses.includes(l) && !letters.some(wl => isGuessable(wl) && wl === l);
               return (
                 <Button
@@ -297,13 +311,22 @@ export default function HangmanGame({ lang, t, restartFlag }) {
           </div>
           {(isWon || isLost) && (
             <div className="mt-4 space-y-2">
-              <p className="text-lg font-semibold">
+              <p className="text-lg font-semibold" data-testid="guessed">
                 {isWon ? t.guessed : `${t.answerWas}: ${learning.toUpperCase()}`}
               </p>
               <p>{t.score}: {t.correct} {score.correct} / {t.incorrect} {score.incorrect}</p>
               <Button onClick={handleNext}>
                 {t.nextWord}
               </Button>
+            </div>
+          )}
+          {showAllGuessed && (
+            <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+              <div className="bg-white dark:bg-gray-800 p-8 rounded shadow-lg text-center">
+                <h3 className="text-2xl font-bold mb-4">{t.allGuessed || "All words completed!"}</h3>
+                <p className="mb-4">{t.score}: {totalScore}</p>
+                <Button onClick={handleRestart}>{t.restart || "Restart"}</Button>
+              </div>
             </div>
           )}
         </CardContent>

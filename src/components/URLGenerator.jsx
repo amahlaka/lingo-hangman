@@ -12,7 +12,7 @@ function toBase64Unicode(str) {
   return btoa(unescape(encodeURIComponent(str)));
 }
 
-export default function URLGenerator({ lang, t }) {
+export default function URLGenerator({ lang, t, setLang }) {
   const languageOptions = [
     { code: "en", label: "English (US)" },
     { code: "en-GB", label: "English (UK)" },
@@ -111,7 +111,7 @@ export default function URLGenerator({ lang, t }) {
     <Card className="mb-6">
       <CardContent className="p-4 space-y-4">
         <div className="flex justify-end mb-2">
-          <HamburgerMenu lang={lang} setLang={() => {}} onRestart={() => {}} />
+          <HamburgerMenu lang={lang} setLang={setLang} onRestart={() => {}} />
         </div>
         <h2 className="text-lg font-bold">{t.generateGameLinkTitle}</h2>
         <div className="flex gap-4 mb-2 items-end">

@@ -29,7 +29,7 @@ export default function HamburgerMenu({ lang, setLang, onRestart }) {
   return (
     <div className="relative">
       <button
-        className="p-2 rounded border bg-gray-100 dark:bg-gray-800 dark:text-gray-100"
+        className="p-2 rounded border bg-gray-100 dark:bg-gray-800"
         onClick={() => setOpen((v) => !v)}
         aria-label="Menu"
         type="button"
@@ -48,7 +48,7 @@ export default function HamburgerMenu({ lang, setLang, onRestart }) {
         >
           <div className="p-4 space-y-3">
             <div>
-              <label className="mr-2 font-medium text-gray-900 dark:text-gray-100">{i18n[lang].selectLanguage}:</label>
+              <label className="mr-2 font-medium">{i18n[lang].selectLanguage}:</label>
               <select
                 value={lang}
                 onChange={(e) => {
@@ -56,14 +56,14 @@ export default function HamburgerMenu({ lang, setLang, onRestart }) {
                   setLang(newLang);
                   localStorage.setItem(LANG_KEY, newLang);
                 }}
-                className="border rounded px-2 py-1 w-full mt-1 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                className="border rounded px-2 py-1 w-full mt-1 bg-white dark:bg-gray-800"
               >
-                <option value="en" className="text-gray-900 dark:text-gray-900">English</option>
-                <option value="fi" className="text-gray-900 dark:text-gray-900">Suomi</option>
+                <option value="en">English</option>
+                <option value="fi">Suomi</option>
               </select>
             </div>
             <button
-              className="w-full px-3 py-1 rounded border bg-gray-100 dark:bg-gray-800 dark:text-gray-100"
+              className="w-full px-3 py-1 rounded border bg-gray-100 dark:bg-gray-800"
               onClick={() => setIsDark((d) => !d)}
               aria-label="Toggle dark mode"
               type="button"
@@ -84,7 +84,7 @@ export default function HamburgerMenu({ lang, setLang, onRestart }) {
               className="w-full px-3 py-1 rounded border border-blue-400 text-blue-600 bg-white dark:bg-gray-900"
               onClick={() => {
                 setOpen(false);
-                window.location.href = window.location.origin + window.location.pathname + "#/";
+                window.location.href = window.location.origin;
               }}
               type="button"
             >

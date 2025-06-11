@@ -23,11 +23,12 @@ export default function PresetsModal({ open, onClose, categories, setCategories,
   return (
     <Dialog open={open} onClose={onClose} className="fixed z-50 inset-0 flex items-center justify-center">
       <div className="fixed inset-0 bg-black/40" aria-hidden="true" />
-      <div className="relative bg-white dark:bg-gray-900 rounded-lg shadow-lg max-w-md w-full p-6 z-10">
+      <div className="relative bg-white dark:bg-gray-900 rounded-lg shadow-lg max-w-md w-full p-6 z-10 max-h-[90vh] overflow-y-auto">
         <Dialog.Title className="text-lg font-bold mb-2">{t.selectCategories || "Select categories"}</Dialog.Title>
-        <div className="flex flex-wrap gap-2 mb-4">
+        {/* Organized category grid for better clarity */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-4">
           {allCategories.map(cat => (
-            <div key={cat} className="flex items-center gap-1 cursor-pointer border rounded px-2 py-1"
+            <div key={cat} className="flex items-center gap-1 border rounded px-2 py-1 bg-white dark:bg-gray-800 shadow-sm min-w-0"
               style={{
                 background: excludedCategories.includes(cat)
                   ? "#fee2e2"
@@ -47,8 +48,9 @@ export default function PresetsModal({ open, onClose, categories, setCategories,
                 onChange={() => toggleInclude(cat)}
                 className="accent-blue-600"
                 disabled={excludedCategories.includes(cat)}
+                aria-label={t.selectCategoryLabel ? t.selectCategoryLabel.replace('{category}', cat) : `Select category: ${cat}`}
               />
-              <span className="text-sm">{cat}</span>
+              <span className="text-xs truncate flex-1" title={cat}>{t[cat] || cat}</span>
               <button
                 type="button"
                 className={`ml-1 text-xs px-1 rounded ${excludedCategories.includes(cat) ? "bg-red-500 text-white" : "bg-gray-200 dark:bg-gray-700"}`}
@@ -75,7 +77,7 @@ export default function PresetsModal({ open, onClose, categories, setCategories,
             max={matchCount}
             value={numToAdd}
             onChange={e => setNumToAdd(Math.max(1, Math.min(matchCount, Number(e.target.value) || 1)))}
-            className="w-16 border rounded px-2 py-1 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+            className="w-16 border rounded px-2 py-1 bg-white dark:bg-gray-800"
             disabled={matchCount === 0}
           />
         </div>

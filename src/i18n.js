@@ -40,7 +40,8 @@ const i18n = {
     removeWord: "Remove word",
     removeIcon: "×",
     presetsMatchCount: "{count} matching words in selected categories.",
-    removeAllWords: "Remove all words"
+    removeAllWords: "Remove all words",
+    selectCategoryLabel: "Select category: {category}"
   },
   fi: {
     generateLink: "Luo linkki",
@@ -83,7 +84,8 @@ const i18n = {
     removeWord: "Poista sana",
     removeIcon: "×",
     presetsMatchCount: "{count} sanaa valituissa kategorioissa.",
-    removeAllWords: "Poista kaikki sanat"
+    removeAllWords: "Poista kaikki sanat",
+    selectCategoryLabel: "Valitse kategoria: {category}"
   }
 };
 

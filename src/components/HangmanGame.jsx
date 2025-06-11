@@ -57,7 +57,7 @@ function shuffleArray(arr) {
   return a;
 }
 
-export default function HangmanGame({ lang, t, restartFlag, testWords = "", setLang }) {
+export default function HangmanGame({ lang, t, restartFlag, testWords = "", setLang, darkMode, setDarkMode }) {
   const [params] = useSearchParams();
   if (testWords !== "") {
     // If testWords is provided, use it instead of URL params
@@ -150,7 +150,23 @@ export default function HangmanGame({ lang, t, restartFlag, testWords = "", setL
   // Handle a letter guess
   const handleGuess = (letter) => {
     if (guesses.includes(letter)) return;
-    setGuesses([...guesses, letter]);
+    // If 50-50 is active, end the effect instantly
+    if (fiftyFifty.active) {
+      setFiftyFifty({ active: false, letters: [] });
+      setPowerupCooldown(false);
+    }
+    setGuesses(prevGuesses => {
+      const newGuesses = [...prevGuesses, letter];
+      // Calculate score increment for this guess
+      let scoreDelta = 0;
+      if (letters.some(l => isGuessable(l) && l === letter)) {
+        scoreDelta += 10 * countLetterInWord(letter, letters);
+      } else {
+        scoreDelta -= 10;
+      }
+      setTotalScore(prev => prev + scoreDelta);
+      return newGuesses;
+    });
   };
 
   // Check win/loss conditions
@@ -177,10 +193,6 @@ export default function HangmanGame({ lang, t, restartFlag, testWords = "", setL
   useEffect(() => {
     if ((isWon || isLost) && !roundScored) {
       let roundScore = 0;
-      for (const g of correctGuesses) {
-        roundScore += 10 * countLetterInWord(g, letters);
-      }
-      roundScore -= 10 * incorrect.length;
       if (isWon) {
         roundScore += 50;
         if (incorrect.length === 0) {
@@ -210,7 +222,13 @@ export default function HangmanGame({ lang, t, restartFlag, testWords = "", setL
     if (isWon) {
       const wordKey = (learning || "").toLowerCase();
       if (!guessedWords.includes(wordKey)) {
-        setGuessedWords(prev => [...prev, wordKey]);
+        if (swapMode) {
+          // Mark both directions as guessed
+          const altKey = (swap ? current.learning : current.native).toLowerCase();
+          setGuessedWords(prev => Array.from(new Set([...prev, wordKey, altKey])));
+        } else {
+          setGuessedWords(prev => [...prev, wordKey]);
+        }
       }
     }
   }, [isWon]);
@@ -263,12 +281,104 @@ export default function HangmanGame({ lang, t, restartFlag, testWords = "", setL
   }, [restartFlag]);
   if (!current) return <div>{t.noWords}</div>;
   const timeValue = COMMON_WORDS.find(w => w[learningLang] === current.learning)?.time;
+  // Powerup state
+  const [removedLetters, setRemovedLetters] = useState([]);
+  const [fiftyFifty, setFiftyFifty] = useState({ active: false, letters: [] });
+  const [powerupCooldown, setPowerupCooldown] = useState(false);
+  const [explodingLetter, setExplodingLetter] = useState(null); // For explosion effect
+  const [nukeExplodingLetters, setNukeExplodingLetters] = useState([]); // For nuke explosion effect
+
+  // Remove incorrect letter powerup
+  const handleRemoveIncorrect = () => {
+    if (totalScore < 25 || powerupCooldown) return;
+    // Find all available incorrect letters
+    const available = getAlphabet(swap ? nativeLang : learningLang).filter(l =>
+      !letters.some(wl => isGuessable(wl) && wl === l) &&
+      !guesses.includes(l) &&
+      !removedLetters.includes(l)
+    );
+    if (available.length === 0) return;
+    const idx = Math.floor(Math.random() * available.length);
+    const toRemove = available[idx];
+    setExplodingLetter(toRemove); // Start explosion effect
+    setTimeout(() => {
+      setRemovedLetters(prev => [...prev, toRemove]);
+      setExplodingLetter(null);
+    }, 500); // Explosion duration
+    setTotalScore(prev => prev - 25);
+    setPowerupCooldown(true);
+    setTimeout(() => setPowerupCooldown(false), 800); // Prevent spamming
+  };
+
+  // 50-50 powerup
+  const handleFiftyFifty = () => {
+    if (totalScore < 15 || fiftyFifty.active || powerupCooldown) return;
+    // Find missing letters in the word
+    const missing = letters.filter(l => isGuessable(l) && !guesses.includes(l));
+    if (missing.length === 0) return;
+    const nextMissing = missing[0];
+    // Find all available letters (not guessed, not removed)
+    const available = getAlphabet(swap ? nativeLang : learningLang).filter(l =>
+      !guesses.includes(l) && !removedLetters.includes(l)
+    );
+    // Pick a random incorrect letter
+    const incorrects = available.filter(l => !letters.some(wl => isGuessable(wl) && wl === l));
+    let randomIncorrect = incorrects.length > 0 ? incorrects[Math.floor(Math.random() * incorrects.length)] : null;
+    // If no incorrects, just pick another missing letter or any available
+    if (!randomIncorrect) {
+      const alt = available.find(l => l !== nextMissing);
+      randomIncorrect = alt || nextMissing;
+    }
+    setFiftyFifty({ active: true, letters: [nextMissing, randomIncorrect] });
+    setTotalScore(prev => prev - 15);
+    setPowerupCooldown(true);
+    setTimeout(() => {
+      setFiftyFifty({ active: false, letters: [] });
+      setPowerupCooldown(false);
+    }, 5000); // Highlight for 2 seconds
+  };
+
+  // Nuke powerup
+  const handleNuke = () => {
+    if (totalScore < 100 || powerupCooldown) return;
+    // Find all available incorrect letters
+    const available = getAlphabet(swap ? nativeLang : learningLang).filter(l =>
+      !letters.some(wl => isGuessable(wl) && wl === l) &&
+      !guesses.includes(l) &&
+      !removedLetters.includes(l)
+    );
+    if (available.length === 0) return;
+    const count = Math.min(available.length, Math.floor(Math.random() * 5) + 2); // 2-6
+    const shuffled = shuffleArray(available);
+    const toRemove = shuffled.slice(0, count);
+    setNukeExplodingLetters(toRemove);
+    setTimeout(() => {
+      setRemovedLetters(prev => [...prev, ...toRemove]);
+      setNukeExplodingLetters([]);
+    }, 500); // Explosion duration
+    setTotalScore(prev => prev - 100);
+    setPowerupCooldown(true);
+    setTimeout(() => setPowerupCooldown(false), 1000); // Prevent spamming
+  };
+
+  // Reset powerups on new word
+  useEffect(() => {
+    setRemovedLetters([]);
+    setFiftyFifty({ active: false, letters: [] });
+    setPowerupCooldown(false);
+    setNukeExplodingLetters([]);
+  }, [currentIndex, restartFlag]);
+
   return (
     <div className="max-w-md mx-auto p-4 space-y-4">
       <Card>
         <CardContent className="text-center p-4">
           <div className="flex justify-end mb-2">
-            <HamburgerMenu lang={lang} setLang={setLang} onRestart={handleRestart} />
+            <HamburgerMenu lang={lang} setLang={setLang} onRestart={handleRestart} darkMode={darkMode} setDarkMode={setDarkMode} />
+          </div>
+          {/* Show current round and rounds left */}
+          <div className="mb-2 text-sm font-semibold text-gray-700 dark:text-gray-200">
+            {t.round || "Round"}: {currentIndex + 1} / {wordsOrder.length}
           </div>
           <h2 className="text-xl font-semibold" data-testid="native-word">{t.meaning}: {native}</h2>
           {timeValue && (
@@ -280,48 +390,129 @@ export default function HangmanGame({ lang, t, restartFlag, testWords = "", setL
             {t.score}: {totalScore}
           </div>
           <HangmanDrawing incorrect={incorrect.length} t={t} />
+          {/* Split word into lines if too long */}
           <div className="text-2xl tracking-widest my-4">
-            {letters.map((l, i) => (
-              <span key={i} className="inline-block w-6" data-testid={`letter-${i}`}>
-                {l === ' '
-                  ? ' '
-                  : isGuessable(l)
-                    ? (guesses.includes(l) ? l : "_")
-                    : l}
-              </span>
-            ))}
+            {(() => {
+              const maxPerLine = 12;
+              const wordGroups = [];
+              let currentGroup = [];
+              let currentLen = 0;
+              for (let i = 0; i < letters.length; i++) {
+                const l = letters[i];
+                if (l === ' ' && currentLen >= maxPerLine) {
+                  wordGroups.push(currentGroup);
+                  currentGroup = [];
+                  currentLen = 0;
+                }
+                currentGroup.push({ l, i });
+                currentLen++;
+              }
+              if (currentGroup.length) wordGroups.push(currentGroup);
+              return wordGroups.map((group, idx) => (
+                <div key={idx} className="flex justify-center">
+                  {group.map(({ l, i }) => (
+                    <span key={i} className="inline-block w-6" data-testid={`letter-${i}`}>
+                      {l === ' '
+                        ? ' '
+                        : isGuessable(l)
+                          ? (guesses.includes(l) ? l : "_")
+                          : l}
+                    </span>
+                  ))}
+                </div>
+              ));
+            })()}
           </div>
           <div className="text-red-500" data-testid="word-display">{t.wrongGuesses}: {incorrect.join(", ")}</div>
-          <div className="mt-4 flex flex-wrap gap-2 justify-center">
+          {/* Powerups UI */}
+          <div className="flex justify-center gap-4 mb-2">
+            <Button
+              size="sm"
+              variant="secondary"
+              disabled={totalScore < 25 || powerupCooldown || getAlphabet(swap ? nativeLang : learningLang).filter(l => !letters.some(wl => isGuessable(wl) && wl === l) && !guesses.includes(l) && !removedLetters.includes(l)).length === 0}
+              onClick={handleRemoveIncorrect}
+              className="px-2 py-1 border rounded disabled:opacity-50"
+              title={t.removeIncorrectDesc || "Remove an incorrect letter (25 points)"}
+            >
+              💣 {t.removeIncorrect || "Remove Incorrect"} (-25)
+            </Button>
+            <Button
+              size="sm"
+              variant="secondary"
+              disabled={totalScore < 15 || fiftyFifty.active || powerupCooldown || letters.filter(l => isGuessable(l) && !guesses.includes(l)).length === 0}
+              onClick={handleFiftyFifty}
+              className="px-2 py-1 border rounded disabled:opacity-50"
+              title={t.fiftyFiftyDesc || "50-50: Highlight 2 letters, one is correct (15 points)"}
+            >
+              🎲 {t.fiftyFifty || "50-50"} (-15)
+            </Button>
+            <Button
+              size="sm"
+              variant="secondary"
+              disabled={totalScore < 100 || powerupCooldown || getAlphabet(swap ? nativeLang : learningLang).filter(l => !letters.some(wl => isGuessable(wl) && wl === l) && !guesses.includes(l) && !removedLetters.includes(l)).length < 2}
+              onClick={handleNuke}
+              className="px-2 py-1 border rounded disabled:opacity-50"
+              title={t.nukeDesc || "Nuke: Remove 2-6 incorrect letters (100 points)"}
+            >
+              ☢️ {t.nuke || "Nuke"} (-100)
+            </Button>
+          </div>
+          <div className="mt-4 flex flex-wrap gap-2 justify-center relative">
             {getAlphabet(swap ? nativeLang : learningLang).map(l => {
               const isIncorrect = guesses.includes(l) && !letters.some(wl => isGuessable(wl) && wl === l);
+              const isRemoved = removedLetters.includes(l);
+              const isFifty = fiftyFifty.active && fiftyFifty.letters.includes(l);
+              const isExploding = explodingLetter === l;
+              const isNukeExploding = nukeExplodingLetters.includes(l);
               return (
-                <Button
-                  key={l}
-                  variant="outline"
-                  size="sm"
-                  disabled={guesses.includes(l) || isWon || isLost}
-                  onClick={() => handleGuess(l)}
-                  className={isIncorrect ? "text-red-600 px-3 py-1 border rounded hover:bg-gray-100 disabled:opacity-50" : "px-3 py-1 border rounded hover:bg-gray-100 disabled:opacity-50"}
-                >
-                  {l}
-                </Button>
+                <span key={l} className="relative">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={guesses.includes(l) || isWon || isLost || isRemoved || isExploding || isNukeExploding}
+                    onClick={() => handleGuess(l)}
+                    className={
+                      (isRemoved ? "opacity-80 !border-red-400 !text-red-400" : "") +
+                      (isFifty ? " !bg-yellow-200 !border-yellow-500 !text-black animate-pulse" : "") +
+                      (isIncorrect ? " text-red-600" : "") +
+                      (isExploding || isNukeExploding ? " animate-explode" : "") +
+                      " px-0 py-1 border rounded hover:bg-gray-100 disabled:opacity-50 flex items-center justify-center text-2xl w-10 h-10 min-w-0 min-h-0"
+                    }
+                  >
+                    <span className="block w-6 h-6 text-center align-middle mx-auto">
+                      {isRemoved ? "💥" : l}
+                    </span>
+                  </Button>
+                  {(isExploding || isNukeExploding) && (
+                    <span className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
+                      <span className="text-2xl animate-bounce">💥</span>
+                    </span>
+                  )}
+                </span>
               );
             })}
+            {(isWon || isLost) && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/80 dark:bg-slate-900/80 rounded z-10">
+                <p className="text-lg font-semibold mb-2" data-testid="guessed">
+                  {isWon ? t.guessed : `${t.answerWas}: ${learning.toUpperCase()}`}
+                </p>
+                <p className="mb-2">
+                  {isWon
+                    ? `${t.correct} ${score.correct + 1} / ${t.incorrect} ${score.incorrect}`
+                    : `${t.correct} ${score.correct} / ${t.incorrect} ${score.incorrect + 1}`}
+                </p>
+                <p className="mb-2">
+                  {t.score || "Total score"}: {totalScore} 
+
+                </p>
+                <Button onClick={handleNext}>
+                  {t.nextWord}
+                </Button>
+              </div>
+            )}
           </div>
-          {(isWon || isLost) && (
-            <div className="mt-4 space-y-2">
-              <p className="text-lg font-semibold" data-testid="guessed">
-                {isWon ? t.guessed : `${t.answerWas}: ${learning.toUpperCase()}`}
-              </p>
-              <p>{t.score}: {t.correct} {score.correct} / {t.incorrect} {score.incorrect}</p>
-              <Button onClick={handleNext}>
-                {t.nextWord}
-              </Button>
-            </div>
-          )}
           {showAllGuessed && (
-            <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+            <div className="fixed inset-0 flex items-center justify-center bg-neutral-950/80 z-50">
               <div className="bg-white dark:bg-gray-800 p-8 rounded shadow-lg text-center">
                 <h3 className="text-2xl font-bold mb-4">{t.allGuessed || "All words completed!"}</h3>
                 <p className="mb-4">{t.score}: {totalScore}</p>
@@ -334,3 +525,13 @@ export default function HangmanGame({ lang, t, restartFlag, testWords = "", setL
     </div>
   );
 }
+
+// Add this to your CSS (e.g., index.css or a global stylesheet):
+// .animate-explode {
+//   animation: explode 0.5s linear;
+// }
+// @keyframes explode {
+//   0% { transform: scale(1) rotate(0deg); opacity: 1; }
+//   60% { transform: scale(1.4) rotate(20deg); opacity: 0.7; }
+//   100% { transform: scale(0.2) rotate(-30deg); opacity: 0; }
+// }

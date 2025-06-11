@@ -30,6 +30,9 @@ function setup(props = {}) {
         t={t}
         restartFlag={0}
         testWords='W3sibGVhcm5pbmciOiJjYXQiLCJuYXRpdmUiOiJraXNzYSJ9XQ%3D%3D'
+        setDarkMode={() => {}}
+        darkMode={false}
+        setLang={() => {}}
         {...props}
       />
     </MemoryRouter>

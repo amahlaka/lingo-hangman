@@ -22,17 +22,46 @@ export default function LingoHangman() {
   }, [lang]);
   const t = i18n[lang];
   const [restartFlag, setRestartFlag] = useState(0);
+  const [darkMode, setDarkMode] = useState(() => {
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem("lingoHangmanDarkMode");
+      if (stored) return stored === "true";
+      // Use system preference as default
+      return window.matchMedia("(prefers-color-scheme: dark)").matches;
+    }
+    return false;
+  });
+  React.useEffect(() => {
+    // Always sync dark mode with system preference if no explicit user setting
+    const stored = localStorage.getItem("lingoHangmanDarkMode");
+    if (!stored) {
+      const mq = window.matchMedia("(prefers-color-scheme: dark)");
+      const systemDark = mq.matches;
+      if (systemDark !== darkMode) setDarkMode(systemDark);
+      const handler = (e) => setDarkMode(e.matches);
+      mq.addEventListener("change", handler);
+      return () => mq.removeEventListener("change", handler);
+    }
+  }, []);
+  React.useEffect(() => {
+    if (darkMode) {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+    localStorage.setItem("lingoHangmanDarkMode", darkMode);
+  }, [darkMode]);
 
   return (
     <BrowserRouter>
-      <div className="min-h-screen w-full bg-gray-100 dark:bg-gray-900 transition-colors">
-        <div className="safe-top max-w-xl mx-auto p-4 bg-white text-gray-900 dark:bg-gray-900 dark:text-gray-100 min-h-screen transition-colors">
+      <div className="min-h-screen w-full bg-neutral-100 dark:bg-neutral-900 transition-colors">
+        <div className="safe-top max-w-xl mx-auto p-4 bg-white text-neutral-900 dark:bg-neutral-900 dark:text-neutral-100 min-h-screen transition-colors">
           <Routes>
             <Route
               path="/"
               element={
                 <div>
-                  <URLGenerator lang={lang} t={tState} setLang={setLang} />
+                  <URLGenerator lang={lang} t={tState} setLang={setLang} darkMode={darkMode} setDarkMode={setDarkMode} />
                 </div>
               }
             />
@@ -40,7 +69,7 @@ export default function LingoHangman() {
               path="/play"
               element={
                 <div>
-                  <HangmanGame lang={lang} t={tState} restartFlag={restartFlag} setLang={setLang} />
+                  <HangmanGame lang={lang} t={tState} restartFlag={restartFlag} setLang={setLang} darkMode={darkMode} setDarkMode={setDarkMode} />
                 </div>
               }
             />

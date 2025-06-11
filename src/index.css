@@ -1,6 +1,21 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Custom dark mode background with a blue tint */
+:root.dark, .dark {
+  --tw-bg-opacity: 1;
+  background-color: rgb(17 24 39 / var(--tw-bg-opacity, 1)); /* tailwind slate-900 */
+}
+div.dark {
+  --tw-bg-opacity: 1;
+  background-color: rgb(17 24 39 / var(--tw-bg-opacity, 1)); /* tailwind slate-900 */
+}
+
+.dark\:bg-neutral-900:is(.dark *) {
+    --tw-bg-opacity: 1;
+    background-color: rgb(17 24 39 / var(--tw-bg-opacity, 1));
+}
 
 /* Safe area for PWA status bar (iOS/Android) */
 .safe-top {
@@ -11,4 +26,14 @@
   .safe-top {
     padding-top: calc(env(safe-area-inset-top, 16px) + 32px);
   }
+}
+
+/* Add this to enable the explosion animation for Remove Incorrect powerup */
+.animate-explode {
+  animation: explode 0.5s linear;
+}
+@keyframes explode {
+  0% { transform: scale(1) rotate(0deg); opacity: 1; }
+  60% { transform: scale(1.4) rotate(20deg); opacity: 0.7; }
+  100% { transform: scale(0.2) rotate(-30deg); opacity: 0; }
 }

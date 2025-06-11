@@ -12,10 +12,10 @@ function toBase64Unicode(str) {
   return btoa(unescape(encodeURIComponent(str)));
 }
 
-export default function URLGenerator({ lang, t, setLang }) {
+export default function URLGenerator({ lang, t, setLang, darkMode, setDarkMode }) {
   const languageOptions = [
-    { code: "en", label: "English (US)" },
     { code: "en-GB", label: "English (UK)" },
+    { code: "en", label: "English (US)" },
     { code: "fi", label: "Finnish" },
     { code: "de", label: "German" },
     { code: "fr", label: "French" },
@@ -34,7 +34,7 @@ export default function URLGenerator({ lang, t, setLang }) {
   const [pairs, setPairs] = useState([]);
   const [link, setLink] = useState("");
   const [swapMode, setSwapMode] = useState(false);
-  const [learningLang, setLearningLang] = useState("en");
+  const [learningLang, setLearningLang] = useState("en-GB");
   const [nativeLang, setNativeLang] = useState("fi");
   const [presetsOpen, setPresetsOpen] = useState(false);
   const allCategories = Array.from(
@@ -43,6 +43,8 @@ export default function URLGenerator({ lang, t, setLang }) {
   const [selectedCategories, setSelectedCategories] = useState([]);
   const [excludedCategories, setExcludedCategories] = useState([]);
   const [numToAdd, setNumToAdd] = useState(5);
+
+  const [showWords, setShowWords] = useState(false); // Collapse state for word list
 
   const mapLang = code => (code === "en-GB" ? "en" : code);
   const usedPairs = new Set(pairs.map(
@@ -111,7 +113,7 @@ export default function URLGenerator({ lang, t, setLang }) {
     <Card className="mb-6">
       <CardContent className="p-4 space-y-4">
         <div className="flex justify-end mb-2">
-          <HamburgerMenu lang={lang} setLang={setLang} onRestart={() => {}} />
+          <HamburgerMenu lang={lang} setLang={setLang} onRestart={() => {}} darkMode={darkMode} setDarkMode={setDarkMode} />
         </div>
         <h2 className="text-lg font-bold">{t.generateGameLinkTitle}</h2>
         <div className="flex gap-4 mb-2 items-end">
@@ -150,49 +152,48 @@ export default function URLGenerator({ lang, t, setLang }) {
           <Button
             type="button"
             onClick={() => setPresetsOpen(true)}
+            className="mr-2"
           >
             {t.presets || "Presets"}
           </Button>
         </div>
-        <PresetsModal
-          open={presetsOpen}
-          onClose={() => setPresetsOpen(false)}
-          categories={selectedCategories}
-          setCategories={setSelectedCategories}
-          allCategories={allCategories}
-          onAdd={addRandomCommonWords}
-          matchCount={filteredWords.length}
-          numToAdd={numToAdd}
-          setNumToAdd={setNumToAdd}
-          excludedCategories={excludedCategories}
-          setExcludedCategories={setExcludedCategories}
-          t={t}
-        />
-        {pairs.map((pair, idx) => (
-          <div key={idx} className="flex gap-2 items-center">
-            <Input
-              placeholder={t.learningWordPlaceholder}
-              value={pair.learning}
-              onChange={(e) => handleChange(idx, "learning", e.target.value)}
-            />
-            <Input
-              placeholder={t.nativeWordPlaceholder}
-              value={pair.native}
-              onChange={(e) => handleChange(idx, "native", e.target.value)}
-            />
-            <Button
-              type="button"
-              variant="destructive"
-              size="icon"
-              className="h-8 w-8 px-0 py-0"
-              onClick={() => removePair(idx)}
-              aria-label={t.removeWord || "Remove word"}
-              disabled={pairs.length <= 1}
-            >
-              {t.removeIcon || "×"}
-            </Button>
+        <Button
+          type="button"
+          variant="outline"
+          className="mb-2 mr-2"
+          onClick={() => setShowWords(v => !v)}
+        >
+          {showWords ? (t.hideWords || "Hide words") : (t.showWords || "Show words")}
+        </Button>
+        {showWords && (
+          <div className="space-y-2 mb-2">
+            {pairs.map((pair, idx) => (
+              <div key={idx} className="flex gap-2 items-center">
+                <Input
+                  placeholder={t.learningWordPlaceholder}
+                  value={pair.learning}
+                  onChange={(e) => handleChange(idx, "learning", e.target.value)}
+                />
+                <Input
+                  placeholder={t.nativeWordPlaceholder}
+                  value={pair.native}
+                  onChange={(e) => handleChange(idx, "native", e.target.value)}
+                />
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="icon"
+                  className="h-8 w-8 px-0 py-0"
+                  onClick={() => removePair(idx)}
+                  aria-label={t.removeWord || "Remove word"}
+                  disabled={pairs.length <= 1}
+                >
+                  {t.removeIcon || "×"}
+                </Button>
+              </div>
+            ))}
           </div>
-        ))}
+        )}
         <div className="flex items-center gap-2">
           <input
             id="swapMode"
@@ -205,14 +206,15 @@ export default function URLGenerator({ lang, t, setLang }) {
             {t.swapModeLabel || "Occasionally swap question/answer direction"}
           </label>
         </div>
-        <Button onClick={addPair}>{t.addWord}</Button>
-        <Button onClick={generateLink}>{t.generateLink}</Button>
+        <Button onClick={addPair} className="mr-2">{t.addWord}</Button>
+        <Button onClick={generateLink} className="mr-2">{t.generateLink}</Button>
         <Button
           variant="secondary"
           onClick={handleStartGame}
           disabled={pairs.length === 0 || pairs.some(p => !p.learning || !p.native)}
+          className="mr-2"
         >
-          Start Game
+          {t.startGame || "Start Game"}
         </Button>
         <Button
           variant="destructive"
@@ -227,6 +229,21 @@ export default function URLGenerator({ lang, t, setLang }) {
           </div>
         )}
       </CardContent>
+      {/* Add PresetsModal to control its visibility */}
+      <PresetsModal
+        open={presetsOpen}
+        onClose={() => setPresetsOpen(false)}
+        categories={selectedCategories}
+        setCategories={setSelectedCategories}
+        allCategories={allCategories}
+        onAdd={addRandomCommonWords}
+        matchCount={filteredWords.length}
+        numToAdd={numToAdd}
+        setNumToAdd={setNumToAdd}
+        excludedCategories={excludedCategories}
+        setExcludedCategories={setExcludedCategories}
+        t={t}
+      />
     </Card>
   );
 }

@@ -428,7 +428,10 @@ export default function HangmanGame({ lang, t, restartFlag, testWords = "", setL
                 className="px-2 py-1 border rounded disabled:opacity-50 w-10 h-10 flex items-center justify-center"
                 title={t.removeIncorrectDesc || "Remove an incorrect letter (25 points)"}
               >
-                💣
+                <span className="flex flex-col items-center justify-center">
+                  <span>💣</span>
+                  <span className="text-xs font-semibold">(25)</span>
+                </span>
               </Button>
               <Button
                 size="sm"
@@ -438,7 +441,10 @@ export default function HangmanGame({ lang, t, restartFlag, testWords = "", setL
                 className="px-2 py-1 border rounded disabled:opacity-50 w-10 h-10 flex items-center justify-center"
                 title={t.fiftyFiftyDesc || "50-50: Highlight 2 letters, one is correct (15 points)"}
               >
-                🎲
+                <span className="flex flex-col items-center justify-center">
+                  <span>🎲</span>
+                  <span className="text-xs font-semibold">(15)</span>
+                </span>
               </Button>
               <Button
                 size="sm"
@@ -448,7 +454,10 @@ export default function HangmanGame({ lang, t, restartFlag, testWords = "", setL
                 className="px-2 py-1 border rounded disabled:opacity-50 w-10 h-10 flex items-center justify-center"
                 title={t.nukeDesc || "Nuke: Remove 2-6 incorrect letters (100 points)"}
               >
-                ☢️
+                <span className="flex flex-col items-center justify-center">
+                  <span>☢️</span>
+                  <span className="text-xs font-semibold">(100)</span>
+                </span>
               </Button>
             </div>
           </div>

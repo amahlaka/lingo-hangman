@@ -37,3 +37,36 @@ div.dark {
   60% { transform: scale(1.4) rotate(20deg); opacity: 0.7; }
   100% { transform: scale(0.2) rotate(-30deg); opacity: 0; }
 }
+
+/* Make the page always fit the screen and prevent scrolling */
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+#root {
+  min-height: 100vh;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Responsive Hangman Drawing Container */
+.hangman-drawing-container {
+  width: 100%;
+  max-width: 340px;
+  max-height: 40vw;
+  aspect-ratio: 3/4;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@media (max-width: 480px) {
+  .hangman-drawing-container {
+    max-width: 90vw;
+    max-height: 38vw;
+  }
+}

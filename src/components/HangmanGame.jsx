@@ -394,16 +394,27 @@ export default function HangmanGame({ lang, t, restartFlag, testWords = "", setL
     setNukeExplodingLetters([]);
   }, [currentIndex, restartFlag]);
 
+  // Track rounds played to prevent round counter from decreasing
+  const [roundsPlayed, setRoundsPlayed] = useState(1);
+  useEffect(() => {
+    // Update rounds played only if not all guessed
+    if (!showAllGuessed && currentIndex + 1 > roundsPlayed) {
+      setRoundsPlayed(currentIndex + 1);
+    }
+  }, [currentIndex, showAllGuessed]);
+
   return (
     <div className="max-w-md mx-auto p-4 space-y-4">
       <Card>
         <CardContent className="text-center p-4">
-          <div className="flex justify-end mb-2">
+          {/* Menu and round indicator on the same row */}
+          <div className="flex justify-between items-center mb-2">
+            <div className="flex-1 flex justify-center">
+              <span className="text-sm font-semibold text-gray-700 dark:text-gray-200">
+                {(showAllGuessed ? (t.round || "Round") + ": " + wordsOrder.length + " / " + wordsOrder.length : (t.round || "Round") + ": " + roundsPlayed + " / " + wordsOrder.length)}
+              </span>
+            </div>
             <HamburgerMenu lang={lang} setLang={setLang} onRestart={handleRestart} darkMode={darkMode} setDarkMode={setDarkMode} />
-          </div>
-          {/* Show current round and rounds left */}
-          <div className="mb-2 text-sm font-semibold text-gray-700 dark:text-gray-200">
-            {(showAllGuessed ? (t.round || "Round") + ": " + wordsOrder.length + " / " + wordsOrder.length : (t.round || "Round") + ": " + roundsPlayed + " / " + wordsOrder.length)}
           </div>
           <h2 className="text-xl font-semibold" data-testid="native-word">{t.meaning}: {native}</h2>
           {timeValue && (

@@ -52,13 +52,12 @@ export default function HamburgerMenu({ lang, setLang, onRestart, darkMode, setD
   return (
     <div className="relative">
       <button
-        className="p-2 rounded border bg-neutral-100 dark:bg-neutral-800"
+        className="p-2 rounded"
         onClick={() => setOpen((v) => !v)}
         aria-label="Menu"
         type="button"
       >
         <svg width="24" height="24" fill="none" stroke="currentColor">
-          <rect width="24" height="24" fill="none" />
           <line x1="5" y1="7" x2="19" y2="7" strokeWidth="2" />
           <line x1="5" y1="12" x2="19" y2="12" strokeWidth="2" />
           <line x1="5" y1="17" x2="19" y2="17" strokeWidth="2" />

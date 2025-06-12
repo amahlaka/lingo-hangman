@@ -373,12 +373,14 @@ export default function HangmanGame({ lang, t, restartFlag, testWords = "", setL
     <div className="max-w-md mx-auto p-4 space-y-4">
       <Card>
         <CardContent className="text-center p-4">
-          <div className="flex justify-end mb-2">
+          {/* Menu and round indicator on the same row */}
+          <div className="flex justify-between items-center mb-2">
+            <div className="flex-1 flex justify-center">
+              <span className="text-sm font-semibold text-gray-700 dark:text-gray-200">
+                {(showAllGuessed ? (t.round || "Round") + ": " + wordsOrder.length + " / " + wordsOrder.length : (t.round || "Round") + ": " + roundsPlayed + " / " + wordsOrder.length)}
+              </span>
+            </div>
             <HamburgerMenu lang={lang} setLang={setLang} onRestart={handleRestart} darkMode={darkMode} setDarkMode={setDarkMode} />
-          </div>
-          {/* Show current round and rounds left */}
-          <div className="mb-2 text-sm font-semibold text-gray-700 dark:text-gray-200">
-            {t.round || "Round"}: {currentIndex + 1} / {wordsOrder.length}
           </div>
           <h2 className="text-xl font-semibold" data-testid="native-word">{t.meaning}: {native}</h2>
           {timeValue && (

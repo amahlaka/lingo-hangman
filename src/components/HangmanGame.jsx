@@ -369,6 +369,15 @@ export default function HangmanGame({ lang, t, restartFlag, testWords = "", setL
     setNukeExplodingLetters([]);
   }, [currentIndex, restartFlag]);
 
+  // Track rounds played to prevent round counter from decreasing
+  const [roundsPlayed, setRoundsPlayed] = useState(1);
+  useEffect(() => {
+    // Update rounds played only if not all guessed
+    if (!showAllGuessed && currentIndex + 1 > roundsPlayed) {
+      setRoundsPlayed(currentIndex + 1);
+    }
+  }, [currentIndex, showAllGuessed]);
+
   return (
     <div className="max-w-md mx-auto p-4 space-y-4">
       <Card>

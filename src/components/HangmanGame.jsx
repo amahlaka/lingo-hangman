@@ -190,6 +190,19 @@ export default function HangmanGame({ lang, t, restartFlag, testWords = "", setL
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [guesses, isWon, isLost, learningLang, nativeLang, swap]);
 
+  // Allow space/enter to start next round after win/loss
+  useEffect(() => {
+    if (!(isWon || isLost)) return;
+    const onNextKey = (e) => {
+      if (e.code === "Space" || e.code === "Enter") {
+        e.preventDefault();
+        handleNext();
+      }
+    };
+    window.addEventListener("keydown", onNextKey);
+    return () => window.removeEventListener("keydown", onNextKey);
+  }, [isWon, isLost]);
+
   // Score the round when won or lost
   useEffect(() => {
     if ((isWon || isLost) && !roundScored) {

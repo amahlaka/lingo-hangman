@@ -50,7 +50,18 @@ export default function PresetsModal({ open, onClose, categories, setCategories,
                 disabled={excludedCategories.includes(cat)}
                 aria-label={t.selectCategoryLabel ? t.selectCategoryLabel.replace('{category}', cat) : `Select category: ${cat}`}
               />
-              <span className="text-xs truncate flex-1 text-gray-900 dark:text-gray-100" title={cat}>{t[cat] || cat}</span>
+              <span
+                className={`text-xs truncate flex-1 ${
+                  excludedCategories.includes(cat)
+                    ? "text-gray-900 dark:text-gray-100"
+                    : categories.includes(cat)
+                    ? "text-gray-900"
+                    : "text-gray-900 dark:text-gray-100"
+                }`}
+                title={cat}
+              >
+                {t[cat] || cat}
+              </span>
               <button
                 type="button"
                 className={`ml-1 text-xs px-1 rounded ${excludedCategories.includes(cat) ? "bg-red-500 text-white" : "bg-neutral-200 dark:bg-neutral-700 text-gray-900 dark:text-gray-100"}`}
@@ -75,8 +86,23 @@ export default function PresetsModal({ open, onClose, categories, setCategories,
             type="number"
             min={1}
             max={matchCount}
-            value={numToAdd}
-            onChange={e => setNumToAdd(Math.max(1, Math.min(matchCount, Number(e.target.value) || 1)))}
+            value={numToAdd === "" ? "" : numToAdd}
+            onChange={e => {
+              const val = e.target.value;
+              if (val === "") {
+                setNumToAdd("");
+              } else {
+                setNumToAdd(Math.max(1, Math.min(matchCount, Number(val))));
+              }
+            }}
+            onBlur={e => {
+              let val = e.target.value;
+              if (val === "" || isNaN(Number(val))) {
+                setNumToAdd(1);
+              } else {
+                setNumToAdd(Math.max(1, Math.min(matchCount, Number(val))));
+              }
+            }}
             className="w-16 border rounded px-2 py-1 bg-white dark:bg-neutral-800 text-gray-900 dark:text-gray-100"
             disabled={matchCount === 0}
           />

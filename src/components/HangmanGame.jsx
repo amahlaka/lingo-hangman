@@ -96,6 +96,8 @@ export default function HangmanGame({ lang, t, restartFlag, testWords = "", setL
   const [totalScore, setTotalScore] = useState(0);
   // Track words order for moving lost words to end
   const [wordsOrder, setWordsOrder] = useState(words.map((_, i) => i));
+  // Track total rounds (can increase if words are retried)
+  const [totalRounds, setTotalRounds] = useState(words.length);
   // Popup for all words guessed
   const [showAllGuessed, setShowAllGuessed] = useState(false);
 
@@ -267,6 +269,7 @@ export default function HangmanGame({ lang, t, restartFlag, testWords = "", setL
       const [lostIdx] = newWordsOrder.splice(idx, 1);
       newWordsOrder.push(lostIdx);
       setWordsOrder(newWordsOrder);
+      setTotalRounds(r => r + 1); // Increment total rounds for retry
     }
     const nextIndex = getNextUnguessedIndex(currentIndex, isWon
       ? [...guessedWords, (learning || "").toLowerCase()]
@@ -291,7 +294,13 @@ export default function HangmanGame({ lang, t, restartFlag, testWords = "", setL
     setGuesses([]);
     setTotalScore(0);
     setWordsOrder(words.map((_, i) => i));
+    setTotalRounds(words.length); // Reset total rounds
     setShowAllGuessed(false);
+    setRoundsPlayed(1);
+    // re-randomize word order
+    setWordsOrder(shuffleArray(words.map((_, i) => i)));
+    setRoundScored(false);
+    setSwap(swapMode ? Math.random() < 0.5 : false);
   };
   useEffect(() => {
     setScore({ correct: 0, incorrect: 0 });
@@ -302,6 +311,7 @@ export default function HangmanGame({ lang, t, restartFlag, testWords = "", setL
     setGuesses([]);
     setTotalScore(0);
     setWordsOrder(words.map((_, i) => i));
+    setTotalRounds(words.length); // Reset total rounds
     setShowAllGuessed(false);
   }, [restartFlag]);
   if (!current) return <div>{t.noWords}</div>;
@@ -402,7 +412,7 @@ export default function HangmanGame({ lang, t, restartFlag, testWords = "", setL
           <div className="flex justify-between items-center mb-2">
             <div className="flex-1 flex justify-center">
               <span className="text-sm font-semibold text-gray-700 dark:text-gray-200">
-                {(showAllGuessed ? (t.round || "Round") + ": " + wordsOrder.length + " / " + wordsOrder.length : (t.round || "Round") + ": " + roundsPlayed + " / " + wordsOrder.length)}
+                {(showAllGuessed ? (t.round || "Round") + ": " + totalRounds + " / " + totalRounds : (t.round || "Round") + ": " + roundsPlayed + " / " + totalRounds)}
               </span>
             </div>
             <HamburgerMenu lang={lang} setLang={setLang} onRestart={handleRestart} darkMode={darkMode} setDarkMode={setDarkMode} />

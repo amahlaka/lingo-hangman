@@ -406,8 +406,8 @@ export default function HangmanGame({ lang, t, restartFlag, testWords = "", setL
   }, [currentIndex, restartFlag]);
 
   return (
-    <div className="min-h-screen flex flex-col justify-center items-center pt-4 pb-4 space-y-4">
-      <Card className="flex-1 w-full flex flex-col justify-center">
+    <div className="min-h-screen flex flex-col items-start pt-4 pb-4 space-y-4">
+      <Card className="max-w-2xl mx-auto w-full flex flex-col justify-center align-start">
         <CardContent className="text-center p-4 w-full flex-1 flex flex-col justify-center h-full">
           {/* Menu and round indicator on the same row */}
           <div className="flex justify-between items-center mb-2">
@@ -423,7 +423,7 @@ export default function HangmanGame({ lang, t, restartFlag, testWords = "", setL
               <HamburgerMenu lang={lang} setLang={setLang} onRestart={handleRestart} darkMode={darkMode} setDarkMode={setDarkMode} />
             </div>
           </div>
-          <h2 className="text-xl font-semibold" data-testid="native-word">{t.meaning}: {native}</h2>
+          <h2 className="text-xl sm:text-lg xs:text-base font-semibold" data-testid="native-word">{t.meaning}: {native}</h2>
           {timeValue && (
             <div className="mb-2 text-blue-600 dark:text-blue-300 text-xs">
               {Array.isArray(timeValue) ? timeValue.join(" / ") : timeValue}
@@ -432,7 +432,7 @@ export default function HangmanGame({ lang, t, restartFlag, testWords = "", setL
           {/* Drawing and Powerups: Powerups float over drawing, aligned right */}
           <div className="relative flex justify-center items-start" style={{}}>
             <div className="flex-shrink-0">
-              <HangmanDrawing incorrect={incorrect.length} t={t} />
+              <HangmanDrawing incorrect={incorrect.length} t={t} shrink={!!timeValue} />
             </div>
             <div className="absolute right-0 top-0 z-10 flex flex-col gap-2 items-end pr-1">
               <PowerupButtons

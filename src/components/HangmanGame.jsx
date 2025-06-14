@@ -406,9 +406,9 @@ export default function HangmanGame({ lang, t, restartFlag, testWords = "", setL
   }, [currentIndex, restartFlag]);
 
   return (
-    <div className="max-w-md mx-auto p-4 space-y-4">
-      <Card>
-        <CardContent className="text-center p-4">
+    <div className="min-h-screen flex flex-col justify-center items-center pt-4 pb-4 space-y-4">
+      <Card className="flex-1 w-full flex flex-col justify-center">
+        <CardContent className="text-center p-4 w-full flex-1 flex flex-col justify-center h-full">
           {/* Menu and round indicator on the same row */}
           <div className="flex justify-between items-center mb-2">
             <div className="flex-1 flex justify-center">
@@ -416,39 +416,43 @@ export default function HangmanGame({ lang, t, restartFlag, testWords = "", setL
                 {(showAllGuessed ? (t.round || "Round") + ": " + totalRounds + " / " + totalRounds : (t.round || "Round") + ": " + roundsPlayed + " / " + totalRounds)}
               </span>
             </div>
-            <HamburgerMenu lang={lang} setLang={setLang} onRestart={handleRestart} darkMode={darkMode} setDarkMode={setDarkMode} />
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-semibold text-gray-700 dark:text-gray-200 whitespace-nowrap">
+                {t.score}: {totalScore}
+              </span>
+              <HamburgerMenu lang={lang} setLang={setLang} onRestart={handleRestart} darkMode={darkMode} setDarkMode={setDarkMode} />
+            </div>
           </div>
           <h2 className="text-xl font-semibold" data-testid="native-word">{t.meaning}: {native}</h2>
           {timeValue && (
-            <div className="mb-2 text-blue-600 dark:text-blue-300 text-base">
+            <div className="mb-2 text-blue-600 dark:text-blue-300 text-xs">
               {Array.isArray(timeValue) ? timeValue.join(" / ") : timeValue}
             </div>
           )}
-          <div className="text-right text-sm font-semibold mb-2">
-            {t.score}: {totalScore}
-          </div>
-          {/* Drawing and Powerups side by side */}
-          <div className="flex flex-row justify-center items-start gap-4 mb-2 relative">
+          {/* Drawing and Powerups: Powerups float over drawing, aligned right */}
+          <div className="relative flex justify-center items-start" style={{}}>
             <div className="flex-shrink-0">
               <HangmanDrawing incorrect={incorrect.length} t={t} />
             </div>
-            <PowerupButtons
-              totalScore={totalScore}
-              powerupCooldown={powerupCooldown}
-              swap={swap}
-              nativeLang={nativeLang}
-              learningLang={learningLang}
-              getAlphabet={getAlphabet}
-              letters={letters}
-              isGuessable={isGuessable}
-              guesses={guesses}
-              removedLetters={removedLetters}
-              handleRemoveIncorrect={handleRemoveIncorrect}
-              handleFiftyFifty={handleFiftyFifty}
-              handleNuke={handleNuke}
-              fiftyFifty={fiftyFifty}
-              t={t}
-            />
+            <div className="absolute right-0 top-0 z-10 flex flex-col gap-2 items-end pr-1">
+              <PowerupButtons
+                totalScore={totalScore}
+                powerupCooldown={powerupCooldown}
+                swap={swap}
+                nativeLang={nativeLang}
+                learningLang={learningLang}
+                getAlphabet={getAlphabet}
+                letters={letters}
+                isGuessable={isGuessable}
+                guesses={guesses}
+                removedLetters={removedLetters}
+                handleRemoveIncorrect={handleRemoveIncorrect}
+                handleFiftyFifty={handleFiftyFifty}
+                handleNuke={handleNuke}
+                fiftyFifty={fiftyFifty}
+                t={t}
+              />
+            </div>
           </div>
           <div className="text-2xl tracking-widest my-4">
             {(() => {

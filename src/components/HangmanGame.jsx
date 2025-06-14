@@ -406,8 +406,8 @@ export default function HangmanGame({ lang, t, restartFlag, testWords = "", setL
   }, [currentIndex, restartFlag]);
 
   return (
-    <div className="min-h-screen flex flex-col items-start pt-4 pb-4 space-y-4">
-      <Card className="max-w-2xl mx-auto w-full flex flex-col justify-center align-start">
+    <div className="min-h-screen flex flex-col justify-center items-center w-full bg-transparent pt-4 pb-4">
+      <Card className="flex-1 w-full max-w-2xl flex flex-col justify-center items-center mx-auto my-0">
         <CardContent className="text-center p-4 w-full flex-1 flex flex-col justify-center h-full">
           {/* Menu and round indicator on the same row */}
           <div className="flex justify-between items-center mb-2">

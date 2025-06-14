@@ -70,3 +70,71 @@ html, body {
     max-height: 38vw;
   }
 }
+
+.keyboard-area {
+  width: 100%;
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  /* Default: let content size naturally */
+}
+
+@media (orientation: portrait), (max-aspect-ratio: 3/4) {
+  .keyboard-area {
+    min-height: 33.333vh;
+    height: 33.333vh;
+    max-height: 40vh;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    padding-bottom: 16px;
+    padding-left: 16px;
+    padding-right: 16px;
+    background: inherit;
+    z-index: 30;
+    box-sizing: border-box;
+  }
+  .hangman-drawing-container {
+    max-height: 26vh;
+  }
+}
+
+@media (orientation: portrait), (max-aspect-ratio: 3/4) {
+  body, #root {
+    padding-bottom: 33.333vh;
+  }
+}
+
+.hangman-guessing-area {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+@media (orientation: portrait), (max-aspect-ratio: 3/4) {
+  .hangman-guessing-area {
+    min-height: 50vh;
+    height: 50vh;
+    max-height: 56vh;
+    box-sizing: border-box;
+    /* Padding top to avoid overlap with top bar */
+    padding-top: 8px;
+  }
+}
+
+@media (min-height: 670px) and (orientation: portrait), (min-height: 670px) and (max-aspect-ratio: 3/4) {
+  .hangman-drawing-container {
+    max-width: 400px;
+    max-height: 56vh;
+    width: 100%;
+    aspect-ratio: 3/4;
+  }
+  .hangman-guessing-area {
+    min-height: 56vh;
+    height: 56vh;
+    max-height: 60vh;
+  }
+}

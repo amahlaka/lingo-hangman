@@ -102,6 +102,22 @@ export default function URLGenerator({ lang, t, setLang, darkMode, setDarkMode }
   };
 
   const handleStartGame = () => {
+    if (pairs.length === 0) {
+      // Add 5 random word pairs if none are configured
+      const shuffled = filteredWords.sort(() => Math.random() - 0.5).slice(0, 5);
+      const newPairs = shuffled.map(w => ({
+        learning: w[mapLang(learningLang)],
+        native: w[mapLang(nativeLang)]
+      }));
+      setPairs(newPairs);
+      // Wait for state update before navigating
+      setTimeout(() => {
+        const url = generateLink();
+        const query = url.split("play?")[1] || "";
+        navigate(`/play?${query}`);
+      }, 0);
+      return;
+    }
     const url = generateLink();
     const query = url.split("play?")[1] || "";
     navigate(`/play?${query}`);
@@ -209,10 +225,10 @@ export default function URLGenerator({ lang, t, setLang, darkMode, setDarkMode }
         <Button onClick={addPair} className="mr-2">{t.addWord}</Button>
         <Button onClick={generateLink} className="mr-2">{t.generateLink}</Button>
         <Button
-          variant="secondary"
+          variant="primary"
           onClick={handleStartGame}
           disabled={pairs.length === 0 || pairs.some(p => !p.learning || !p.native)}
-          className="mr-2"
+          className="mr-2 bg-blue-600 text-white font-bold text-lg shadow-lg border-2 border-blue-700 hover:from-blue-700 hover:to-blue-500 focus:ring-4 focus:ring-blue-300 focus:outline-none"
         >
           {t.startGame || "Start Game"}
         </Button>

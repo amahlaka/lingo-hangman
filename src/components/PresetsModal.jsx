@@ -20,6 +20,21 @@ export default function PresetsModal({ open, onClose, categories, setCategories,
     }
   };
 
+  // Cycle category state: neutral -> selected -> excluded -> neutral
+  const cycleCategory = (cat) => {
+    if (!categories.includes(cat) && !excludedCategories.includes(cat)) {
+      // Neutral -> selected
+      setCategories([...categories, cat]);
+    } else if (categories.includes(cat)) {
+      // Selected -> excluded
+      setCategories(categories.filter(c => c !== cat));
+      setExcludedCategories([...excludedCategories, cat]);
+    } else if (excludedCategories.includes(cat)) {
+      // Excluded -> neutral
+      setExcludedCategories(excludedCategories.filter(c => c !== cat));
+    }
+  };
+
   return (
     <Dialog open={open} onClose={onClose} className="fixed z-50 inset-0 flex items-center justify-center">
       <div className="fixed inset-0 bg-neutral-950/80" aria-hidden="true" />
@@ -51,14 +66,15 @@ export default function PresetsModal({ open, onClose, categories, setCategories,
                 aria-label={t.selectCategoryLabel ? t.selectCategoryLabel.replace('{category}', cat) : `Select category: ${cat}`}
               />
               <span
-                className={`text-xs truncate flex-1 ${
+                className={`text-xs truncate flex-1 cursor-pointer ${
                   excludedCategories.includes(cat)
-                    ? "text-gray-900 dark:text-gray-100"
+                    ? "text-black line-through bg-red-100"
                     : categories.includes(cat)
-                    ? "text-gray-900"
+                    ? "text-gray-900 font-bold"
                     : "text-gray-900 dark:text-gray-100"
                 }`}
                 title={cat}
+                onClick={() => cycleCategory(cat)}
               >
                 {t[cat] || cat}
               </span>

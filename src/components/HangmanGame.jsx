@@ -6,6 +6,8 @@ import HamburgerMenu from "./HamburgerMenu";
 import HangmanDrawing from "./HangmanDrawing";
 import { useSearchParams } from "react-router-dom";
 import { COMMON_WORDS } from "../commonWords";
+import PowerupButtons from "./PowerupButtons";
+import HangmanKeyboard from "./HangmanKeyboard";
 
 const MAX_ATTEMPTS = 6;
 
@@ -405,160 +407,117 @@ export default function HangmanGame({ lang, t, restartFlag, testWords = "", setL
   }, [currentIndex, restartFlag]);
 
   return (
-    <div className="max-w-md mx-auto p-4 space-y-4">
-      <Card>
-        <CardContent className="text-center p-4">
-          {/* Menu and round indicator on the same row */}
-          <div className="flex justify-between items-center mb-2">
+    <div className="min-h-screen flex flex-col justify-center items-center w-full bg-transparent pt-4 pb-4">
+      <Card className="flex-1 w-full max-w-2xl flex flex-col justify-center items-center mx-auto my-0">
+        <CardContent className="text-center p-4 w-full flex-1 flex flex-col h-full">
+          {/* Top bar always at the top */}
+          <div className="flex justify-between items-center mb-2 w-full sticky top-0 z-20 bg-inherit">
             <div className="flex-1 flex justify-center">
               <span className="text-sm font-semibold text-gray-700 dark:text-gray-200">
                 {(showAllGuessed ? (t.round || "Round") + ": " + totalRounds + " / " + totalRounds : (t.round || "Round") + ": " + roundsPlayed + " / " + totalRounds)}
               </span>
             </div>
-            <HamburgerMenu lang={lang} setLang={setLang} onRestart={handleRestart} darkMode={darkMode} setDarkMode={setDarkMode} />
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-semibold text-gray-700 dark:text-gray-200 whitespace-nowrap">
+                {t.score}: {totalScore}
+              </span>
+              <HamburgerMenu lang={lang} setLang={setLang} onRestart={handleRestart} darkMode={darkMode} setDarkMode={setDarkMode} />
+            </div>
           </div>
-          <h2 className="text-xl font-semibold" data-testid="native-word">{t.meaning}: {native}</h2>
+          {/* Replace the h2 for meaning/native with a responsive, scaling text container */}
+          <h2
+            className="text-xl sm:text-lg xs:text-base font-semibold max-w-full overflow-hidden text-ellipsis whitespace-nowrap text-balance scale-text-responsive"
+            data-testid="native-word"
+            style={{ fontSize: 'clamp(1rem, 2.5vw, 1.25rem)' }}
+          >
+            {t.meaning}: {native}
+          </h2>
           {timeValue && (
-            <div className="mb-2 text-blue-600 dark:text-blue-300 text-base">
+            <div className="mb-2 text-blue-600 dark:text-blue-300 text-xs">
               {Array.isArray(timeValue) ? timeValue.join(" / ") : timeValue}
             </div>
           )}
-          <div className="text-right text-sm font-semibold mb-2">
-            {t.score}: {totalScore}
-          </div>
-          {/* Drawing and Powerups side by side */}
-          <div className="flex flex-row justify-center items-start gap-4 mb-2 relative">
-            <div className="flex-shrink-0">
-              <HangmanDrawing incorrect={incorrect.length} t={t} />
-            </div>
-            <div className="flex flex-col gap-2 items-stretch absolute right-0 top-0">
-              <Button
-                size="sm"
-                variant="secondary"
-                disabled={totalScore < 25 || powerupCooldown || getAlphabet(swap ? nativeLang : learningLang).filter(l => !letters.some(wl => isGuessable(wl) && wl === l) && !guesses.includes(l) && !removedLetters.includes(l)).length === 0}
-                onClick={handleRemoveIncorrect}
-                className="px-2 py-1 border rounded disabled:opacity-50 w-10 h-10 flex items-center justify-center"
-                title={t.removeIncorrectDesc || "Remove an incorrect letter (25 points)"}
-              >
-                <span className="flex flex-col items-center justify-center">
-                  <span>💣</span>
-                  <span className="text-xs font-semibold">(25)</span>
-                </span>
-              </Button>
-              <Button
-                size="sm"
-                variant="secondary"
-                disabled={totalScore < 15 || fiftyFifty.active || powerupCooldown || letters.filter(l => isGuessable(l) && !guesses.includes(l)).length === 0}
-                onClick={handleFiftyFifty}
-                className="px-2 py-1 border rounded disabled:opacity-50 w-10 h-10 flex items-center justify-center"
-                title={t.fiftyFiftyDesc || "50-50: Highlight 2 letters, one is correct (15 points)"}
-              >
-                <span className="flex flex-col items-center justify-center">
-                  <span>🎲</span>
-                  <span className="text-xs font-semibold">(15)</span>
-                </span>
-              </Button>
-              <Button
-                size="sm"
-                variant="secondary"
-                disabled={totalScore < 100 || powerupCooldown || getAlphabet(swap ? nativeLang : learningLang).filter(l => !letters.some(wl => isGuessable(wl) && wl === l) && !guesses.includes(l) && !removedLetters.includes(l)).length < 2}
-                onClick={handleNuke}
-                className="px-2 py-1 border rounded disabled:opacity-50 w-10 h-10 flex items-center justify-center"
-                title={t.nukeDesc || "Nuke: Remove 2-6 incorrect letters (100 points)"}
-              >
-                <span className="flex flex-col items-center justify-center">
-                  <span>☢️</span>
-                  <span className="text-xs font-semibold">(100)</span>
-                </span>
-              </Button>
-            </div>
-          </div>
-          <div className="text-2xl tracking-widest my-4">
-            {(() => {
-              const maxPerLine = 12;
-              const wordGroups = [];
-              let currentGroup = [];
-              let currentLen = 0;
-              for (let i = 0; i < letters.length; i++) {
-                const l = letters[i];
-                if (l === ' ' && currentLen >= maxPerLine) {
-                  wordGroups.push(currentGroup);
-                  currentGroup = [];
-                  currentLen = 0;
-                }
-                currentGroup.push({ l, i });
-                currentLen++;
-              }
-              if (currentGroup.length) wordGroups.push(currentGroup);
-              return wordGroups.map((group, idx) => (
-                <div key={idx} className="flex justify-center">
-                  {group.map(({ l, i }) => (
-                    <span key={i} className="inline-block w-6" data-testid={`letter-${i}`}>
-                      {l === ' '
-                        ? ' '
-                        : isGuessable(l)
-                          ? (guesses.includes(l) ? l : "_")
-                          : l}
-                    </span>
-                  ))}
-                </div>
-              ));
-            })()}
-          </div>
-          <div className="text-red-500" data-testid="word-display">{t.wrongGuesses}: {incorrect.join(", ")}</div>
-          <div className="mt-4 flex flex-wrap gap-2 justify-center relative">
-            {getAlphabet(swap ? nativeLang : learningLang).map(l => {
-              const isIncorrect = guesses.includes(l) && !letters.some(wl => isGuessable(wl) && wl === l);
-              const isRemoved = removedLetters.includes(l);
-              const isFifty = fiftyFifty.active && fiftyFifty.letters.includes(l);
-              const isExploding = explodingLetter === l;
-              const isNukeExploding = nukeExplodingLetters.includes(l);
-              return (
-                <span key={l} className="relative">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={guesses.includes(l) || isWon || isLost || isRemoved || isExploding || isNukeExploding}
-                    onClick={() => handleGuess(l)}
-                    className={
-                      (isRemoved ? "opacity-80 !border-red-400 !text-red-400" : "") +
-                      (isFifty ? " !bg-yellow-200 !border-yellow-500 !text-black animate-pulse" : "") +
-                      (isIncorrect ? " text-red-600" : "") +
-                      (isExploding || isNukeExploding ? " animate-explode" : "") +
-                      " px-0 py-1 border rounded hover:bg-gray-100 disabled:opacity-50 flex items-center justify-center text-2xl w-10 h-10 min-w-0 min-h-0"
-                    }
-                  >
-                    <span className="block w-6 h-6 text-center align-middle mx-auto">
-                      {isRemoved ? "💥" : l}
-                    </span>
-                  </Button>
-                  {(isExploding || isNukeExploding) && (
-                    <span className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
-                      <span className="text-2xl animate-bounce">💥</span>
-                    </span>
-                  )}
-                </span>
-              );
-            })}
-            {(isWon || isLost) && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/80 dark:bg-slate-900/80 rounded z-10">
-                <p className="text-lg font-semibold mb-2" data-testid="guessed">
-                  {isWon ? t.guessed : `${t.answerWas}: ${learning.toUpperCase()}`}
-                </p>
-                <p className="mb-2">
-                  {isWon
-                    ? `${t.correct} ${score.correct + 1} / ${t.incorrect} ${score.incorrect}`
-                    : `${t.correct} ${score.correct} / ${t.incorrect} ${score.incorrect + 1}`}
-                </p>
-                <p className="mb-2">
-                  {t.score || "Total score"}: {totalScore} 
-
-                </p>
-                <Button onClick={handleNext}>
-                  {t.nextWord}
-                </Button>
+          {/* Drawing and Powerups: Powerups float over drawing, aligned right */}
+          <div className="hangman-guessing-area w-full flex flex-col items-center justify-start">
+            <div className="relative flex justify-center items-start w-full">
+              <div className="flex-shrink-0">
+                <HangmanDrawing incorrect={incorrect.length} t={t} shrink={!!timeValue} />
               </div>
-            )}
+              <div className="absolute right-0 top-0 z-10 flex flex-col gap-2 items-end pr-1">
+                <PowerupButtons
+                  totalScore={totalScore}
+                  powerupCooldown={powerupCooldown}
+                  swap={swap}
+                  nativeLang={nativeLang}
+                  learningLang={learningLang}
+                  getAlphabet={getAlphabet}
+                  letters={letters}
+                  isGuessable={isGuessable}
+                  guesses={guesses}
+                  removedLetters={removedLetters}
+                  handleRemoveIncorrect={handleRemoveIncorrect}
+                  handleFiftyFifty={handleFiftyFifty}
+                  handleNuke={handleNuke}
+                  fiftyFifty={fiftyFifty}
+                  t={t}
+                />
+              </div>
+            </div>
+            <div className="text-2xl tracking-widest my-4">
+              {(() => {
+                const maxPerLine = 12;
+                const wordGroups = [];
+                let currentGroup = [];
+                let currentLen = 0;
+                for (let i = 0; i < letters.length; i++) {
+                  const l = letters[i];
+                  if (l === ' ' && currentLen >= maxPerLine) {
+                    wordGroups.push(currentGroup);
+                    currentGroup = [];
+                    currentLen = 0;
+                  }
+                  currentGroup.push({ l, i });
+                  currentLen++;
+                }
+                if (currentGroup.length) wordGroups.push(currentGroup);
+                return wordGroups.map((group, idx) => (
+                  <div key={idx} className="flex justify-center">
+                    {group.map(({ l, i }) => (
+                      <span key={i} className="inline-block w-6" data-testid={`letter-${i}`}>
+                        {l === ' '
+                          ? ' '
+                          : isGuessable(l)
+                            ? (guesses.includes(l) ? l : "_")
+                            : l}
+                      </span>
+                    ))}
+                  </div>
+                ));
+              })()}
+            </div>
+            <div className="text-red-500" data-testid="word-display">{t.wrongGuesses}: {incorrect.join(", ")}</div>
+          </div>
+          {/* Keyboard and win/loss modal moved to HangmanKeyboard */}
+          <div className="keyboard-area w-full flex-shrink-0 min-h-[40vh] h-[40vh] flex flex-row justify-center">
+            <HangmanKeyboard
+              alphabet={getAlphabet(swap ? nativeLang : learningLang)}
+              lang={swap ? nativeLang : learningLang}
+              guesses={guesses}
+              isWon={isWon}
+              isLost={isLost}
+              isGuessable={isGuessable}
+              letters={letters}
+              handleGuess={handleGuess}
+              removedLetters={removedLetters}
+              fiftyFifty={fiftyFifty}
+              explodingLetter={explodingLetter}
+              nukeExplodingLetters={nukeExplodingLetters}
+              t={t}
+              score={score}
+              totalScore={totalScore}
+              handleNext={handleNext}
+              learning={learning}
+            />
           </div>
           {showAllGuessed && (
             <div className="fixed inset-0 flex items-center justify-center bg-neutral-950/80 z-50">

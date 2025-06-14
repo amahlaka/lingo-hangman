@@ -6,6 +6,8 @@
   "display": "standalone",
   "background_color": "#f3f4f6",
   "theme_color": "#2563eb",
+  "scope": "/",
+  "id": "https://bololoo.com",
   "icons": [
     {
       "src": "/pwa-192x192.png",
@@ -16,6 +18,20 @@
       "src": "/pwa-512x512.png",
       "sizes": "512x512",
       "type": "image/png"
+    }
+  ],
+  "shortcuts": [
+    {
+    "name": "Lingo Hangman",
+    "short_name": "Home",
+    "description": "Go to create game page",
+    "url": "."
+    },
+    {
+      "name": "Start a new quick game",
+      "short_name": "Quick play",
+      "url": "/play?learningLang=en-GB&nativeLang=fi",
+      "description": "Start a new game with default languages"
     }
   ]
 }

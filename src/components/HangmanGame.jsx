@@ -408,9 +408,9 @@ export default function HangmanGame({ lang, t, restartFlag, testWords = "", setL
   return (
     <div className="min-h-screen flex flex-col justify-center items-center w-full bg-transparent pt-4 pb-4">
       <Card className="flex-1 w-full max-w-2xl flex flex-col justify-center items-center mx-auto my-0">
-        <CardContent className="text-center p-4 w-full flex-1 flex flex-col justify-center h-full">
-          {/* Menu and round indicator on the same row */}
-          <div className="flex justify-between items-center mb-2">
+        <CardContent className="text-center p-4 w-full flex-1 flex flex-col h-full">
+          {/* Top bar always at the top */}
+          <div className="flex justify-between items-center mb-2 w-full sticky top-0 z-20 bg-inherit">
             <div className="flex-1 flex justify-center">
               <span className="text-sm font-semibold text-gray-700 dark:text-gray-200">
                 {(showAllGuessed ? (t.round || "Round") + ": " + totalRounds + " / " + totalRounds : (t.round || "Round") + ": " + roundsPlayed + " / " + totalRounds)}
@@ -423,7 +423,14 @@ export default function HangmanGame({ lang, t, restartFlag, testWords = "", setL
               <HamburgerMenu lang={lang} setLang={setLang} onRestart={handleRestart} darkMode={darkMode} setDarkMode={setDarkMode} />
             </div>
           </div>
-          <h2 className="text-xl sm:text-lg xs:text-base font-semibold" data-testid="native-word">{t.meaning}: {native}</h2>
+          {/* Replace the h2 for meaning/native with a responsive, scaling text container */}
+          <h2
+            className="text-xl sm:text-lg xs:text-base font-semibold max-w-full overflow-hidden text-ellipsis whitespace-nowrap text-balance scale-text-responsive"
+            data-testid="native-word"
+            style={{ fontSize: 'clamp(1rem, 2.5vw, 1.25rem)' }}
+          >
+            {t.meaning}: {native}
+          </h2>
           {timeValue && (
             <div className="mb-2 text-blue-600 dark:text-blue-300 text-xs">
               {Array.isArray(timeValue) ? timeValue.join(" / ") : timeValue}
@@ -487,7 +494,7 @@ export default function HangmanGame({ lang, t, restartFlag, testWords = "", setL
             })()}
           </div>
           <div className="text-red-500" data-testid="word-display">{t.wrongGuesses}: {incorrect.join(", ")}</div>
-          <div className="mt-4 flex flex-wrap gap-2 justify-center relative">
+          <div className="mt-4 flex flex-row flex-wrap gap-2 justify-center relative self-end">
             {getAlphabet(swap ? nativeLang : learningLang).map(l => {
               const isIncorrect = guesses.includes(l) && !letters.some(wl => isGuessable(wl) && wl === l);
               const isRemoved = removedLetters.includes(l);

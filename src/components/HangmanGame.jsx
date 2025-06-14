@@ -438,82 +438,87 @@ export default function HangmanGame({ lang, t, restartFlag, testWords = "", setL
             </div>
           )}
           {/* Drawing and Powerups: Powerups float over drawing, aligned right */}
-          <div className="relative flex justify-center items-start" style={{}}>
-            <div className="flex-shrink-0">
-              <HangmanDrawing incorrect={incorrect.length} t={t} shrink={!!timeValue} />
+          <div className="hangman-guessing-area w-full flex flex-col items-center justify-start">
+            <div className="relative flex justify-center items-start w-full">
+              <div className="flex-shrink-0">
+                <HangmanDrawing incorrect={incorrect.length} t={t} shrink={!!timeValue} />
+              </div>
+              <div className="absolute right-0 top-0 z-10 flex flex-col gap-2 items-end pr-1">
+                <PowerupButtons
+                  totalScore={totalScore}
+                  powerupCooldown={powerupCooldown}
+                  swap={swap}
+                  nativeLang={nativeLang}
+                  learningLang={learningLang}
+                  getAlphabet={getAlphabet}
+                  letters={letters}
+                  isGuessable={isGuessable}
+                  guesses={guesses}
+                  removedLetters={removedLetters}
+                  handleRemoveIncorrect={handleRemoveIncorrect}
+                  handleFiftyFifty={handleFiftyFifty}
+                  handleNuke={handleNuke}
+                  fiftyFifty={fiftyFifty}
+                  t={t}
+                />
+              </div>
             </div>
-            <div className="absolute right-0 top-0 z-10 flex flex-col gap-2 items-end pr-1">
-              <PowerupButtons
-                totalScore={totalScore}
-                powerupCooldown={powerupCooldown}
-                swap={swap}
-                nativeLang={nativeLang}
-                learningLang={learningLang}
-                getAlphabet={getAlphabet}
-                letters={letters}
-                isGuessable={isGuessable}
-                guesses={guesses}
-                removedLetters={removedLetters}
-                handleRemoveIncorrect={handleRemoveIncorrect}
-                handleFiftyFifty={handleFiftyFifty}
-                handleNuke={handleNuke}
-                fiftyFifty={fiftyFifty}
-                t={t}
-              />
-            </div>
-          </div>
-          <div className="text-2xl tracking-widest my-4">
-            {(() => {
-              const maxPerLine = 12;
-              const wordGroups = [];
-              let currentGroup = [];
-              let currentLen = 0;
-              for (let i = 0; i < letters.length; i++) {
-                const l = letters[i];
-                if (l === ' ' && currentLen >= maxPerLine) {
-                  wordGroups.push(currentGroup);
-                  currentGroup = [];
-                  currentLen = 0;
+            <div className="text-2xl tracking-widest my-4">
+              {(() => {
+                const maxPerLine = 12;
+                const wordGroups = [];
+                let currentGroup = [];
+                let currentLen = 0;
+                for (let i = 0; i < letters.length; i++) {
+                  const l = letters[i];
+                  if (l === ' ' && currentLen >= maxPerLine) {
+                    wordGroups.push(currentGroup);
+                    currentGroup = [];
+                    currentLen = 0;
+                  }
+                  currentGroup.push({ l, i });
+                  currentLen++;
                 }
-                currentGroup.push({ l, i });
-                currentLen++;
-              }
-              if (currentGroup.length) wordGroups.push(currentGroup);
-              return wordGroups.map((group, idx) => (
-                <div key={idx} className="flex justify-center">
-                  {group.map(({ l, i }) => (
-                    <span key={i} className="inline-block w-6" data-testid={`letter-${i}`}>
-                      {l === ' '
-                        ? ' '
-                        : isGuessable(l)
-                          ? (guesses.includes(l) ? l : "_")
-                          : l}
-                    </span>
-                  ))}
-                </div>
-              ));
-            })()}
+                if (currentGroup.length) wordGroups.push(currentGroup);
+                return wordGroups.map((group, idx) => (
+                  <div key={idx} className="flex justify-center">
+                    {group.map(({ l, i }) => (
+                      <span key={i} className="inline-block w-6" data-testid={`letter-${i}`}>
+                        {l === ' '
+                          ? ' '
+                          : isGuessable(l)
+                            ? (guesses.includes(l) ? l : "_")
+                            : l}
+                      </span>
+                    ))}
+                  </div>
+                ));
+              })()}
+            </div>
+            <div className="text-red-500" data-testid="word-display">{t.wrongGuesses}: {incorrect.join(", ")}</div>
           </div>
-          <div className="text-red-500" data-testid="word-display">{t.wrongGuesses}: {incorrect.join(", ")}</div>
           {/* Keyboard and win/loss modal moved to HangmanKeyboard */}
-          <HangmanKeyboard
-            alphabet={getAlphabet(swap ? nativeLang : learningLang)}
-            guesses={guesses}
-            isWon={isWon}
-            isLost={isLost}
-            isGuessable={isGuessable}
-            letters={letters}
-            handleGuess={handleGuess}
-            removedLetters={removedLetters}
-            fiftyFifty={fiftyFifty}
-            explodingLetter={explodingLetter}
-            nukeExplodingLetters={nukeExplodingLetters}
-            t={t}
-            score={score}
-            totalScore={totalScore}
-            handleNext={handleNext}
-            learning={learning}
-          />
+          <div className="keyboard-area w-full flex-shrink-0 min-h-[40vh] h-[40vh] flex flex-row justify-center">
+            <HangmanKeyboard
+              alphabet={getAlphabet(swap ? nativeLang : learningLang)}
+              lang={swap ? nativeLang : learningLang}
+              guesses={guesses}
+              isWon={isWon}
+              isLost={isLost}
+              isGuessable={isGuessable}
+              letters={letters}
+              handleGuess={handleGuess}
+              removedLetters={removedLetters}
+              fiftyFifty={fiftyFifty}
+              explodingLetter={explodingLetter}
+              nukeExplodingLetters={nukeExplodingLetters}
+              t={t}
+              score={score}
+              totalScore={totalScore}
+              handleNext={handleNext}
+              learning={learning}
+            />
+          </div>
           {showAllGuessed && (
             <div className="fixed inset-0 flex items-center justify-center bg-neutral-950/80 z-50">
               <div className="bg-white dark:bg-gray-800 p-8 rounded shadow-lg text-center">

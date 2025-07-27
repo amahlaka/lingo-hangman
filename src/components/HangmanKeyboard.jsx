@@ -122,9 +122,9 @@ export default function HangmanKeyboard({
     );
   };
 
-  // Responsive: show on mobile portrait, hide on desktop
+  // Show keyboard on all devices
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-30 bg-white dark:bg-slate-900 shadow-lg p-2 pb-4 rounded-t-lg w-full max-w-md mx-auto md:hidden flex flex-col items-center transition-all" style={{touchAction: 'manipulation'}}>
+    <div className="w-full bg-white dark:bg-slate-900 shadow-lg p-2 pb-4 rounded-lg max-w-2xl mx-auto flex flex-col items-center transition-all" style={{touchAction: 'manipulation'}}>
       <div className="flex flex-col gap-2 w-full">
         {rows.map(renderRow)}
         {extraLetters.length > 0 && (
@@ -134,7 +134,7 @@ export default function HangmanKeyboard({
         )}
       </div>
       {(isWon || isLost) && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/80 dark:bg-slate-900/80 rounded z-10">
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/90 dark:bg-slate-900/90 rounded z-10 backdrop-blur-sm">
           <p className="text-lg font-semibold mb-2" data-testid="guessed">
             {isWon ? t.guessed : `${t.answerWas}: ${learning.toUpperCase()}`}
           </p>

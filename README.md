@@ -5,7 +5,7 @@ A hangman-style game meant for expanding the player's available vocabulary.
 
 ## Play Online
 
-You can play Lingo Hangman right now at [https://bololoo.com](https://bololoo.com).
+You can play Lingo Hangman right now at [https://lingo.bololoo.com](https://lingo.bololoo.com).
 
 ## Features
 

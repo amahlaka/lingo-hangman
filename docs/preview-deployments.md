@@ -50,8 +50,8 @@ The server needs, once:
 For production, additionally:
 
 - A `/srv/lingo-prod` folder, mounted read-only into the same nginx container. Releases go to `releases/<sha>/` and `current` is a link to the live one.
-- A second deploy key restricted to rsync into `/srv/lingo-prod`, for example `command="/usr/bin/rrsync /srv/lingo-prod",restrict`.
-- The live site's proxy host forwarding to the nginx container.
+- A separate SSH user for production, whose key is restricted to rsync into `/srv/lingo-prod` (for example `command="/usr/bin/rrsync /srv/lingo-prod",restrict`). A separate user rather than a second key on the preview user, because rrsync allows one run per user at a time, so preview and production deploys would block each other.
+- A proxy host for the live address (`lingo.bololoo.com`) forwarding to the nginx container. Set its `server_name` in `nginx.conf` if you use another address.
 
 ## GitHub settings
 
@@ -71,6 +71,6 @@ Variables:
 | `PREVIEW_SSH_HOST` | Server host name. A variable rather than a secret, because a secret equal to the domain makes GitHub mask the preview address in logs and on the environment link. |
 | `PREVIEW_DOMAIN` | Optional, default `preview.bololoo.com` |
 
-In the `production` environment, add the secret `PROD_SSH_KEY` (the production deploy key) and, optionally, the variable `PRODUCTION_URL` (default `https://bololoo.com`). The host, user and known hosts are shared with previews.
+In the `production` environment, add the secrets `PROD_SSH_USER` (the production deploy user) and `PROD_SSH_KEY` (its private key) and, optionally, the variable `PRODUCTION_URL` (default `https://lingo.bololoo.com`). The host, port and known hosts are shared with previews.
 
 Create a label named `preview` for the PR trigger. The workflow creates the `preview` environment on its first run.

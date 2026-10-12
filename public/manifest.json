@@ -7,7 +7,7 @@
   "background_color": "#f4f6f4",
   "theme_color": "#1e5b80",
   "scope": "/",
-  "id": "https://bololoo.com",
+  "id": "/",
   "icons": [
     {
       "src": "/pwa-192x192.png",

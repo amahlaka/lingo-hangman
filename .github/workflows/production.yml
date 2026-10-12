@@ -5,7 +5,7 @@
 # so a rollback is the same workflow run with an older commit.
 #
 # Uses the "production" environment: its PROD_SSH_KEY secret only exists
-# there, and required reviewers can be added to it in the repo settings.
+# there (with PROD_SSH_USER), and required reviewers can be added to it in the repo settings.
 # The server only needs a one-time setup; see docs/preview-deployments.md.
 
 name: Production deploy
@@ -30,7 +30,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: production
-      url: ${{ vars.PRODUCTION_URL || 'https://bololoo.com' }}
+      url: ${{ vars.PRODUCTION_URL || 'https://lingo.bololoo.com' }}
     steps:
       - uses: actions/checkout@v5
         with:
@@ -56,7 +56,7 @@ jobs:
         env:
           SSH_HOST: ${{ vars.PREVIEW_SSH_HOST || secrets.PREVIEW_SSH_HOST }}
           SSH_PORT: ${{ secrets.PREVIEW_SSH_PORT || '22' }}
-          SSH_USER: ${{ secrets.PREVIEW_SSH_USER }}
+          SSH_USER: ${{ secrets.PROD_SSH_USER }}
           SSH_KEY: ${{ secrets.PROD_SSH_KEY }}
           SSH_KNOWN_HOSTS: ${{ secrets.PREVIEW_SSH_KNOWN_HOSTS }}
           RELEASE: ${{ steps.meta.outputs.short }}
@@ -76,7 +76,7 @@ jobs:
 
       - name: Check the live site serves this release
         env:
-          URL: ${{ vars.PRODUCTION_URL || 'https://bololoo.com' }}
+          URL: ${{ vars.PRODUCTION_URL || 'https://lingo.bololoo.com' }}
         run: |
           for i in 1 2 3 4 5; do
             if curl -fsS --compressed "$URL/index.html" | cmp -s - dist/index.html; then

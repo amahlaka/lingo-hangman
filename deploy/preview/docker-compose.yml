@@ -1,5 +1,5 @@
 # Small static server for preview builds and the live site. The reverse proxy
-# forwards *.preview.bololoo.com and bololoo.com to this container.
+# forwards *.preview.bololoo.com and lingo.bololoo.com to this container.
 services:
   lingo-previews:
     image: nginx:1.27-alpine

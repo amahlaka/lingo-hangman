@@ -1,0 +1,98 @@
+# Adding a game
+
+Every game is a folder under `src/games/` plus one entry in `registry.js`. The
+home screen draws a card for each entry and `App.jsx` creates its routes, so a
+new game needs no other wiring.
+
+## 1. Register it
+
+```js
+// src/games/registry.js
+import WordPairsGame from "./word-pairs/WordPairsGame";
+
+{
+  id: "word-pairs",              // stable id, stored in progress
+  name: "Word Pairs",            // English name (GameCard heading)
+  nameFi: "Yhdistä parit",       // Finnish name (GameCard helper line)
+  description: "Match each English word with its Finnish meaning.",
+  art: "cat · kissa",            // typographic card art: real letters, no emoji
+  minutes: 3,
+  skill: "Vocabulary",           // Vocabulary, Spelling, Sentences or Listening
+  path: "/word-pairs",           // where the card links to
+  routes: [{ path: "/word-pairs", Component: WordPairsGame }],
+}
+```
+
+Replace the matching `soon: true` placeholder if there is one. An entry with
+`soon: true` shows as a dashed "Coming later" card and has no routes.
+
+## 2. Get words
+
+`src/lib/words.js` is shared by every game:
+
+- `loadWordSet(searchParams, { count })` reads a `?words=...` link (the same
+  format hangman shares) or picks `count` random built-in words. Returns
+  `{ pairs: [{ learning, native }], learningLang, nativeLang, swap, fromLink }`.
+- `pickCommonWords({ count, include, exclude, learningLang, nativeLang })` and
+  `filterCommonWords(...)` give built-in pairs by category (`ALL_CATEGORIES`,
+  `DEFAULT_CATEGORIES`).
+- `buildWordsQuery({ pairs, learningLang, nativeLang, swap })` makes a
+  shareable query string; `encodeWords` / `decodeWords` are the raw format.
+- `shuffle`, `getAlphabet(lang)`, `languageLabel(code)`.
+
+## 3. Report progress
+
+Call `recordWord` once for every finished word or item. Points, the daily goal,
+streaks, learned words and achievements all update from it.
+
+```js
+import { useProgress } from "../../app/ProgressContext";
+
+const { recordWord } = useProgress();
+
+const events = recordWord({
+  gameId: "word-pairs",
+  word: "cat",          // the English word practised
+  lang: "en-GB",        // language of `word`
+  solved: true,         // false for a missed item (still earns 2 XP)
+  triesLeft: 2,         // +2 XP each; use 0 if your game has no tries
+  perfect: true,        // first try, no miss: +5 XP
+});
+// events: { xpGained, levelUp, goalReached, streakChange, newAchievements,
+//           wordLearned, wordStreak, wordStreakMilestone }
+```
+
+Use `events` to pick the celebration size (see below). The rules themselves
+live in `src/lib/progress.js` as pure functions, with tests in
+`src/__tests__/progress.test.js`.
+
+`useProgress()` also gives `xp`, `level`, `streak`, `today`, `dailyGoal`,
+`learnedWords` and `wordStreak` for display. `useSettings()`
+(`src/app/SettingsContext.jsx`) gives `lang` ("en" or "fi"), `t` (strings from
+`src/i18n.js`; use `fill(t.key, { n })` for placeholders) and the theme.
+
+## 4. Build the screen
+
+Import building blocks from `src/components/lingo`:
+
+- `GameScreen` – the frame: back to games, title, streak and goal ring, your
+  `score` element, settings menu (`menuActions` for e.g. Restart). Put the
+  board in a `<main className="lg-board">` and, if the game has a keyboard or
+  answer buttons, a `<div className="lg-tray">` after it (sticks to the bottom).
+- `Feedback` – result banners: `variant="correct" | "retry" | "info" | "streak"`,
+  `title`, body as children, optional Finnish `fi` helper line.
+- `useConfetti()` – `const { celebrate, confetti } = useConfetti()`; render
+  `{confetti}` inside a `position: relative` element and call
+  `celebrate("medium")` for a solved item or `celebrate("large")` when
+  `events.goalReached`, `events.levelUp` or `events.wordStreakMilestone`.
+- `WordTiles`, `TriesMeter`, `ScorePill`, `CategoryChips`, `DailyProgress`,
+  `Achievements`.
+
+Styling uses the `lg-` classes from `src/styles/lingo.css` (copied from the
+Lingo design system) and tokens from `src/styles/tokens.css`. Put game-specific
+layout in `src/styles/app.css` under a short prefix (hangman uses `hm-`), and
+use only token variables for colour.
+
+Copy rules from the design system: sentence case, calm and specific words,
+"Not this time" instead of "Wrong", no red, no emoji, one primary button per
+screen.

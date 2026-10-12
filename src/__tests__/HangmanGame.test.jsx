@@ -1,105 +1,87 @@
-import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
-import HangmanGame from '../components/HangmanGame';
+import { act, fireEvent, screen } from "@testing-library/react";
+import { renderApp } from "../test-utils";
+import { encodeWords } from "../lib/words";
+import { STORAGE_KEY } from "../lib/progress";
 
-const t = {
-  meaning: 'Meaning',
-  score: 'Score',
-  wrongGuesses: 'Wrong guesses',
-  guessed: 'Congratulations!',
-  answerWas: 'Answer was',
-  correct: 'Correct',
-  incorrect: 'Incorrect',
-  nextWord: 'Next word',
-  allGuessed: 'All words completed!',
-  restart: 'Restart',
-  noWords: 'No words',
-};
+// A one-word link in the original format: [{"learning":"cat","native":"kissa"}]
+const CAT_LINK = "/play?words=W3sibGVhcm5pbmciOiJjYXQiLCJuYXRpdmUiOiJraXNzYSJ9XQ%3D%3D";
 
-const words = [
-  { learning: 'cat', native: 'kissa' },
-  { learning: 'dog', native: 'koira' },
-];
+const key = (letter) => screen.getByRole("button", { name: new RegExp(`^${letter}(,|$)`) });
 
-function setup(props = {}) {
-  return render(
-    <MemoryRouter>
-      <HangmanGame
-        lang="en"
-        t={t}
-        restartFlag={0}
-        testWords='W3sibGVhcm5pbmciOiJjYXQiLCJuYXRpdmUiOiJraXNzYSJ9XQ%3D%3D'
-        setDarkMode={() => {}}
-        darkMode={false}
-        setLang={() => {}}
-        {...props}
-      />
-    </MemoryRouter>
-  );
-}
-
-describe('HangmanGame', () => {
-  it('creates a shareable link (URLGenerator)', () => {
-    // This would be tested in URLGenerator, not HangmanGame
-    // Placeholder: just check the component renders
-    setup();
-    expect(screen.getByText(/Meaning/i)).toBeInTheDocument();
+describe("HangmanGame", () => {
+  it("opens a shared link and shows the meaning", () => {
+    renderApp(CAT_LINK);
+    expect(screen.getByTestId("native-word")).toHaveTextContent("kissa");
   });
 
-  it('guesses a correct letter', () => {
-    setup({
-      // override words for deterministic test
-      lang: 'en',
-      t,
-      restartFlag: 0,
-      testWords: "W3sibGVhcm5pbmciOiJjYXQiLCJuYXRpdmUiOiJraXNzYSJ9XQ%3D%3D"
-      // simulate only one word
-    });
-    // Guess 'C'
-    fireEvent.click(screen.getByText('C'));
-    // Should reveal C in the word display area (assume word display has a test id 'word-display')
-    const letterDisplay = screen.getByTestId('letter-0');
-    expect(letterDisplay).toHaveTextContent('C');
-    const nativeWord = screen.getByTestId('native-word');
-    expect(nativeWord).toHaveTextContent('kissa');
+  it("guesses a correct letter", () => {
+    renderApp(CAT_LINK);
+    fireEvent.click(key("C"));
+    expect(screen.getByTestId("letter-0")).toHaveTextContent("C");
+    expect(key("C")).toHaveAccessibleName("C, in the word");
   });
 
-  it('guesses an incorrect letter', () => {
-    setup();
-    fireEvent.click(screen.getByText('Z'));
-    const wordDisplay = screen.getByTestId('word-display');
-    expect(wordDisplay).toHaveTextContent('Z');
+  it("marks a letter that is not in the word", () => {
+    renderApp(CAT_LINK);
+    fireEvent.click(key("Z"));
+    expect(screen.getByRole("button", { name: "Z, not in the word" })).toBeDisabled();
+    expect(screen.getByLabelText("5 tries left")).toBeInTheDocument();
   });
 
-  it('guesses the word and shows congratulations', async () => {
-    setup();
-    fireEvent.click(screen.getByText('C'));
-    fireEvent.click(screen.getByText('A'));
-    fireEvent.click(screen.getByText('T'));
-    await waitFor(() => {
-      expect(screen.getByTestId("guessed")).toBeInTheDocument();
-    });
+  it("accepts guesses from the physical keyboard", () => {
+    renderApp(CAT_LINK);
+    fireEvent.keyDown(window, { key: "a" });
+    expect(screen.getByTestId("letter-1")).toHaveTextContent("A");
   });
 
-  it('runs out of guesses and shows answer', async () => {
-    setup();
-    // 6 incorrect guesses
-    ['Z', 'X', 'Y', 'Q', 'B', 'W'].forEach(l => fireEvent.click(screen.getByText(l)));
-    await waitFor(() => {
-      expect(screen.getByTestId("guessed")).toHaveTextContent('Answer was: CAT');
-    });
+  it("solves the word, records XP and moves on with Enter", () => {
+    const { storage } = renderApp(CAT_LINK);
+    ["C", "A", "T"].forEach((l) => fireEvent.click(key(l)));
+    expect(screen.getByTestId("guessed")).toHaveTextContent('Yes, "cat" is right.');
+    // 10 for the word + 2 x 6 tries left + 5 for no misses
+    expect(screen.getByText(/\+27 XP/)).toBeInTheDocument();
+    expect(JSON.parse(storage.data[STORAGE_KEY]).xp).toBe(27);
+    expect(screen.getByText("New badge: First word.")).toBeInTheDocument();
+    fireEvent.keyDown(window, { key: "Enter", code: "Enter" });
+    expect(screen.getByText("You've practised every word in this set.")).toBeInTheDocument();
   });
 
-  it('shows congratulation popup when all words are guessed', async () => {
-    setup();
-    fireEvent.click(screen.getByText('C'));
-    fireEvent.click(screen.getByText('A'));
-    fireEvent.click(screen.getByText('T'));
-    // Click next word button
-    fireEvent.click(screen.getByText('Next word'));
-    await waitFor(() => {
-      expect(screen.getByText("All words completed!")).toBeInTheDocument();
-    });
+  it("runs out of tries, shows the answer calmly and brings the word back", () => {
+    renderApp(CAT_LINK);
+    ["Z", "X", "Y", "Q", "B", "W"].forEach((l) => fireEvent.click(key(l)));
+    expect(screen.getByTestId("guessed")).toHaveTextContent('Not this time. The word was "cat".');
+    fireEvent.click(screen.getByRole("button", { name: "Next word" }));
+    expect(screen.getByTestId("native-word")).toHaveTextContent("kissa");
+    expect(screen.getByText("Round 2 / 2")).toBeInTheDocument();
+  });
+
+  it("plays a multi-word phrase with fixed punctuation", () => {
+    const link = `/play?words=${encodeWords([{ learning: "I'm lost", native: "Olen eksynyt" }])}`;
+    renderApp(link);
+    ["I", "M", "L", "O", "S", "T"].forEach((l) => fireEvent.click(key(l)));
+    expect(screen.getByTestId("guessed")).toHaveTextContent(`Yes, "I'm lost" is right.`);
+  });
+
+  it("starts with 5 random words when the link has no word list", () => {
+    renderApp("/play?learningLang=en-GB&nativeLang=fi");
+    expect(screen.getByText("Round 1 / 5")).toBeInTheDocument();
+  });
+
+  it("buys a hint with points earned in the session", () => {
+    jest.useFakeTimers();
+    const two = encodeWords([
+      { learning: "cat", native: "kissa" },
+      { learning: "dog", native: "koira" },
+    ]);
+    renderApp(`/play?words=${two}`);
+    const first = screen.getByTestId("native-word").textContent.includes("kissa") ? "CAT" : "DOG";
+    first.split("").forEach((l) => fireEvent.click(key(l)));
+    fireEvent.click(screen.getByRole("button", { name: "Next word" }));
+    const remove = screen.getByRole("button", { name: /^Remove a letter/ });
+    expect(remove).toBeEnabled();
+    fireEvent.click(remove);
+    expect(screen.getAllByRole("button", { name: /, removed$/ })).toHaveLength(1);
+    act(() => jest.runOnlyPendingTimers());
+    jest.useRealTimers();
   });
 });

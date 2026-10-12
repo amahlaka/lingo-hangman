@@ -1,0 +1,93 @@
+# Deploys a branch, tag or commit (master by default) to the live site.
+#
+# Run it from Actions > "Production deploy" > Run workflow. Each release is
+# uploaded to its own folder and then the "current" link is switched to it,
+# so a rollback is the same workflow run with an older commit.
+#
+# Uses the "production" environment: its PROD_SSH_KEY secret only exists
+# there, and required reviewers can be added to it in the repo settings.
+# The server only needs a one-time setup; see docs/preview-deployments.md.
+
+name: Production deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Branch, tag or commit SHA to put live
+        required: true
+        default: master
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: ${{ vars.PRODUCTION_URL || 'https://lingo.bololoo.com' }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.ref }}
+
+      - name: Work out the release name
+        id: meta
+        run: |
+          sha=$(git rev-parse HEAD)
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          echo "short=${sha:0:8}" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+
+      - name: Upload the release and switch to it
+        env:
+          SSH_HOST: ${{ vars.PROD_SSH_HOST }}
+          SSH_PORT: ${{ vars.PROD_SSH_PORT || '22' }}
+          SSH_USER: ${{ secrets.PROD_SSH_USER }}
+          SSH_KEY: ${{ secrets.PROD_SSH_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.PROD_SSH_KNOWN_HOSTS }}
+          RELEASE: ${{ steps.meta.outputs.short }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/prod_key
+          chmod 600 ~/.ssh/prod_key
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          ssh_cmd="ssh -p $SSH_PORT -i ~/.ssh/prod_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes"
+          # The key is restricted with rrsync to the production folder, so paths
+          # are relative to it: releases/<sha>/ holds builds, "current" points at one.
+          rsync -rlz --mkpath --delete --chmod=D755,F644 -e "$ssh_cmd" \
+            dist/ "$SSH_USER@$SSH_HOST:releases/$RELEASE/"
+          mkdir -p switch && ln -sfn "releases/$RELEASE" switch/current
+          rsync -lz -e "$ssh_cmd" switch/current "$SSH_USER@$SSH_HOST:./"
+          rm -f ~/.ssh/prod_key
+
+      - name: Check the live site serves this release
+        env:
+          URL: ${{ vars.PRODUCTION_URL || 'https://lingo.bololoo.com' }}
+        run: |
+          for i in 1 2 3 4 5; do
+            if curl -fsS --compressed "$URL/index.html" | cmp -s - dist/index.html; then
+              echo "Live at $URL"; exit 0
+            fi
+            sleep 3
+          done
+          echo "::warning::Uploaded and switched, but $URL is not serving this build. Check that the proxy host for the live site forwards to the preview nginx container."
+
+      - name: Summary
+        env:
+          SHA: ${{ steps.meta.outputs.sha }}
+        run: |
+          echo "### Released $SHA" >> "$GITHUB_STEP_SUMMARY"

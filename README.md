@@ -5,7 +5,7 @@ A hangman-style game meant for expanding the player's available vocabulary.
 
 ## Play Online
 
-You can play Lingo Hangman right now at [https://bololoo.com](https://bololoo.com).
+You can play Lingo Hangman right now at [https://lingo.bololoo.com](https://lingo.bololoo.com).
 
 ## Features
 
@@ -90,6 +90,10 @@ To run tests:
 ```bash
 npm test
 ```
+
+## Preview deployments
+
+Any branch, commit or pull request can be published to its own address such as `https://1a2b3c4d.preview.bololoo.com`: run the *Preview deploy* workflow from the Actions tab, or add the `preview` label to a PR. See [docs/preview-deployments.md](docs/preview-deployments.md) for usage, production deploys and the server requirements.
 
 ## Contributing
 

@@ -1,0 +1,141 @@
+# Builds any branch, tag, commit or PR and publishes it at
+# https://<short-sha>.<PREVIEW_DOMAIN>, e.g. https://1a2b3c4d.preview.bololoo.com
+#
+# Ways to run it:
+#   - Actions > "Preview deploy" > Run workflow, and type a branch, tag, SHA or PR number.
+#   - Add the "preview" label to a pull request. Later pushes to that PR redeploy automatically.
+#
+# The server only needs a one-time setup; see docs/preview-deployments.md.
+
+name: Preview deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Branch, tag, commit SHA, or PR number (e.g. 27) to deploy
+        required: true
+        default: master
+  pull_request:
+    types: [labeled, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+  deployments: write
+
+concurrency:
+  group: preview-${{ github.event.pull_request.number || inputs.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    # On PRs: only when the "preview" label is set, and never for forks (they get no secrets).
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.pull_request.head.repo.full_name == github.repository &&
+       contains(github.event.pull_request.labels.*.name, 'preview') &&
+       (github.event.action != 'labeled' || github.event.label.name == 'preview'))
+    runs-on: ubuntu-latest
+    environment:
+      name: preview
+      url: ${{ steps.meta.outputs.url }}
+    env:
+      PREVIEW_DOMAIN: ${{ vars.PREVIEW_DOMAIN || 'preview.bololoo.com' }}
+    steps:
+      - name: Resolve what to deploy
+        id: target
+        env:
+          INPUT_REF: ${{ inputs.ref }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          if [ -n "$PR_NUMBER" ]; then
+            echo "ref=$PR_SHA" >> "$GITHUB_OUTPUT"
+            echo "pr=$PR_NUMBER" >> "$GITHUB_OUTPUT"
+          elif [[ "$INPUT_REF" =~ ^#?[0-9]+$ ]]; then
+            pr="${INPUT_REF#\#}"
+            echo "ref=refs/pull/$pr/head" >> "$GITHUB_OUTPUT"
+            echo "pr=$pr" >> "$GITHUB_OUTPUT"
+          else
+            echo "ref=$INPUT_REF" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ steps.target.outputs.ref }}
+
+      - name: Work out the preview address
+        id: meta
+        run: |
+          sha=$(git rev-parse HEAD)
+          short=${sha:0:8}
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          echo "short=$short" >> "$GITHUB_OUTPUT"
+          echo "url=https://$short.$PREVIEW_DOMAIN" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+      - run: npm run build
+
+      - name: Upload to the preview server
+        env:
+          # A variable, not a secret: a secret equal to the domain would mask the preview URL in logs.
+          SSH_HOST: ${{ vars.PREVIEW_SSH_HOST || secrets.PREVIEW_SSH_HOST }}
+          SSH_PORT: ${{ secrets.PREVIEW_SSH_PORT || '22' }}
+          SSH_USER: ${{ secrets.PREVIEW_SSH_USER }}
+          SSH_KEY: ${{ secrets.PREVIEW_SSH_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.PREVIEW_SSH_KNOWN_HOSTS }}
+          SHORT_SHA: ${{ steps.meta.outputs.short }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/preview_key
+          chmod 600 ~/.ssh/preview_key
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          # The server key is restricted with rrsync to the previews folder,
+          # so the destination path is relative to that folder.
+          rsync -rlz --delete --chmod=D755,F644 \
+            -e "ssh -p $SSH_PORT -i ~/.ssh/preview_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes" \
+            dist/ "$SSH_USER@$SSH_HOST:$SHORT_SHA/"
+          rm -f ~/.ssh/preview_key
+
+      - name: Check the preview responds
+        env:
+          URL: ${{ steps.meta.outputs.url }}
+        run: |
+          for i in 1 2 3 4 5; do
+            if curl -fsS -o /dev/null "$URL/"; then echo "Live at $URL"; exit 0; fi
+            sleep 3
+          done
+          echo "::warning::Uploaded, but $URL did not answer. Check the DNS, proxy and preview nginx setup."
+
+      - name: Comment the link on the PR
+        if: steps.target.outputs.pr != ''
+        uses: actions/github-script@v8
+        env:
+          PR: ${{ steps.target.outputs.pr }}
+          URL: ${{ steps.meta.outputs.url }}
+          SHA: ${{ steps.meta.outputs.sha }}
+        with:
+          script: |
+            const marker = '<!-- lingo-preview -->';
+            const issue_number = Number(process.env.PR);
+            const body = `${marker}\n**Preview:** ${process.env.URL}\n\nBuilt from ${process.env.SHA}. Each commit gets its own address, so older previews keep working.`;
+            const { owner, repo } = context.repo;
+            const comments = await github.paginate(github.rest.issues.listComments, { owner, repo, issue_number });
+            const existing = comments.find(c => c.body?.startsWith(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({ owner, repo, comment_id: existing.id, body });
+            } else {
+              await github.rest.issues.createComment({ owner, repo, issue_number, body });
+            }
+
+      - name: Summary
+        env:
+          URL: ${{ steps.meta.outputs.url }}
+        run: |
+          echo "### Preview ready: $URL" >> "$GITHUB_STEP_SUMMARY"

@@ -2,7 +2,6 @@
 // content files, what changed, and blank items to start from. No React here.
 
 import { formatJson, formatPack, slugify } from "../lib/contentSchema";
-import { CONTENT_DIR } from "./githubPublish";
 
 const clone = (v) => JSON.parse(JSON.stringify(v));
 
@@ -10,15 +9,15 @@ export function draftFrom(raw) {
   return clone({ index: raw.index, languages: raw.languages, packs: raw.packs });
 }
 
-// Path -> file text for every content file in a draft, with items tidied as
+// Path in the word base repository -> file text for every content file in a draft, with items tidied as
 // they would be saved.
 export function draftFiles(draft) {
   const files = {
-    [`${CONTENT_DIR}/index.json`]: formatJson(draft.index),
-    [`${CONTENT_DIR}/languages.json`]: formatJson(draft.languages),
+    "index.json": formatJson(draft.index),
+    "languages.json": formatJson(draft.languages),
   };
   for (const pack of draft.packs) {
-    files[`${CONTENT_DIR}/packs/${pack.id}.json`] = formatPack({ ...pack, items: pack.items.map(tidyItem) });
+    files[`packs/${pack.id}.json`] = formatPack({ ...pack, items: pack.items.map(tidyItem) });
   }
   return files;
 }

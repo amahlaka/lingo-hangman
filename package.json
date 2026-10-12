@@ -8,7 +8,11 @@
     "preview": "vite preview",
     "test": "jest",
     "content:check": "node scripts/check-content.mjs",
-    "content:format": "node scripts/check-content.mjs --format"
+    "content:format": "node scripts/check-content.mjs --format",
+    "content:pull": "node scripts/pull-content.mjs",
+    "predev": "node scripts/pull-content.mjs --if-missing",
+    "prebuild": "node scripts/pull-content.mjs --if-missing",
+    "pretest": "node scripts/pull-content.mjs --if-missing"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.4",

@@ -2,3 +2,7 @@
 .DS_Store
 /.venv
 /dist
+
+# Word base, downloaded from amahlaka/lingo-wordbase (npm run content:pull)
+/content/
+.content.tar.gz

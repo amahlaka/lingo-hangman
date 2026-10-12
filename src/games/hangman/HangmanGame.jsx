@@ -4,6 +4,7 @@ import { useSettings } from "../../app/SettingsContext";
 import { useProgress } from "../../app/ProgressContext";
 import { fill } from "../../i18n";
 import { ACHIEVEMENTS } from "../../lib/progress";
+import { sounds } from "../../lib/sounds";
 import { getAlphabet, languageLabel, loadWordSet, shuffle, wordInfo } from "../../lib/words";
 import { DailyProgress, Feedback, GameScreen, ScorePill, TriesMeter, WordRecap, WordTiles, useConfetti } from "../../components/lingo";
 import HangmanDrawing from "./HangmanDrawing";
@@ -56,6 +57,10 @@ export default function HangmanGame() {
   useEffect(() => () => clearTimeout(highlightTimer.current), []);
 
   const allDone = queue.length === 0;
+
+  useEffect(() => {
+    if (allDone && words.length > 0) sounds.celebrate();
+  }, [allDone, words.length]);
   const current = allDone ? null : words[queue[0]];
   const answer = current ? (swap ? current.native : current.learning) : "";
   const meaning = current ? (swap ? current.learning : current.native) : "";
@@ -85,7 +90,12 @@ export default function HangmanGame() {
     setResult({ solved, events });
     setPoints((p) => p + events.xpGained);
     setPlus({ n: events.xpGained, key: Date.now() });
-    if (solved) celebrate("medium");
+    if (solved) {
+      celebrate("medium");
+      sounds.correct();
+    } else {
+      sounds.shown();
+    }
     // The large celebration: daily goal, level up or every 5 words in a row.
     let big = null;
     if (events.goalReached) big = { icon: "✓", title: fill(t.goalBanner, { n: dailyGoal }) };
@@ -93,7 +103,12 @@ export default function HangmanGame() {
     else if (events.wordStreakMilestone) {
       big = { icon: String(events.wordStreakMilestone), title: fill(t.streakBanner, { n: events.wordStreakMilestone }) };
     }
-    if (big) setTimeout(() => celebrate("large"), 250);
+    if (big) {
+      setTimeout(() => {
+        celebrate("large");
+        sounds.celebrate();
+      }, 250);
+    }
     else if (events.newAchievements.length > 0) {
       const badge = ACHIEVEMENTS.find((a) => a.id === events.newAchievements[0]);
       big = { icon: badge.medal, title: fill(t.newBadge, { name: badge.name }) };
@@ -113,6 +128,11 @@ export default function HangmanGame() {
     }
     const nextMisses = next.filter((g) => !inWord(g)).length;
     const won = letters.every((ch) => !isGuessable(ch) || next.includes(ch));
+    // The word's own sound (right or shown) covers the last guess.
+    if (!won && nextMisses < MAX_MISSES) {
+      if (inWord(letter)) sounds.found(next.filter(inWord).length - 1);
+      else sounds.miss();
+    }
     if (won) finishRound(true, nextMisses);
     else if (nextMisses >= MAX_MISSES) finishRound(false, nextMisses);
   };

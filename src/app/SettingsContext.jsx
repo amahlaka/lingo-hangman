@@ -1,11 +1,14 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 import i18n from "../i18n";
+import { setSoundEnabled } from "../lib/sounds";
 
-// App-wide settings: interface language (en/fi) and theme (light/dark/system).
+// App-wide settings: interface language (en/fi), theme (light/dark/system) and
+// sound effects (on/off).
 // Games read them with useSettings().
 
 const LANG_KEY = "lingoHangmanLang";
 const THEME_KEY = "theme";
+const SOUND_KEY = "lingoSound";
 
 const SettingsContext = createContext(null);
 
@@ -44,6 +47,11 @@ export function SettingsProvider({ children, initialLang }) {
     return stored === "dark" || stored === "light" ? stored : "system";
   });
   const [systemDark, setSystemDark] = useState(systemPrefersDark);
+  const [sound, setSoundState] = useState(() => readStorage(SOUND_KEY) !== "off");
+
+  useEffect(() => {
+    setSoundEnabled(sound);
+  }, [sound]);
 
   useEffect(() => {
     if (!window.matchMedia) return;
@@ -73,8 +81,13 @@ export function SettingsProvider({ children, initialLang }) {
         setThemeState(next);
         writeStorage(THEME_KEY, next === "system" ? null : next);
       },
+      sound,
+      setSound: (on) => {
+        setSoundState(on);
+        writeStorage(SOUND_KEY, on ? null : "off");
+      },
     }),
-    [lang, theme, dark]
+    [lang, theme, dark, sound]
   );
 
   return <SettingsContext.Provider value={value}>{children}</SettingsContext.Provider>;

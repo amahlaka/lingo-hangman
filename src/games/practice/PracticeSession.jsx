@@ -5,6 +5,7 @@ import { useProgress } from "../../app/ProgressContext";
 import i18n, { fill } from "../../i18n";
 import { ACHIEVEMENTS } from "../../lib/progress";
 import { DailyProgress, Feedback, GameScreen, ScorePill, WordRecap, useConfetti } from "../../components/lingo";
+import { sounds } from "../../lib/sounds";
 import { addResult, emptyTally } from "./practiceLogic";
 
 // The large celebration banner for what this answer unlocked, as in hangman.
@@ -63,7 +64,9 @@ export default function PracticeSession({ gameId, title, intro, learningLang, na
   }, [current]);
 
   useEffect(() => {
-    if (finished) celebrate("large");
+    if (!finished) return;
+    celebrate("large");
+    sounds.celebrate();
   }, [finished, celebrate]);
 
   const handleDone = (outcome) => {
@@ -81,8 +84,18 @@ export default function PracticeSession({ gameId, title, intro, learningLang, na
     setTally((s) => addResult(s, { ...outcome, xp: events.xpGained }));
     setResults((r) => [...r, outcome]);
     setPlus({ n: events.xpGained, key: Date.now() });
-    if (outcome.solved) celebrate("medium");
-    if (banner?.big) timer.current = setTimeout(() => celebrate("large"), 250);
+    if (outcome.solved) {
+      celebrate("medium");
+      sounds.correct();
+    } else {
+      sounds.shown();
+    }
+    if (banner?.big) {
+      timer.current = setTimeout(() => {
+        celebrate("large");
+        sounds.celebrate();
+      }, 250);
+    }
   };
 
   const goNext = () => {

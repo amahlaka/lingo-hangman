@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { sounds } from "../../lib/sounds";
 import { MAX_MISSES } from "./practiceLogic";
 
 // Four options in the learning language for one target word. A miss strikes that option out
@@ -30,6 +31,8 @@ export default function ChoiceQuestion({ question, learningLang, nativeLang, don
     const nextMissed = [...missed, option];
     setMissed(nextMissed);
     setWobble(option);
+    // The last miss gets the session's "answer shown" sound instead.
+    if (nextMissed.length < MAX_MISSES) sounds.miss();
     if (nextMissed.length >= MAX_MISSES) finish(false, nextMissed.length);
   };
 

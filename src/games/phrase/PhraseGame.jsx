@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { useSettings } from "../../app/SettingsContext";
 import { fill } from "../../i18n";
 import { languageLabel } from "../../lib/words";
+import { sounds } from "../../lib/sounds";
 import PracticeSession from "../practice/PracticeSession";
 import {
   MAX_MISSES,
@@ -40,6 +41,7 @@ function PhraseQuestion({ puzzle, done, onDone, p, learningLang, nativeLang, nat
 
   const add = (chip) => {
     if (done) return;
+    sounds.tap();
     setHint("");
     setPlaced((list) => [...list, chip]);
   };
@@ -61,6 +63,7 @@ function PhraseQuestion({ puzzle, done, onDone, p, learningLang, nativeLang, nat
       finish(false, nextMisses);
       return;
     }
+    sounds.miss();
     const keep = correctPrefixLength(placedWords, puzzle.answer);
     // Keep the words that are already right and hand the rest back.
     setPlaced((list) => list.slice(0, keep));

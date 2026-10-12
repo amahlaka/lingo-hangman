@@ -1,5 +1,6 @@
 // The word bank the games read from: words, fill-the-gap sentences, grammar
-// rules and mixed-up words, in packs under content/ (see content/README.md).
+// rules and mixed-up words, in packs downloaded into content/ from the
+// amahlaka/lingo-wordbase repository (format: its README).
 //
 // The app starts with the copy built into it, then main.jsx asks the server for
 // the newest published copy (/content/...), so words added by an admin show up

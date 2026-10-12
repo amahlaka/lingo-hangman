@@ -41,7 +41,8 @@ Replace the matching `soon: true` placeholder if there is one. An entry with
 - `shuffle`, `getAlphabet(lang)`, `languageLabel(code)`, `categoryLabel(cat, uiLang)`.
 
 The built-in words come from the word bank in `content/` (format and admin
-editing: `content/README.md`). Besides word pairs it has:
+editing: the [lingo-wordbase](https://github.com/amahlaka/lingo-wordbase)
+README; `npm run content:pull` downloads it). Besides word pairs it has:
 
 - `getGapItems({ topic, include, exclude, lang })`: fill-the-gap sentences,
   each with one `___`, `answers`, `distractors`, a Finnish `translation`, an

@@ -8,7 +8,8 @@ import tailwindcss from '@tailwindcss/vite'
 // The word bank in content/ is also published as /content/... (in the build,
 // and served from the folder in dev) so the app can fetch the newest copy at
 // startup. On the live site that path can be overridden by content published
-// without a release; see content/README.md.
+// without a release. content/ is downloaded from amahlaka/lingo-wordbase
+// (scripts/pull-content.mjs, run before dev, build and test).
 function wordBankFiles() {
   const dir = path.resolve(__dirname, 'content');
   const jsonFiles = () =>

@@ -1,14 +1,14 @@
 // Publishes word bank changes from the admin page as one commit on GitHub,
-// straight to a branch (no pull request). The "Content publish" workflow then
-// puts the new content on the live site.
+// straight to a branch of the word base repository (no pull request). The
+// "Content publish" workflow in this repository then puts it on the live site.
+// The word base is a separate repository so an admin's token can only change
+// words, never the app or its workflows.
 //
 // Uses the Git data API so several changed files become a single commit, and
 // refuses to overwrite a file that changed on GitHub after the admin page
 // loaded it.
 
 import { formatPack } from "../lib/contentSchema";
-
-export const CONTENT_DIR = "content";
 
 export class PublishConflict extends Error {
   constructor(paths) {
@@ -29,7 +29,7 @@ function canonical(path, text) {
   if (text == null) return null;
   try {
     const value = JSON.parse(text);
-    return /\/packs\//.test(path) ? formatPack(value) : JSON.stringify(value);
+    return /(^|\/)packs\//.test(path) ? formatPack(value) : JSON.stringify(value);
   } catch {
     return text;
   }

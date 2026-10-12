@@ -11,7 +11,7 @@ export function AppRoutes() {
   return (
     <Routes>
       <Route path="/" element={<Home />} />
-      {/* Word bank editor; not linked from the app, see content/README.md. */}
+      {/* Word bank editor; not linked from the app, see the lingo-wordbase README. */}
       <Route path="/admin" element={<ContentAdmin />} />
       {GAMES.flatMap((game) =>
         (game.routes || []).map(({ path, Component }) => (

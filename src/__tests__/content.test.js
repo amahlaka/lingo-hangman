@@ -131,7 +131,7 @@ describe("admin draft", () => {
     const pack = draft.packs.find((p) => p.id === "everyday-words");
     pack.items.push({ id: "moose", type: "word", text: { en: "moose", fi: "hirvi", de: "" }, categories: [] });
     const changes = changedFiles(draft, original);
-    expect(changes.map((c) => c.path)).toEqual(["content/packs/everyday-words.json"]);
+    expect(changes.map((c) => c.path)).toEqual(["packs/everyday-words.json"]);
     expect(changes[0].content).toContain('{"id":"moose","type":"word","text":{"en":"moose","fi":"hirvi"}}');
   });
 
@@ -143,7 +143,7 @@ describe("admin draft", () => {
 
 describe("publishing to GitHub", () => {
   const b64 = (text) => Buffer.from(text, "utf8").toString("base64");
-  const file = { path: "content/packs/x.json", original: '{"id":"x","items":[]}', content: '{"id":"x","items":[1]}' };
+  const file = { path: "packs/x.json", original: '{"id":"x","items":[]}', content: '{"id":"x","items":[1]}' };
 
   function fakeGitHub(remoteText) {
     const calls = [];
@@ -169,7 +169,7 @@ describe("publishing to GitHub", () => {
     expect(result).toEqual({ sha: "c1", url: "https://github.com/o/r/commit/c1" });
     expect(calls).toEqual([
       "GET git/ref/heads/master",
-      "GET contents/content/packs/x.json",
+      "GET contents/packs/x.json",
       "GET git/commits/parent",
       "POST git/blobs",
       "POST git/trees",

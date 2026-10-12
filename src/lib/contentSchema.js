@@ -1,7 +1,7 @@
 // The shape of the word bank in content/ and the checks every change must pass.
 // Used by the app (to skip broken items), the admin editor (to show problems
 // while editing) and `npm run content:check`. No imports, so Node runs it as is.
-// content/README.md describes the format for people editing it.
+// The lingo-wordbase README describes the format for people editing it.
 
 export const ITEM_TYPES = ["word", "gap", "rule", "confusable", "group"];
 

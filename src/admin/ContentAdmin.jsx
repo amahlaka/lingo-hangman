@@ -7,13 +7,14 @@ import { TYPE_NAMES, blankItem, changedFiles, draftFrom, itemLabel, suggestId, t
 import { PublishConflict, publishToGitHub } from "./githubPublish";
 import ItemForm from "./ItemForm";
 
-// /admin: edit the word bank in the browser and publish it to GitHub as one
-// commit, without a pull request. The "Content publish" workflow then puts it
-// on the live site. See content/README.md.
+// /admin: edit the word bank in the browser and publish it as one commit to
+// the word base repository (amahlaka/lingo-wordbase), without a pull request.
+// The "Content publish" workflow then puts it on the live site. See that
+// repository's README.
 
 const DRAFT_KEY = "lingo-admin-draft-v1";
 const GITHUB_KEY = "lingo-admin-github";
-const DEFAULT_GITHUB = { token: "", repo: "amahlaka/lingo-hangman", branch: "master" };
+const DEFAULT_GITHUB = { token: "", repo: "amahlaka/lingo-wordbase", branch: "master" };
 
 function readStored(key) {
   try {
@@ -230,7 +231,7 @@ export default function ContentAdmin() {
           {changes.length === 0 ? (
             <p className="lg-caption">No changes yet.</p>
           ) : (
-            <p>Changed: {changes.map((c) => c.path.replace("content/", "")).join(", ")}</p>
+            <p>Changed: {changes.map((c) => c.path).join(", ")}</p>
           )}
           {problems.length > 0 && (
             <>
@@ -242,8 +243,8 @@ export default function ContentAdmin() {
             <summary>GitHub access</summary>
             <div className="lg-stack">
               <p className="lg-caption">
-                Publishing needs a GitHub fine-grained access token with "Contents: read and write" on the repository.
-                It is kept only in this browser.
+                Publishing needs a GitHub fine-grained access token with only the word base repository selected and
+                "Contents: read and write". It can change words but not the app. It is kept only in this browser.
               </p>
               <div className="ad-grid">
                 <label className="lg-field">

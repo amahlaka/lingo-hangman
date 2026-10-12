@@ -96,3 +96,14 @@ use only token variables for colour.
 Copy rules from the design system: sentence case, calm and specific words,
 "Not this time" instead of "Wrong", no red, no emoji, one primary button per
 screen.
+
+## Question-by-question games
+
+For a game made of short questions (pick one, put in order …),
+`src/games/practice/PracticeSession.jsx` already does the round for you: the
+header and points, progress dots, `recordWord`, celebrations and banners, the
+Next button and the end screen. Render one question in `renderQuestion` and
+call `onDone({ solved, firstTry, tries, triesLeft, answer, meaning })`.
+`practiceLogic.js` has `practicePool(params)` (a shared link or every built-in
+word), distractor picking and the phrase helpers. Pick the meaning, Build the
+phrase and Listen and choose are built this way.

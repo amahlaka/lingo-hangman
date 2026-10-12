@@ -3,8 +3,9 @@ import { Link, useSearchParams } from "react-router-dom";
 import { useSettings } from "../../app/SettingsContext";
 import { useProgress } from "../../app/ProgressContext";
 import { fill } from "../../i18n";
+import { ACHIEVEMENTS } from "../../lib/progress";
 import { getAlphabet, languageLabel, loadWordSet, shuffle, wordInfo } from "../../lib/words";
-import { Feedback, GameScreen, ScorePill, TriesMeter, WordTiles, useConfetti } from "../../components/lingo";
+import { DailyProgress, Feedback, GameScreen, ScorePill, TriesMeter, WordTiles, useConfetti } from "../../components/lingo";
 import HangmanDrawing from "./HangmanDrawing";
 import HangmanKeyboard from "./HangmanKeyboard";
 import HintButtons, { HINT_COSTS } from "./HintButtons";
@@ -92,7 +93,10 @@ export default function HangmanGame() {
       big = { icon: String(events.wordStreakMilestone), title: fill(t.streakBanner, { n: events.wordStreakMilestone }) };
     }
     if (big) setTimeout(() => celebrate("large"), 250);
-    else if (events.wordLearned) big = { icon: "✓", title: fill(t.learnedBanner, { word: answer }) };
+    else if (events.newAchievements.length > 0) {
+      const badge = ACHIEVEMENTS.find((a) => a.id === events.newAchievements[0]);
+      big = { icon: badge.medal, title: fill(t.newBadge, { name: badge.name }) };
+    } else if (events.wordLearned) big = { icon: "✓", title: fill(t.learnedBanner, { word: answer }) };
     setBanner(big);
   };
 
@@ -209,6 +213,7 @@ export default function HangmanGame() {
           {confetti}
           <h2 className="lg-display">{t.allDoneTitle}</h2>
           {lang === "en" && <p className="lg-caption" lang="fi">Kävit kaikki sanat läpi.</p>}
+          <DailyProgress />
           <button type="button" className="lg-btn lg-btn--primary lg-btn--hero" onClick={handleRestart} autoFocus>
             {t.playAgainSet}
           </button>

@@ -12,7 +12,8 @@ You can play Lingo Hangman right now at [https://bololoo.com](https://bololoo.co
 - Random word selection from a large, categorized word list
 - Letter-by-letter guessing with keyboard and mouse support
 - Score tracking and statistics for each session
-- Powerups to help with guessing (remove incorrect letter, 50-50, nuke)
+- Hints bought with points earned in the session (50-50, remove a letter, clear letters)
+- Shared progress across games: points, levels, daily goal, daily streak with a weekly rest day, learned words and achievements
 - Customizable word list: create your own games and share links
 - User-friendly, responsive interface (mobile and desktop)
 - Dark mode support
@@ -73,6 +74,15 @@ You can play Lingo Hangman right now at [https://bololoo.com](https://bololoo.co
 - Open the app in your browser at http://localhost:5173
 - Use the URL generator to create custom games or play with default words.
 - Share generated game links with friends or students.
+
+## Project structure
+
+- `src/app/` – home screen and the shared settings and progress providers
+- `src/games/` – one folder per game plus `registry.js`; see [src/games/README.md](src/games/README.md) for adding a game
+- `src/lib/words.js` – word lists, categories and the shareable `/play?words=` link format
+- `src/lib/progress.js` – XP, levels, streaks, daily goal and achievements
+- `src/components/lingo/` – UI building blocks from the Lingo design system
+- `src/styles/` – design tokens (`tokens.css`), Lingo components (`lingo.css`) and app layout (`app.css`)
 
 ## Testing
 

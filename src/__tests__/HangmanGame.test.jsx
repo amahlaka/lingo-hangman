@@ -41,6 +41,7 @@ describe("HangmanGame", () => {
     // 10 for the word + 2 x 6 tries left + 5 for no misses
     expect(screen.getByText(/\+27 XP/)).toBeInTheDocument();
     expect(JSON.parse(storage.data[STORAGE_KEY]).xp).toBe(27);
+    expect(screen.getByText("New badge: First word.")).toBeInTheDocument();
     fireEvent.keyDown(window, { key: "Enter", code: "Enter" });
     expect(screen.getByText("You've practised every word in this set.")).toBeInTheDocument();
   });
@@ -49,7 +50,7 @@ describe("HangmanGame", () => {
     renderApp(CAT_LINK);
     ["Z", "X", "Y", "Q", "B", "W"].forEach((l) => fireEvent.click(key(l)));
     expect(screen.getByTestId("guessed")).toHaveTextContent('Not this time. The word was "cat".');
-    fireEvent.click(screen.getByRole("button", { name: "Next Word" }));
+    fireEvent.click(screen.getByRole("button", { name: "Next word" }));
     expect(screen.getByTestId("native-word")).toHaveTextContent("kissa");
     expect(screen.getByText("Round 2 / 2")).toBeInTheDocument();
   });
@@ -75,7 +76,7 @@ describe("HangmanGame", () => {
     renderApp(`/play?words=${two}`);
     const first = screen.getByTestId("native-word").textContent.includes("kissa") ? "CAT" : "DOG";
     first.split("").forEach((l) => fireEvent.click(key(l)));
-    fireEvent.click(screen.getByRole("button", { name: "Next Word" }));
+    fireEvent.click(screen.getByRole("button", { name: "Next word" }));
     const remove = screen.getByRole("button", { name: /^Remove a letter/ });
     expect(remove).toBeEnabled();
     fireEvent.click(remove);

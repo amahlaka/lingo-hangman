@@ -6,12 +6,12 @@ describe("Home", () => {
     renderApp("/");
     expect(screen.getByText("Word Pairs")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("link", { name: /Word Hangman/ }));
-    expect(screen.getByRole("button", { name: "Start Game" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Start game" })).toBeInTheDocument();
   });
 
   it("starts a hangman game from the setup screen in one tap", () => {
     renderApp("/hangman");
-    fireEvent.click(screen.getByRole("button", { name: "Start Game" }));
+    fireEvent.click(screen.getByRole("button", { name: "Start game" }));
     expect(screen.getByTestId("native-word")).toBeInTheDocument();
   });
 

@@ -1,10 +1,10 @@
 import React, { useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useSettings } from "../../app/SettingsContext";
-import { languageLabel } from "../../lib/words";
+import { getGapItems, getSentences, languageLabel } from "../../lib/words";
 import { sounds } from "../../lib/sounds";
 import PracticeSession from "../practice/PracticeSession";
-import { MAX_MISSES, buildGapRound, isGapCandidate, practicePool } from "../practice/practiceLogic";
+import { MAX_MISSES, buildGapRound, isGapCandidate, practicePool, usableWords } from "../practice/practiceLogic";
 
 const GAP_ROUND = 8;
 
@@ -12,8 +12,11 @@ const GAP_ROUND = 8;
 // The Finnish sentence sits above it so the right word is never a guess. Once
 // answered, the word drops into the gap and the Finnish moves under the full
 // sentence, as in Build the phrase.
-function GapQuestion({ question, done, onDone, p, learningLang, nativeLang, nativeLabel }) {
-  const { target, answer, options, before, after } = question;
+function GapQuestion({ question, done, onDone, p, learningLang, nativeLang, nativeLabel, uiLang }) {
+  const { target, answer, options, before, after, explanation } = question;
+  // A two-way choice (a / an) is over after one miss.
+  const maxMisses = Math.min(MAX_MISSES, options.length - 1);
+  const why = explanation && (explanation[uiLang] || explanation.fi || explanation.en);
   const [missed, setMissed] = useState([]);
   const [picked, setPicked] = useState(null);
   const [wobble, setWobble] = useState(null);
@@ -23,7 +26,7 @@ function GapQuestion({ question, done, onDone, p, learningLang, nativeLang, nati
       solved,
       firstTry: solved && misses === 0,
       tries: misses + 1,
-      triesLeft: MAX_MISSES - misses,
+      triesLeft: maxMisses - misses,
       answer: target.learning,
       meaning: target.native,
     });
@@ -38,7 +41,7 @@ function GapQuestion({ question, done, onDone, p, learningLang, nativeLang, nati
     const nextMissed = [...missed, option];
     setMissed(nextMissed);
     setWobble(option);
-    if (nextMissed.length < MAX_MISSES) sounds.miss();
+    if (nextMissed.length < maxMisses) sounds.miss();
     else finish(false, nextMissed.length);
   };
 
@@ -69,6 +72,7 @@ function GapQuestion({ question, done, onDone, p, learningLang, nativeLang, nati
         <div className="pg-meaning lg-reveal">
           <span className="lg-caption">{nativeLabel}</span>
           <p className="pg-meaning__text" lang={nativeLang} data-testid="meaning-reveal">{target.native}</p>
+          {why && <p className="lg-caption fg-why" data-testid="gap-explanation">{why}</p>}
         </div>
       )}
 
@@ -100,12 +104,20 @@ function GapQuestion({ question, done, onDone, p, learningLang, nativeLang, nati
 // Read a sentence with a missing word and choose the word that fits.
 export default function FillGapGame() {
   const [params] = useSearchParams();
-  const { t } = useSettings();
+  const { t, lang } = useSettings();
   const p = t.practice;
   const search = params.toString();
-  const { pairs, sentences, learningLang, nativeLang } = useMemo(() => {
+  // A shared link gaps its own sentences. Otherwise the round mixes the word
+  // bank's hand-written gap sentences with every other sentence in it.
+  const { pairs, sentences, items, learningLang, nativeLang } = useMemo(() => {
     const pool = practicePool(new URLSearchParams(search));
-    return { ...pool, sentences: pool.pairs.filter(isGapCandidate) };
+    const { learningLang: l, nativeLang: n } = pool;
+    if (pool.fromLink) return { ...pool, sentences: pool.pairs.filter(isGapCandidate), items: [] };
+    return {
+      ...pool,
+      sentences: usableWords(getSentences({ learningLang: l, nativeLang: n })).filter(isGapCandidate),
+      items: getGapItems({ lang: l }),
+    };
   }, [search]);
   const nativeLabel = nativeLang === "fi" ? p.finnish : languageLabel(nativeLang);
 
@@ -116,7 +128,7 @@ export default function FillGapGame() {
       intro={p.gapIntro}
       learningLang={learningLang}
       nativeLang={nativeLang}
-      buildQuestions={() => buildGapRound(sentences, pairs, GAP_ROUND)}
+      buildQuestions={() => buildGapRound(sentences, pairs, GAP_ROUND, Math.random, { items, nativeLang })}
       renderQuestion={({ question, done, onDone }) => (
         <GapQuestion
           question={question}
@@ -126,6 +138,7 @@ export default function FillGapGame() {
           learningLang={learningLang}
           nativeLang={nativeLang}
           nativeLabel={nativeLabel}
+          uiLang={lang}
         />
       )}
     />

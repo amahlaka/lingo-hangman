@@ -2,7 +2,7 @@
 // phrase, listen and choose). Words are pairs `{ learning, native, categories }`
 // as returned by src/lib/words.js. No React here so the rules are easy to test.
 
-import { DEFAULT_LEARNING_LANG, DEFAULT_NATIVE_LANG, decodeWords, filterCommonWords } from "../../lib/words";
+import { DEFAULT_LEARNING_LANG, DEFAULT_NATIVE_LANG, decodeWords, filterCommonWords, getWordGroups } from "../../lib/words";
 
 export const ROUND_LENGTH = 10;
 // After this many misses on one question the answer is shown, so nobody gets stuck.
@@ -197,21 +197,11 @@ export function buildPairBoards(pool, { boards = PAIR_BOARDS, size = PAIRS_PER_B
 
 // --- Fill the gap -----------------------------------------------------------
 
-// Small English words that are easy to mix up. When the gap is one of these the
-// other options come from the same group, so the question is about grammar
-// ("Where ___ the toilet?" is / are / am / was), not about spotting a stranger.
-export const GAP_GROUPS = [
-  ["is", "are", "am", "was", "were"],
-  ["do", "does", "did", "can", "would", "will", "have", "has"],
-  ["a", "an", "the", "this", "that", "some"],
-  ["in", "on", "at", "to", "past", "near", "of", "for", "from", "with"],
-  ["I", "me", "my", "you", "your", "he", "she", "it", "we", "they", "him", "her", "us", "them"],
-  ["what", "where", "when", "how", "who", "why", "which"],
-  ["much", "many", "lot", "more", "few"],
-  ["one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve", "twenty", "quarter", "half"],
-];
-
-const groupOf = (word) => GAP_GROUPS.find((g) => g.some((w) => w.toLowerCase() === word.toLowerCase()));
+// Small English words that are easy to mix up (is / are / am …) come from the
+// word bank's "group" items. When the gap is one of these the other options
+// come from the same group, so the question is about grammar ("Where ___ the
+// toilet?" is / are / am / was), not about spotting a stranger.
+const groupOf = (word, groups) => groups.find((g) => g.some((w) => w.toLowerCase() === word.toLowerCase()));
 const gapKey = (w) => (w === "I" ? "I" : w.toLowerCase());
 
 export function isGapCandidate(pair) {
@@ -234,15 +224,15 @@ function asOption(word, first) {
 // Wrong options for `answer` in `sentence`. Grammar words draw from their
 // group; other words draw from the vocabulary in `pool`. Nothing that already
 // appears in the sentence is offered.
-export function pickGapOptions(answer, sentenceWords, pool, count = 3, random = Math.random) {
+export function pickGapOptions(answer, sentenceWords, pool, count = 3, random = Math.random, groups = getWordGroups()) {
   const used = new Set(sentenceWords.map(gapKey));
-  const group = groupOf(answer);
+  const group = groupOf(answer, groups);
   let candidates;
   if (group) {
     candidates = group;
   } else {
     const vocab = pool.flatMap((p) => gapTokens(p.learning));
-    candidates = vocab.filter((w) => !groupOf(w) && w.length > 2);
+    candidates = vocab.filter((w) => !groupOf(w, groups) && w.length > 2);
   }
   const seen = new Set(used);
   const out = [];
@@ -260,7 +250,7 @@ export function pickGapOptions(answer, sentenceWords, pool, count = 3, random = 
 // enough sensible alternatives. The sentence is split around the gap:
 // `before` is the text in front of it and `after` the text behind it, where
 // `after` starts with any punctuation stuck to the gapped word ("toilet?").
-export function buildGapQuestion(target, pool, random = Math.random) {
+export function buildGapQuestion(target, pool, random = Math.random, groups = getWordGroups()) {
   const raw = target.learning.trim().split(/\s+/);
   const split = raw.map((r) => r.match(/^([^\p{L}\p{N}']*)(.*?)([^\p{L}\p{N}']*)$/u));
   const sentenceWords = split.map((m) => m[2]);
@@ -269,13 +259,15 @@ export function buildGapQuestion(target, pool, random = Math.random) {
     random
   );
   for (const { w: answer, i } of spots) {
-    const others = pickGapOptions(answer, sentenceWords, pool, 3, random);
+    const others = pickGapOptions(answer, sentenceWords, pool, 3, random, groups);
     if (others.length < 3) continue;
     const [, lead, , trail] = split[i];
+    // Options start with a capital only where the sentence itself has one.
+    const first = i === 0 && /^\p{Lu}/u.test(answer);
     return {
       target,
-      options: shuffle([answer, ...others].map((o) => asOption(o, i === 0)), random),
-      answer: asOption(answer, i === 0),
+      options: shuffle([answer, ...others].map((o) => asOption(o, first)), random),
+      answer: asOption(answer, first),
       before: [...raw.slice(0, i), lead].filter(Boolean).join(" ").trimEnd(),
       after: trail + (i + 1 < raw.length ? " " + raw.slice(i + 1).join(" ") : ""),
     };
@@ -283,13 +275,42 @@ export function buildGapQuestion(target, pool, random = Math.random) {
   return null;
 }
 
-// A round of gap questions, skipping sentences that can't make one.
-export function buildGapRound(sentences, pool, length = ROUND_LENGTH, random = Math.random) {
+// A question from a hand-written gap item in the word bank (`type: "gap"`):
+// its own wrong options, and its explanation for after the answer. Items with
+// one distractor (a / an, borrow / lend) stay two-way choices.
+export function gapItemQuestion(item, nativeLang = DEFAULT_NATIVE_LANG, random = Math.random) {
+  const [before, after] = item.sentence.split("___");
+  const answer = item.answers[0];
+  const native = item.translation?.[nativeLang];
+  if (after === undefined || !native) return null;
+  const options = [answer, ...item.distractors.filter((d) => !item.answers.includes(d))].slice(0, 4);
+  return {
+    target: { learning: `${before}${answer}${after}`, native, id: item.id },
+    answer,
+    options: shuffle(options, random),
+    before: before.trimEnd(),
+    after,
+    explanation: item.explanation,
+  };
+}
+
+// A round of gap questions. Hand-written items and sentences from `sentences`
+// (gapped automatically) are mixed, skipping sentences that can't make a question
+// and any sentence a hand-written item already covers.
+export function buildGapRound(sentences, pool, length = ROUND_LENGTH, random = Math.random, { items = [], nativeLang } = {}) {
+  const fromItems = items.map((item) => () => gapItemQuestion(item, nativeLang, random));
+  const covered = new Set(items.map((i) => i.id));
+  const fromSentences = sentences
+    .filter((s) => !covered.has(s.id))
+    .map((s) => () => buildGapQuestion(s, pool, random));
   const out = [];
-  for (const s of shuffle(sentences, random)) {
+  const seen = new Set();
+  for (const make of shuffle([...fromItems, ...fromSentences], random)) {
     if (out.length >= length) break;
-    const q = buildGapQuestion(s, pool, random);
-    if (q) out.push(q);
+    const q = make();
+    if (!q || seen.has(q.target.learning.toLowerCase())) continue;
+    seen.add(q.target.learning.toLowerCase());
+    out.push(q);
   }
   return out;
 }

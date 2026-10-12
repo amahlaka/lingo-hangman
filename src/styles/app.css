@@ -287,6 +287,7 @@ a { color: var(--lake); }
 .fg-sentence--right .fg-gap { background: var(--pine-soft); border-bottom-color: var(--pine); }
 .fg-sentence--shown .fg-gap { background: var(--cloudberry-soft); border-bottom-color: var(--cloudberry); color: var(--cloudberry-ink); }
 .fg-choices { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.fg-why { max-width: 32em; margin: var(--space-1) 0 0; }
 
 @media (max-width: 360px) {
   .pg-prompt__word { font-size: 32px; line-height: 38px; }

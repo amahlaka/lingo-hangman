@@ -130,6 +130,8 @@ well: call `onItem(outcome)` for each word as it is finished (it records the
 word and plays the sound), then `onDone({ board: true })` when the whole
 question is done. The session shows one "All pairs found" banner for it.
 
-Fill the Gap picks its wrong options with `GAP_GROUPS` in `practiceLogic.js`:
-when the gap is a small grammar word (is/are, a/the, in/at …) the other options
-come from the same group. Add words to a group, or a new group, to widen it.
+Fill the Gap mixes the word bank's hand-written gap sentences (`getGapItems`)
+with every other sentence in it (`getSentences`), gapped automatically. For an
+automatic gap that is a small grammar word (is/are, a/the, in/at …) the other
+options come from the same word group (`getWordGroups`), so adding a group or
+words to one in the word bank widens it.

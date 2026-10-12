@@ -188,3 +188,45 @@ describe('fill the gap', () => {
     expect(round).toHaveLength(8);
   });
 });
+
+describe('fill the gap with the word bank', () => {
+  const { buildGapRound, gapItemQuestion } = require('../games/practice/practiceLogic');
+  const { getGapItems, getSentences } = require('../lib/words');
+  const item = {
+    id: 'a-or-an-2', type: 'gap', lang: 'en', sentence: 'She has ___ new car.', answers: ['a'], distractors: ['an'],
+    translation: { fi: 'Hänellä on uusi auto.' }, explanation: { fi: 'New alkaa konsonanttiäänteellä.' },
+  };
+
+  it('keeps a hand-written item as written, two options and all', () => {
+    const q = gapItemQuestion(item, 'fi');
+    expect(q.answer).toBe('a');
+    expect(q.options.sort()).toEqual(['a', 'an']);
+    expect(q.before).toBe('She has');
+    expect(q.after).toBe(' new car.');
+    expect(q.target).toEqual({ learning: 'She has a new car.', native: 'Hänellä on uusi auto.', id: 'a-or-an-2' });
+    expect(q.explanation.fi).toMatch(/konsonantti/);
+  });
+
+  it('skips an item with no translation in the learner’s language', () => {
+    expect(gapItemQuestion(item, 'sv')).toBeNull();
+  });
+
+  it('never offers a second right answer as a wrong one', () => {
+    const q = gapItemQuestion({ ...item, answers: ['bill', 'check'], distractors: ['check', 'menu'], sentence: 'The ___, please.' }, 'fi');
+    expect(q.options.sort()).toEqual(['bill', 'menu']);
+  });
+
+  it('mixes word bank items and sentences without repeating a sentence', () => {
+    const items = getGapItems({ lang: 'en-GB' });
+    const sentences = getSentences({ learningLang: 'en-GB', nativeLang: 'fi' });
+    expect(items.length).toBeGreaterThan(0);
+    const round = buildGapRound(sentences, sentences, 30, Math.random, { items, nativeLang: 'fi' });
+    expect(round).toHaveLength(30);
+    const texts = round.map((q) => q.target.learning.toLowerCase());
+    expect(new Set(texts).size).toBe(texts.length);
+    round.forEach((q) => {
+      expect(q.options).toContain(q.answer);
+      expect(`${q.before ? q.before + ' ' : ''}${q.answer}${q.after}`).toBe(q.target.learning);
+    });
+  });
+});

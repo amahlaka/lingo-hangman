@@ -38,7 +38,24 @@ Replace the matching `soon: true` placeholder if there is one. An entry with
   `DEFAULT_CATEGORIES`).
 - `buildWordsQuery({ pairs, learningLang, nativeLang, swap })` makes a
   shareable query string; `encodeWords` / `decodeWords` are the raw format.
-- `shuffle`, `getAlphabet(lang)`, `languageLabel(code)`.
+- `shuffle`, `getAlphabet(lang)`, `languageLabel(code)`, `categoryLabel(cat, uiLang)`.
+
+The built-in words come from the word bank in `content/` (format and admin
+editing: the [lingo-wordbase](https://github.com/amahlaka/lingo-wordbase)
+README; `npm run content:pull` downloads it). Besides word pairs it has:
+
+- `getGapItems({ topic, include, exclude, lang })`: fill-the-gap sentences,
+  each with one `___`, `answers`, `distractors`, a Finnish `translation`, an
+  optional `explanation` and the `topic` it practises.
+- `getTopics("rule" | "confusable")` and `getItem(id)`: grammar rules and
+  sets of mixed-up words, with titles and explanations in English and Finnish.
+- `getWordGroups()`: sets of small words that are easy to confuse
+  (is / are / am …), for believable wrong options.
+- `getSentences({ learningLang, nativeLang })`: every whole sentence in the
+  bank (phrases, example sentences, filled-in gap sentences) as pairs.
+
+Content can change after a release, so look items up by `id` and don't
+hard-code words in a game.
 
 ## 3. Report progress
 
@@ -110,8 +127,10 @@ phrase and Listen and choose are built this way.
 
 ## Gap games
 
-Grammar check and Mixed-up words (`src/games/gap/`) are one game drawn from two
-content files in the word database item format, `src/content/grammar.json` and `src/content/confusables.json`.
-Adding sentences or a whole new set is a content change only; the format is in
-`src/content/README.md`. `?set=<id>` practises one set, e.g.
+Grammar check and Mixed-up words (`src/games/gap/`) are one game over two kinds
+of word bank topic: `getTopics("rule")` for grammar and `getTopics("confusable")`
+for mixed-up words, each with the `getGapItems()` sentences that point at it.
+The sentences live in the lingo-wordbase repository (`packs/grammar.json` and
+`packs/mixed-up-words.json`), so adding sentences or a whole new topic needs no
+app change. `?set=<topic id>` practises one topic, e.g.
 `/mixed-up?set=borrow-lend`.

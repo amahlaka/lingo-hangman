@@ -1,0 +1,126 @@
+# Puts the word base (github.com/amahlaka/lingo-wordbase) on the live site
+# without a new app release.
+#
+# The words live in their own repository, so an admin's token can change words
+# but never this app or its workflows. This workflow lives here, next to the
+# deploy secrets, and checks the word base every 10 minutes; it publishes
+# only when the word base's master has moved since the last publish. Run it by
+# hand (Actions > "Content publish") to publish at once.
+#
+# Files go to content/ next to the releases; nginx serves /content/ from there
+# and falls back to the copy inside the live release.
+
+name: Content publish
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+    inputs:
+      force:
+        description: Publish even if the live site already has the newest words
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+env:
+  WORDBASE_REPO: amahlaka/lingo-wordbase
+  URL: ${{ vars.PRODUCTION_URL || 'https://lingo.bololoo.com' }}
+
+jobs:
+  # Cheap check with no secrets and no environment, so quiet runs don't create
+  # deployments or ask for approval.
+  check:
+    runs-on: ubuntu-latest
+    outputs:
+      sha: ${{ steps.compare.outputs.sha }}
+      publish: ${{ steps.compare.outputs.publish }}
+    steps:
+      - id: compare
+        env:
+          FORCE: ${{ inputs.force || false }}
+        run: |
+          sha=$(git ls-remote "https://github.com/$WORDBASE_REPO" refs/heads/master | cut -f1)
+          live=$(curl -fsS "$URL/content/version.json" 2>/dev/null | sed -n 's/.*"sha": *"\([0-9a-f]*\)".*/\1/p' || true)
+          echo "Word base master: $sha, live: ${live:-none}"
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          if [ -n "$sha" ] && { [ "$sha" != "$live" ] || [ "$FORCE" = "true" ]; }; then
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  publish:
+    needs: check
+    if: needs.check.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: ${{ vars.PRODUCTION_URL || 'https://lingo.bololoo.com' }}
+    concurrency:
+      group: production
+      cancel-in-progress: false
+    steps:
+      # The checker comes from this repository's master, never from the word base.
+      - uses: actions/checkout@v5
+        with:
+          ref: master
+          persist-credentials: false
+
+      - uses: actions/checkout@v5
+        with:
+          repository: ${{ env.WORDBASE_REPO }}
+          ref: ${{ needs.check.outputs.sha }}
+          path: content
+          persist-credentials: false
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+
+      # Plain Node, no install needed. Stops here if anything is wrong, so the
+      # live site keeps the last good words.
+      - run: node scripts/check-content.mjs
+
+      - name: Upload the content
+        env:
+          SHA: ${{ needs.check.outputs.sha }}
+          SSH_HOST: ${{ vars.PROD_SSH_HOST }}
+          SSH_PORT: ${{ vars.PROD_SSH_PORT || '22' }}
+          SSH_USER: ${{ secrets.PROD_SSH_USER }}
+          SSH_KEY: ${{ secrets.PROD_SSH_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.PROD_SSH_KNOWN_HOSTS }}
+        run: |
+          printf '{ "sha": "%s" }\n' "$SHA" > content/version.json
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/prod_key
+          chmod 600 ~/.ssh/prod_key
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          ssh_cmd="ssh -p $SSH_PORT -i ~/.ssh/prod_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes"
+          # JSON only. Packs first, index.json and version.json last, so a
+          # visitor never gets an index naming a pack that isn't there yet.
+          # Paths are relative to the production folder (the key is restricted
+          # with rrsync).
+          rsync -rlz --mkpath --chmod=D755,F644 \
+            --exclude=/index.json --exclude=/version.json --exclude='.*' \
+            --include='*/' --include='*.json' --exclude='*' \
+            -e "$ssh_cmd" content/ "$SSH_USER@$SSH_HOST:content/"
+          rsync -z --chmod=F644 -e "$ssh_cmd" content/index.json content/version.json "$SSH_USER@$SSH_HOST:content/"
+          rm -f ~/.ssh/prod_key
+
+      - name: Check the live site serves it
+        run: |
+          for i in 1 2 3 4 5; do
+            if curl -fsS --compressed "$URL/content/index.json" | cmp -s - content/index.json; then
+              echo "Live at $URL/content/"; exit 0
+            fi
+            sleep 3
+          done
+          echo "::warning::Uploaded, but $URL/content/index.json is not the new file. Check the /content/ location in the nginx config."
+
+      - name: Summary
+        env:
+          SHA: ${{ needs.check.outputs.sha }}
+        run: |
+          echo "### Published the word base at ${SHA:0:8}" >> "$GITHUB_STEP_SUMMARY"
+          node -e 'const i=require("./content/index.json");console.log(`Packs: ${i.packs.join(", ")}`)' >> "$GITHUB_STEP_SUMMARY"

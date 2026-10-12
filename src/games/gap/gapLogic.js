@@ -1,7 +1,7 @@
 // Pure helpers for the gap games (Grammar check, Mixed-up words). Content
-// comes from src/content/*.json: topics with a rule explained in English and
-// Finnish, and sentences with one "___" gap and words to choose from (see
-// src/content/README.md). No React here so the rules are easy to test.
+// comes from the word bank (src/lib/words.js): "rule" or "confusable" topics
+// explained in English and Finnish, and "gap" sentences with one "___" that
+// point at a topic. No React here so the rules are easy to test.
 
 import { MAX_MISSES, ROUND_LENGTH, shuffle } from "../practice/practiceLogic";
 
@@ -26,16 +26,14 @@ export function maxMissesFor(options) {
   return Math.max(1, Math.min(MAX_MISSES, options.length - 1));
 }
 
-// Every gap item of a content file as a question, with its topic's title and
-// explanation. Items follow the word database's shapes: topics are "rule" or
-// "confusable" items, sentences are "gap" items pointing at a topic.
-export function gapQuestions(content) {
-  const items = content?.items || [];
-  const topics = new Map(items.filter((i) => i.type !== "gap").map((t) => [t.id, t]));
-  return items
-    .filter((i) => i.type === "gap" && topics.has(i.topic))
+// The gap sentences of `topics` as questions, each with its topic's title and
+// explanation. Sentences on other topics are left out.
+export function gapQuestions({ topics = [], gaps = [] } = {}) {
+  const byId = new Map(topics.map((t) => [t.id, t]));
+  return gaps
+    .filter((g) => byId.has(g.topic) && g.answers?.length)
     .map((item) => {
-      const topic = topics.get(item.topic);
+      const topic = byId.get(item.topic);
       const answer = item.answers[0];
       return {
         id: item.id,
@@ -45,9 +43,9 @@ export function gapQuestions(content) {
         rule: topic.explanation,
         text: item.sentence,
         answer,
-        options: [answer, ...item.distractors],
-        fi: item.translation.fi,
-        why: item.explanation || null,
+        options: [answer, ...(item.distractors || [])],
+        fi: item.translation?.fi || "",
+        why: item.explanation?.en && item.explanation?.fi ? item.explanation : null,
         sentence: fillGap(item.sentence, answer),
       };
     });

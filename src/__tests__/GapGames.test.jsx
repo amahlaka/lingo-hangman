@@ -1,9 +1,11 @@
 import { fireEvent, screen, within } from '@testing-library/react';
 import { renderApp } from '../test-utils';
-import confusables from '../content/confusables.json';
+import { getGapItems, getTopics } from '../lib/words';
 import { gapQuestions } from '../games/gap/gapLogic';
 
-const borrowLend = gapQuestions(confusables).filter((q) => q.setId === 'borrow-lend');
+const borrowLend = gapQuestions({ topics: getTopics('confusable'), gaps: getGapItems() }).filter(
+  (q) => q.setId === 'borrow-lend'
+);
 const current = () => {
   const fi = screen.getByText((_, el) => el?.classList?.contains('gp-translation')).textContent;
   return borrowLend.find((q) => q.fi === fi);

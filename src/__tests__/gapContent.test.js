@@ -1,35 +1,25 @@
-import grammar from '../content/grammar.json';
-import confusables from '../content/confusables.json';
+import { getGapItems, getTopics } from '../lib/words';
 import { GAP, buildGapRound, fillGap, gapQuestions, maxMissesFor, splitGap } from '../games/gap/gapLogic';
 
-const files = { grammar, confusables };
+const bank = (type) => ({ topics: getTopics(type), gaps: getGapItems() });
 
-describe.each(Object.entries(files))('%s content', (name, content) => {
-  const topics = content.items.filter((i) => i.type !== 'gap');
-  const gaps = content.items.filter((i) => i.type === 'gap');
+describe.each([['rule'], ['confusable']])('word bank %s topics', (type) => {
+  const content = bank(type);
+  const questions = gapQuestions(content);
 
-  it('has unique ids and both languages for every topic', () => {
-    const ids = content.items.map((i) => i.id);
-    expect(new Set(ids).size).toBe(ids.length);
-    topics.forEach((t) => {
-      expect(['rule', 'confusable']).toContain(t.type);
-      expect(t.title.en && t.title.fi).toBeTruthy();
-      expect(t.explanation.en && t.explanation.fi).toBeTruthy();
-      expect(gaps.filter((g) => g.topic === t.id).length).toBeGreaterThanOrEqual(4);
+  it('each have enough sentences for a round on their own', () => {
+    expect(content.topics.length).toBeGreaterThan(0);
+    content.topics.forEach((t) => {
+      expect([t.id, questions.filter((q) => q.setId === t.id).length >= 4]).toEqual([t.id, true]);
+      expect([t.id, Boolean(t.explanation?.en && t.explanation?.fi)]).toEqual([t.id, true]);
     });
   });
 
-  it('has one gap, a known topic, distinct options and a Finnish translation in every sentence', () => {
-    const topicIds = topics.map((t) => t.id);
-    gaps.forEach((g) => {
-      const where = g.id;
-      expect([where, g.sentence.split(GAP).length - 1]).toEqual([where, 1]);
-      expect([where, topicIds.includes(g.topic)]).toEqual([where, true]);
-      expect([where, g.answers.length]).toEqual([where, 1]);
-      const options = [...g.answers, ...g.distractors];
-      expect([where, g.distractors.length >= 1, new Set(options).size === options.length]).toEqual([where, true, true]);
-      expect([where, Boolean(g.translation.fi)]).toEqual([where, true]);
-      if (g.explanation) expect([where, Boolean(g.explanation.en && g.explanation.fi)]).toEqual([where, true]);
+  it('give every question one gap, distinct options and a Finnish translation', () => {
+    questions.forEach((q) => {
+      expect([q.id, q.text.split(GAP).length - 1]).toEqual([q.id, 1]);
+      expect([q.id, q.options.length >= 2, new Set(q.options).size === q.options.length]).toEqual([q.id, true, true]);
+      expect([q.id, Boolean(q.fi)]).toEqual([q.id, true]);
     });
   });
 });
@@ -49,24 +39,27 @@ describe('gap helpers', () => {
     expect(maxMissesFor(['a', 'b', 'c', 'd'])).toBe(2);
   });
 
+  it('only uses sentences on the given topics', () => {
+    const topics = [{ id: 't', title: { en: 'T', fi: 'T' }, explanation: { en: 'e', fi: 'f' } }];
+    const gaps = [
+      { id: 'a', topic: 't', sentence: 'I ___ it.', answers: ['like'], distractors: ['likes'], translation: { fi: 'Pidän siitä.' } },
+      { id: 'b', topic: 'other', sentence: 'I ___ it.', answers: ['x'], distractors: ['y'], translation: { fi: '-' } },
+    ];
+    const qs = gapQuestions({ topics, gaps });
+    expect(qs.map((q) => q.id)).toEqual(['a']);
+    expect(qs[0]).toMatchObject({ options: ['like', 'likes'], sentence: 'I like it.', rule: { en: 'e', fi: 'f' }, why: null });
+  });
+
   it('spreads a round over the topics', () => {
-    const round = buildGapRound(confusables, { count: 10 });
+    const round = buildGapRound(bank('confusable'), { count: 10 });
     expect(round).toHaveLength(10);
     expect(new Set(round.map((q) => q.setId)).size).toBe(10);
-    expect(new Set(round.map((q) => q.id)).size).toBe(10);
   });
 
   it('limits a round to one topic when asked, and ignores an unknown one', () => {
-    const round = buildGapRound(confusables, { setId: 'borrow-lend' });
+    const round = buildGapRound(bank('confusable'), { setId: 'borrow-lend' });
+    expect(round.length).toBeGreaterThan(0);
     expect(round.every((q) => q.setId === 'borrow-lend')).toBe(true);
-    expect(buildGapRound(confusables, { setId: 'nope' })).toHaveLength(10);
-  });
-
-  it('carries the topic rule and the sentence note into each question', () => {
-    const q = gapQuestions(grammar).find((x) => x.text === 'We waited for ___ hour.');
-    expect(q.sentence).toBe('We waited for an hour.');
-    expect(q.options).toEqual(['an', 'a']);
-    expect(q.rule.fi).toMatch(/vokaali/);
-    expect(q.why.fi).toMatch(/hour/);
+    expect(buildGapRound(bank('confusable'), { setId: 'nope' })).toHaveLength(10);
   });
 });

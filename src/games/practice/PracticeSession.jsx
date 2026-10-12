@@ -36,7 +36,12 @@ function bannerFor(events, { t, dailyGoal, answer }) {
 //   buildQuestions()       returns this round's questions
 //   renderQuestion({ question, done, onDone })
 //   empty                  message shown when there are too few words
-export default function PracticeSession({ gameId, title, intro, learningLang, nativeLang, buildQuestions, renderQuestion, empty }) {
+//   endTitleKey, recapTitleKey  practice strings for the end screen ("words" by default)
+//   meaningInFeedback      false when the question already shows the meaning
+export default function PracticeSession({
+  gameId, title, intro, learningLang, nativeLang, buildQuestions, renderQuestion, empty,
+  endTitleKey = "endTitle", recapTitleKey = "recapTitle", meaningInFeedback = true,
+}) {
   const { t, lang } = useSettings();
   const { recordWord, dailyGoal } = useProgress();
   const { celebrate, confetti } = useConfetti();
@@ -130,8 +135,8 @@ export default function PracticeSession({ gameId, title, intro, learningLang, na
       <GameScreen title={title} score={score} menuActions={menuActions}>
         <main className="lg-board pg-done">
           {confetti}
-          <h2 className="lg-display">{fill(p.endTitle, { n: questions.length })}</h2>
-          {helper && <p className="lg-caption" lang="fi">{fill(fi.endTitle, { n: questions.length })}</p>}
+          <h2 className="lg-display">{fill(p[endTitleKey], { n: questions.length })}</h2>
+          {helper && <p className="lg-caption" lang="fi">{fill(fi[endTitleKey], { n: questions.length })}</p>}
           <dl className="pg-stats">
             <div><dt>{p.endCorrect}</dt><dd>{tally.correct} / {questions.length}</dd></div>
             <div><dt>{p.endFirstTry}</dt><dd>{tally.firstTry}</dd></div>
@@ -139,7 +144,7 @@ export default function PracticeSession({ gameId, title, intro, learningLang, na
             <div><dt>{t.pointsLabel}</dt><dd>{tally.xp}</dd></div>
           </dl>
           <WordRecap
-            title={p.recapTitle}
+            title={p[recapTitleKey]}
             words={results.map((r) => ({ learning: r.answer, native: r.meaning, solved: r.solved }))}
             learningLang={learningLang}
             nativeLang={nativeLang}
@@ -184,7 +189,7 @@ export default function PracticeSession({ gameId, title, intro, learningLang, na
               <Feedback
                 variant="correct"
                 title={fill(p.correctTitle, { answer: current.answer })}
-                fi={helper ? fill(fi.meansIn, { answer: current.answer, fi: current.meaning }) : undefined}
+                fi={helper && meaningInFeedback ? fill(fi.meansIn, { answer: current.answer, fi: current.meaning }) : undefined}
               >
                 {current.firstTry ? p.correctFirstTry : fill(p.correctLater, { n: current.tries })}{" "}
                 {fill(t.xpEarned, { n: current.xp })}

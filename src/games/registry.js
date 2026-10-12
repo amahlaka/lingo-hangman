@@ -5,6 +5,7 @@ import HangmanGame from "./hangman/HangmanGame";
 import MeaningGame from "./meaning/MeaningGame";
 import PhraseGame from "./phrase/PhraseGame";
 import ListeningGame from "./listening/ListeningGame";
+import { GrammarGame, MixedUpGame } from "./gap/GapGames";
 
 export const GAMES = [
   {
@@ -54,6 +55,28 @@ export const GAMES = [
     skill: "Listening",
     path: "/listening",
     routes: [{ path: "/listening", Component: ListeningGame }],
+  },
+  {
+    id: "grammar",
+    name: "Grammar check",
+    nameFi: "Kielioppitreeni",
+    description: "a or an, in or on, he or she: pick the word that fits.",
+    art: "a · an · the",
+    minutes: 4,
+    skill: "Grammar",
+    path: "/grammar",
+    routes: [{ path: "/grammar", Component: GrammarGame }],
+  },
+  {
+    id: "mixed-up",
+    name: "Mixed-up words",
+    nameFi: "Sekoittuvat sanat",
+    description: "Borrow or lend? Make or do? Pick the right word for each sentence.",
+    art: "borrow · lend",
+    minutes: 4,
+    skill: "Vocabulary",
+    path: "/mixed-up",
+    routes: [{ path: "/mixed-up", Component: MixedUpGame }],
   },
   {
     id: "word-pairs",

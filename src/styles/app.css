@@ -263,9 +263,25 @@ a { color: var(--lake); }
 .pg-stats dt { font-size: 13px; line-height: 18px; color: var(--ink-muted); }
 .pg-stats dd { margin: 0; font: 700 24px/32px var(--font-sans); font-variant-numeric: tabular-nums; }
 
+/* Gap games (Grammar check, Mixed-up words) */
+.gp-prompt { display: flex; flex-direction: column; align-items: center; gap: var(--space-2); text-align: center; margin-bottom: var(--space-2); }
+.gp-sentence { margin: 0; font: 600 26px/40px var(--font-display); color: var(--ink); overflow-wrap: anywhere; }
+.gp-slot { display: inline-block; min-width: 72px; margin: 0 var(--space-1); padding: 0 var(--space-2); border-bottom: 3px solid var(--lake); background: var(--surface-sunken); border-radius: var(--radius-sm) var(--radius-sm) 0 0; vertical-align: baseline; line-height: 34px; }
+.gp-slot--right { background: var(--pine-soft); border-bottom-color: var(--pine); }
+.gp-slot--shown { background: var(--cloudberry-soft); border-bottom-color: var(--cloudberry); }
+.gp-translation { margin: 0; font: 400 16px/22px var(--font-sans); color: var(--ink-muted); }
+.gp-choices { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
+.gp-why { margin-top: var(--space-2); padding: var(--space-3) var(--space-4); border-radius: var(--radius-md); background: var(--lake-soft); text-align: left; }
+.gp-why__title { margin: 0 0 var(--space-1); }
+.gp-why__part + .gp-why__part { margin-top: var(--space-3); }
+.gp-why__text { margin: 0; font: 400 16px/24px var(--font-sans); color: var(--ink); }
+.gp-why__fi { margin: var(--space-1) 0 0; font: 400 15px/22px var(--font-sans); color: var(--ink-muted); }
+.gp-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
 @media (max-width: 360px) {
   .pg-prompt__word { font-size: 32px; line-height: 38px; }
   .pg-choices { grid-template-columns: 1fr; }
+  .gp-sentence { font-size: 22px; line-height: 34px; }
 }
 
 /* Word bank admin (/admin). Prefix wb-, not ad-: ad blockers hide .ad-* elements. */

@@ -17,7 +17,7 @@ import WordPairsGame from "./word-pairs/WordPairsGame";
   description: "Match each English word with its Finnish meaning.",
   art: "cat · kissa",            // typographic card art: real letters, no emoji
   minutes: 3,
-  skill: "Vocabulary",           // Vocabulary, Spelling, Sentences or Listening
+  skill: "Vocabulary",           // Vocabulary, Spelling, Sentences, Listening or Grammar
   path: "/word-pairs",           // where the card links to
   routes: [{ path: "/word-pairs", Component: WordPairsGame }],
 }
@@ -124,3 +124,13 @@ call `onDone({ solved, firstTry, tries, triesLeft, answer, meaning })`.
 `practiceLogic.js` has `practicePool(params)` (a shared link or every built-in
 word), distractor picking and the phrase helpers. Pick the meaning, Build the
 phrase and Listen and choose are built this way.
+
+## Gap games
+
+Grammar check and Mixed-up words (`src/games/gap/`) are one game over two kinds
+of word bank topic: `getTopics("rule")` for grammar and `getTopics("confusable")`
+for mixed-up words, each with the `getGapItems()` sentences that point at it.
+The sentences live in the lingo-wordbase repository (`packs/grammar.json` and
+`packs/mixed-up-words.json`), so adding sentences or a whole new topic needs no
+app change. `?set=<topic id>` practises one topic, e.g.
+`/mixed-up?set=borrow-lend`.

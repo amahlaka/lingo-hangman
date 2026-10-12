@@ -1,0 +1,18 @@
+# Small static server for preview builds. Nginx Proxy Manager forwards
+# *.preview.bololoo.com to this container.
+services:
+  lingo-previews:
+    image: nginx:1.27-alpine
+    container_name: lingo-previews
+    restart: unless-stopped
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - /srv/previews:/srv/previews:ro
+    networks:
+      - npm
+
+networks:
+  # The Docker network the reverse proxy is on.
+  npm:
+    external: true
+    name: ${PROXY_NETWORK:?set PROXY_NETWORK to the reverse proxy Docker network}

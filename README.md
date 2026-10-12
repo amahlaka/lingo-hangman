@@ -91,6 +91,10 @@ To run tests:
 npm test
 ```
 
+## Preview deployments
+
+Any branch, commit or pull request can be published to its own address such as `https://1a2b3c4d.preview.bololoo.com`: run the *Preview deploy* workflow from the Actions tab, or add the `preview` label to a PR. See [docs/preview-deployments.md](docs/preview-deployments.md) for usage and the one-time server setup.
+
 ## Contributing
 
 Contributions are welcome! Please open issues or submit pull requests. Suggestions for new features, languages, or word lists are especially appreciated.

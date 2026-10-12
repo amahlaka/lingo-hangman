@@ -17,7 +17,7 @@ import WordPairsGame from "./word-pairs/WordPairsGame";
   description: "Match each English word with its Finnish meaning.",
   art: "cat · kissa",            // typographic card art: real letters, no emoji
   minutes: 3,
-  skill: "Vocabulary",           // Vocabulary, Spelling, Sentences or Listening
+  skill: "Vocabulary",           // Vocabulary, Spelling, Sentences, Listening or Grammar
   path: "/word-pairs",           // where the card links to
   routes: [{ path: "/word-pairs", Component: WordPairsGame }],
 }
@@ -123,15 +123,26 @@ Next button and the end screen. Render one question in `renderQuestion` and
 call `onDone({ solved, firstTry, tries, triesLeft, answer, meaning })`.
 `practiceLogic.js` has `practicePool(params)` (a shared link or every built-in
 word), distractor picking and the phrase helpers. Pick the meaning, Build the
-phrase, Listen and choose and Fill the Gap are built this way.
+phrase, Listen and choose, Fill the Gap and the gap games below are built this way.
 
 A question that holds several words, like a Word Pairs board, gets `onItem` as
 well: call `onItem(outcome)` for each word as it is finished (it records the
 word and plays the sound), then `onDone({ board: true })` when the whole
 question is done. The session shows one "All pairs found" banner for it.
 
-Fill the Gap mixes the word bank's hand-written gap sentences (`getGapItems`)
-with every other sentence in it (`getSentences`), gapped automatically. For an
+Fill the Gap mixes the word bank's everyday gap sentences (`getGapItems` items
+without a `topic`; topic sentences belong to the gap games below) with every
+other sentence in it (`getSentences`), gapped automatically. For an
 automatic gap that is a small grammar word (is/are, a/the, in/at …) the other
 options come from the same word group (`getWordGroups`), so adding a group or
 words to one in the word bank widens it.
+
+## Gap games
+
+Grammar check and Mixed-up words (`src/games/gap/`) are one game over two kinds
+of word bank topic: `getTopics("rule")` for grammar and `getTopics("confusable")`
+for mixed-up words, each with the `getGapItems()` sentences that point at it.
+The sentences live in the lingo-wordbase repository (`packs/grammar.json` and
+`packs/mixed-up-words.json`), so adding sentences or a whole new topic needs no
+app change. `?set=<topic id>` practises one topic, e.g.
+`/mixed-up?set=borrow-lend`.

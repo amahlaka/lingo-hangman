@@ -108,15 +108,20 @@ export default function FillGapGame() {
   const p = t.practice;
   const search = params.toString();
   // A shared link gaps its own sentences. Otherwise the round mixes the word
-  // bank's hand-written gap sentences with every other sentence in it.
+  // bank's everyday gap sentences with every other sentence in it. Sentences
+  // on a grammar or mixed-up-words topic are left to those games.
   const { pairs, sentences, items, learningLang, nativeLang } = useMemo(() => {
     const pool = practicePool(new URLSearchParams(search));
     const { learningLang: l, nativeLang: n } = pool;
     if (pool.fromLink) return { ...pool, sentences: pool.pairs.filter(isGapCandidate), items: [] };
+    const gaps = getGapItems({ lang: l });
+    const onTopic = new Set(gaps.filter((g) => g.topic).map((g) => g.id));
     return {
       ...pool,
-      sentences: usableWords(getSentences({ learningLang: l, nativeLang: n })).filter(isGapCandidate),
-      items: getGapItems({ lang: l }),
+      sentences: usableWords(getSentences({ learningLang: l, nativeLang: n })).filter(
+        (s) => isGapCandidate(s) && !onTopic.has(s.id)
+      ),
+      items: gaps.filter((g) => !g.topic),
     };
   }, [search]);
   const nativeLabel = nativeLang === "fi" ? p.finnish : languageLabel(nativeLang);

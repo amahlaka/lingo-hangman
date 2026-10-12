@@ -46,6 +46,18 @@ describe("HangmanGame", () => {
     expect(screen.getByText("You've practised every word in this set.")).toBeInTheDocument();
   });
 
+  it("shows the Finnish meaning under the word once it is done, and lists the set at the end", () => {
+    renderApp(CAT_LINK);
+    expect(screen.queryByTestId("meaning-reveal")).not.toBeInTheDocument();
+    ["C", "A", "T"].forEach((l) => fireEvent.click(key(l)));
+    expect(screen.getByTestId("meaning-reveal")).toHaveTextContent("kissa");
+    expect(screen.getByTestId("meaning-reveal")).toHaveAttribute("lang", "fi");
+    fireEvent.click(screen.getByRole("button", { name: "Next word" }));
+    const recap = screen.getByRole("region", { name: "Words in this set" });
+    expect(recap).toHaveTextContent("cat");
+    expect(recap).toHaveTextContent("kissa");
+  });
+
   it("runs out of tries, shows the answer calmly and brings the word back", () => {
     renderApp(CAT_LINK);
     ["Z", "X", "Y", "Q", "B", "W"].forEach((l) => fireEvent.click(key(l)));

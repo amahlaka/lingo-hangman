@@ -5,7 +5,7 @@ import { useProgress } from "../../app/ProgressContext";
 import { fill } from "../../i18n";
 import { ACHIEVEMENTS } from "../../lib/progress";
 import { getAlphabet, languageLabel, loadWordSet, shuffle, wordInfo } from "../../lib/words";
-import { DailyProgress, Feedback, GameScreen, ScorePill, TriesMeter, WordTiles, useConfetti } from "../../components/lingo";
+import { DailyProgress, Feedback, GameScreen, ScorePill, TriesMeter, WordRecap, WordTiles, useConfetti } from "../../components/lingo";
 import HangmanDrawing from "./HangmanDrawing";
 import HangmanKeyboard from "./HangmanKeyboard";
 import HintButtons, { HINT_COSTS } from "./HintButtons";
@@ -60,6 +60,7 @@ export default function HangmanGame() {
   const answer = current ? (swap ? current.native : current.learning) : "";
   const meaning = current ? (swap ? current.learning : current.native) : "";
   const guessLang = swap ? nativeLang : learningLang;
+  const meaningLang = swap ? learningLang : nativeLang;
   const alphabet = useMemo(() => getAlphabet(guessLang), [guessLang]);
   const letters = answer.toUpperCase().split("");
   const isGuessable = (ch) => alphabet.includes(ch);
@@ -213,6 +214,12 @@ export default function HangmanGame() {
           {confetti}
           <h2 className="lg-display">{t.allDoneTitle}</h2>
           {lang === "en" && <p className="lg-caption" lang="fi">Kävit kaikki sanat läpi.</p>}
+          <WordRecap
+            title={t.recapTitle}
+            words={words}
+            learningLang={learningLang}
+            nativeLang={nativeLang}
+          />
           <DailyProgress />
           <button type="button" className="lg-btn lg-btn--primary lg-btn--hero" onClick={handleRestart} autoFocus>
             {t.playAgainSet}
@@ -257,6 +264,13 @@ export default function HangmanGame() {
         <div className="hm-word">
           {confetti}
           <WordTiles tiles={tiles} win={isWon} label={tilesLabel} popKeys={isWon ? [] : newlyFound} />
+          {/* Once the word is done, its meaning appears right under it to link the two languages. */}
+          {roundOver && (
+            <div className="pg-meaning hm-meaning lg-reveal">
+              <span className="lg-caption">{languageLabel(meaningLang)}</span>
+              <p className="pg-meaning__text" lang={meaningLang} data-testid="meaning-reveal">{meaning}</p>
+            </div>
+          )}
         </div>
       </main>
       <div className="lg-tray">

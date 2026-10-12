@@ -21,11 +21,13 @@ export default function MeaningGame() {
       title={p.meaningName}
       intro={p.meaningIntro}
       learningLang={learningLang}
+      nativeLang={nativeLang}
       buildQuestions={() => (pairs.length >= 4 ? buildRound(pairs).map((w) => buildChoiceQuestion(w, pairs)) : [])}
       renderQuestion={({ question, done, onDone }) => (
         <ChoiceQuestion
           question={question}
           learningLang={learningLang}
+          nativeLang={nativeLang}
           done={done}
           onDone={onDone}
           tryAnother={p.tryAnother}

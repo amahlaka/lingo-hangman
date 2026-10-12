@@ -71,10 +71,13 @@ function PhraseQuestion({ puzzle, done, onDone, p, learningLang, nativeLang, nat
 
   return (
     <div className="lg-stack pg-question">
-      <div className="pg-prompt">
-        <span className="lg-caption">{nativeLabel}</span>
-        <p className="pg-prompt__word pg-prompt__word--phrase" lang={nativeLang} data-testid="prompt-word">{puzzle.target.native}</p>
-      </div>
+      {/* Once done, the sentence moves under the built phrase so both languages sit together. */}
+      {!result && (
+        <div className="pg-prompt">
+          <span className="lg-caption">{nativeLabel}</span>
+          <p className="pg-prompt__word pg-prompt__word--phrase" lang={nativeLang} data-testid="prompt-word">{puzzle.target.native}</p>
+        </div>
+      )}
 
       <div
         className={`pg-phrase${result ? ` pg-phrase--${result}` : ""}${result === "right" ? " lg-tiles--win" : ""}`}
@@ -97,6 +100,13 @@ function PhraseQuestion({ puzzle, done, onDone, p, learningLang, nativeLang, nat
         ))}
         {(full || result) && puzzle.ending && <span className="pg-phrase__ending">{puzzle.ending}</span>}
       </div>
+
+      {result && (
+        <div className="pg-meaning lg-reveal">
+          <span className="lg-caption">{nativeLabel}</span>
+          <p className="pg-meaning__text" lang={nativeLang} data-testid="meaning-reveal">{puzzle.target.native}</p>
+        </div>
+      )}
 
       {!done && (
         <>
@@ -142,6 +152,7 @@ export default function PhraseGame() {
       title={p.phraseName}
       intro={p.phraseIntro}
       learningLang={learningLang}
+      nativeLang={nativeLang}
       buildQuestions={() => buildRound(pairs, PHRASE_ROUND).map((w) => buildPhrasePuzzle(w))}
       renderQuestion={({ question, done, onDone }) => (
         <PhraseQuestion

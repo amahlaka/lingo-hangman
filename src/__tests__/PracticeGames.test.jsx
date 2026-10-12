@@ -47,6 +47,20 @@ describe('Pick the meaning', () => {
     expect(screen.getByText(/\+2 XP/)).toBeInTheDocument();
   });
 
+  it('shows the Finnish meaning under every option once answered', () => {
+    renderApp(link('/meaning'));
+    const answer = byNative[prompt()];
+    const group = screen.getByRole('group');
+    expect(within(group).queryByText('koira')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: answer }));
+    within(group).getAllByRole('button').forEach((b) => {
+      const en = b.querySelector('.pg-choice__text').textContent;
+      const fi = words.find((w) => w.learning === en).native;
+      expect(b).toHaveAccessibleName(`${en}, ${fi}`);
+      expect(within(b).getByText(fi)).toHaveAttribute('lang', 'fi');
+    });
+  });
+
   it('reaches the end screen after the round', () => {
     renderApp(link('/meaning'));
     for (let i = 0; i < words.length; i++) {
@@ -54,6 +68,11 @@ describe('Pick the meaning', () => {
       fireEvent.click(screen.getByRole('button', { name: i === words.length - 1 ? 'See results' : 'Next' }));
     }
     expect(screen.getByText('You practised 5 words.')).toBeInTheDocument();
+    const recap = screen.getByRole('region', { name: 'Words from this round' });
+    words.forEach((w) => {
+      expect(recap).toHaveTextContent(w.learning);
+      expect(recap).toHaveTextContent(w.native);
+    });
     expect(screen.getByRole('button', { name: 'Play again' })).toBeInTheDocument();
   });
 
@@ -73,6 +92,7 @@ describe('Build the phrase', () => {
     ['how', 'are', 'you'].forEach((w) => fireEvent.click(within(bank).getByRole('button', { name: w })));
     fireEvent.click(screen.getByRole('button', { name: 'Check' }));
     expect(screen.getByText('Yes, "How are you?" is right.')).toBeInTheDocument();
+    expect(screen.getByTestId('meaning-reveal')).toHaveTextContent('Mitä kuuluu?');
   });
 
   it('keeps the right start and gives the rest back', () => {
@@ -107,5 +127,7 @@ describe('Listen and choose', () => {
     expect(spoken[spoken.length - 1].rate).toBeLessThan(0.9);
     fireEvent.click(screen.getByRole('button', { name: heard }));
     expect(screen.getByText(`Yes, "${heard}" is right.`)).toBeInTheDocument();
+    const fi = words.find((w) => w.learning === heard).native;
+    expect(screen.getByRole('button', { name: `${heard}, ${fi}` })).toBeInTheDocument();
   });
 });

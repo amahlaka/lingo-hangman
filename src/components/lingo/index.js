@@ -4,6 +4,7 @@ export { default as DailyProgress, HeaderProgress } from "./DailyProgress";
 export { default as Feedback } from "./Feedback";
 export { useConfetti } from "./Confetti";
 export { default as WordTiles } from "./WordTiles";
+export { default as WordRecap } from "./WordRecap";
 export { default as TriesMeter } from "./TriesMeter";
 export { default as ScorePill } from "./ScorePill";
 export { default as GameCard } from "./GameCard";

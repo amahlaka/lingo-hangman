@@ -21,6 +21,9 @@ describe("word bank admin", () => {
     expect(within(editor).queryByText(/^text needs/)).not.toBeInTheDocument();
     expect(within(editor).getByLabelText(/^Id/)).toHaveValue("moose");
     expect(screen.getByText("Changed: packs/everyday-words.json")).toBeInTheDocument();
+    // Ad blockers hide elements whose class starts with "ad-" or "ads-".
+    const adLike = [...document.querySelectorAll("[class]")].flatMap((el) => [...el.classList]).filter((c) => /^ads?[-_]/.test(c));
+    expect(adLike).toEqual([]);
     // Still needs a token before it can publish.
     expect(screen.getByRole("button", { name: "Publish" })).toBeDisabled();
   });

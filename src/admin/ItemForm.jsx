@@ -12,7 +12,7 @@ const toList = (text) =>
 
 function Field({ label, hint, children }) {
   return (
-    <label className="lg-field ad-field">
+    <label className="lg-field wb-field">
       <span>{label}</span>
       {children}
       {hint && <span className="lg-caption">{hint}</span>}
@@ -52,11 +52,11 @@ function TextMap({ label, value = {}, langs, onChange, multiline = false, labels
   const shown = Array.from(new Set([...langs, ...Object.keys(value)]));
   const Input = multiline ? "textarea" : "input";
   return (
-    <fieldset className="ad-fieldset">
+    <fieldset className="wb-fieldset">
       <legend>{label}</legend>
-      <div className="ad-grid">
+      <div className="wb-grid">
         {shown.map((lang) => (
-          <label key={lang} className="lg-field ad-field">
+          <label key={lang} className="lg-field wb-field">
             <span>{labels[lang] || lang}</span>
             <Input
               className="lg-input"
@@ -74,12 +74,12 @@ function TextMap({ label, value = {}, langs, onChange, multiline = false, labels
 function Rows({ label, rows = [], onChange, blank, render, addLabel }) {
   const set = (i, row) => onChange(rows.map((r, j) => (j === i ? row : r)));
   return (
-    <fieldset className="ad-fieldset">
+    <fieldset className="wb-fieldset">
       <legend>{label}</legend>
       <div className="lg-stack">
         {rows.map((row, i) => (
-          <div key={i} className="ad-rowitem">
-            <div className="ad-grid">{render(row, (r) => set(i, r))}</div>
+          <div key={i} className="wb-rowitem">
+            <div className="wb-grid">{render(row, (r) => set(i, r))}</div>
             <button type="button" className="lg-btn lg-btn--quiet lg-icon-btn" aria-label={`Remove ${i + 1}`} onClick={() => onChange(rows.filter((_, j) => j !== i))}>
               <X size={18} aria-hidden="true" />
             </button>
@@ -120,7 +120,7 @@ export default function ItemForm({ item, onChange, languages, topics, categories
   const languageLabels = Object.fromEntries(languages.map((l) => [l.code, `${l.label} (${l.code})`]));
 
   const common = (
-    <div className="ad-grid">
+    <div className="wb-grid">
       <Field label="Id" hint="Lower case and dashes. Keep it once the item is live.">
         <TextInput value={item.id} onChange={(id) => set({ id })} spellCheck={false} />
       </Field>
@@ -165,7 +165,7 @@ export default function ItemForm({ item, onChange, languages, topics, categories
           <Field label="Sentence" hint="Write ___ (three underscores) where the missing word goes.">
             <TextInput value={item.sentence} onChange={(sentence) => set({ sentence })} />
           </Field>
-          <div className="ad-grid">
+          <div className="wb-grid">
             <Field label="Right answers" hint={`Comma separated. The first is shown as the answer. Type ${NO_WORD} for "nothing goes here".`}>
               <ListInput value={item.answers} onChange={(answers) => set({ answers })} />
             </Field>

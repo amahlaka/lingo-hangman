@@ -5,7 +5,8 @@
 //
 // Each set becomes a rule or confusable item (title, explanation) and each of
 // its sentences a gap item pointing at it, with the other options as wrong
-// options. Writes content/packs/<pack-id>.json and lists it in index.json.
+// options. A file that already has word bank `items` is copied as it is.
+// Writes content/packs/<pack-id>.json and lists it in index.json.
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -21,8 +22,8 @@ const source = JSON.parse(fs.readFileSync(file, "utf8"));
 const lang = (source.learningLang || "en").split("-")[0];
 const native = source.nativeLang || "fi";
 
-const items = [];
-for (const set of source.sets) {
+const items = Array.isArray(source.items) ? source.items : [];
+for (const set of source.sets || []) {
   const title = { en: set.title, ...(set.titleFi ? { [native]: set.titleFi } : {}) };
   const topic = { id: set.id, type: topicType, title };
   if (topicType === "confusable") topic.words = set.options.filter(Boolean).map((text) => ({ text }));
@@ -50,4 +51,5 @@ fs.writeFileSync(path.join(dir, "packs", `${packId}.json`), formatPack(pack));
 const index = JSON.parse(fs.readFileSync(path.join(dir, "index.json"), "utf8"));
 if (!index.packs.includes(packId)) index.packs.push(packId);
 fs.writeFileSync(path.join(dir, "index.json"), formatJson(index));
-console.log(`Wrote packs/${packId}.json: ${source.sets.length} ${topicType}s, ${items.length - source.sets.length} sentences.`);
+const topics = items.filter((i) => i.type === topicType).length;
+console.log(`Wrote packs/${packId}.json: ${topics} ${topicType}s, ${items.length - topics} other items.`);

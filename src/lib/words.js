@@ -2,33 +2,31 @@
 //
 // A word pair is `{ learning, native }`: `learning` is the word the learner
 // practises (usually English), `native` is its meaning in their own language.
-// Games get pairs either from a shared link (`?words=...`) or from the built-in
-// COMMON_WORDS list, filtered by categories.
+// Games get pairs either from a shared link (`?words=...`) or from the word
+// bank (./content.js), filtered by categories. The bank also holds
+// fill-the-gap sentences, grammar rules and mixed-up words; see the getters
+// near the end of this file.
 
-import { COMMON_WORDS } from "../commonWords";
+import { getContent, onContentChange } from "./content";
 
 export const DEFAULT_LEARNING_LANG = "en-GB";
 export const DEFAULT_NATIVE_LANG = "fi";
 
-// Languages a word list can be built in. `code` matches the keys in COMMON_WORDS
-// except en-GB, which has its own key for British spellings.
-export const LANGUAGE_OPTIONS = [
-  { code: "en-GB", label: "English (UK)" },
-  { code: "en", label: "English (US)" },
-  { code: "fi", label: "Finnish" },
-  { code: "de", label: "German" },
-  { code: "fr", label: "French" },
-  { code: "es", label: "Spanish" },
-  { code: "it", label: "Italian" },
-  { code: "sv", label: "Swedish" },
-  { code: "pt", label: "Portuguese" },
-  { code: "nl", label: "Dutch" },
-  { code: "pl", label: "Polish" },
-  { code: "cs", label: "Czech" },
-  { code: "ro", label: "Romanian" },
-  { code: "hu", label: "Hungarian" },
-  { code: "tr", label: "Turkish" },
-];
+// Languages a word list can be built in: [{ code, label }], from
+// content/languages.json. Updated when newer content is loaded.
+export let LANGUAGE_OPTIONS = [];
+
+// Every category used by a word, sorted. Updated with the content.
+export let ALL_CATEGORIES = [];
+
+function refresh(content) {
+  LANGUAGE_OPTIONS = content.languages.map(({ code, label }) => ({ code, label }));
+  ALL_CATEGORIES = Array.from(new Set(wordItems(content).flatMap((w) => w.categories || []))).sort();
+}
+
+function wordItems(content = getContent()) {
+  return content.items.filter((i) => i.type === "word");
+}
 
 // Everyday categories pre-selected so "Start game" works in one tap.
 export const DEFAULT_CATEGORIES = ["food", "home", "shopping"];
@@ -53,29 +51,18 @@ export function shuffle(arr) {
 }
 
 export function getAlphabet(lang) {
-  switch (lang) {
-    case "fi": return "ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖ".split("");
-    case "de": return "AÄBCDEFGHIJKLMNOÖPQRSßTUÜVWXYZ".split("");
-    case "es": return "AÁBCDEÉFGHIÍJKLMNÑOÓPQRSTUÚÜVWXYZ".split("");
-    case "sv": return "AÅÄBCDEFGHIJKLMNOPQRSTUVWXYZÖ".split("");
-    case "pt": return "AÁÂÃÀBCÇDEÉÊFGHIÍJKLMNOÓÔÕPQRSTUÚÜVWXYZ".split("");
-    case "pl": return "AĄBCĆDEĘFGHIJKLŁMNŃOÓPQRSŚTUVWXYZŹŻ".split("");
-    case "cs": return "AÁBCČDĎEÉĚFGHIÍJKLMNŇOÓPQRŘSŠTŤUÚŮVWXZÝŽ".split("");
-    case "ro": return "AĂÂBCDEFGHIÎJKLMNOPQRSȘTȚUVWXYZ".split("");
-    case "hu": return "AÁBCDEÉFGHIÍJKLMNOÓÖŐPQRSTUÚÜŰVWXYZ".split("");
-    case "tr": return "AÂBCÇDEFGĞHIİJKLMNOÖPRSŞTUÜVYZ".split("");
-    default: return "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
-  }
+  const language = getContent().languages.find((l) => l.code === lang);
+  return (language?.alphabet || "ABCDEFGHIJKLMNOPQRSTUVWXYZ").split("");
 }
 
-// COMMON_WORDS has no separate "en-GB" for every word, so fall back to "en".
-function wordIn(entry, lang) {
-  return entry[lang] || (lang === "en-GB" ? entry.en : undefined);
+// A word's text in `lang`, or in the language it falls back to ("en-GB" uses
+// "en" unless a British spelling is given).
+function wordIn(item, lang) {
+  const text = item.text || {};
+  if (text[lang]) return text[lang];
+  const fallback = getContent().languages.find((l) => l.code === lang)?.fallback;
+  return fallback ? text[fallback] : undefined;
 }
-
-export const ALL_CATEGORIES = Array.from(
-  new Set(COMMON_WORDS.flatMap((w) => w.categories || []))
-).sort();
 
 // Built-in words matching the filters, as pairs with their categories attached.
 // `include`: if non-empty, a word needs at least one of these categories.
@@ -86,7 +73,7 @@ export function filterCommonWords({
   include = [],
   exclude = [],
 } = {}) {
-  return COMMON_WORDS.filter((w) => {
+  return wordItems().filter((w) => {
     const cats = w.categories || [];
     return (
       wordIn(w, learningLang) &&
@@ -95,6 +82,7 @@ export function filterCommonWords({
       !cats.some((c) => exclude.includes(c))
     );
   }).map((w) => ({
+    id: w.id,
     learning: wordIn(w, learningLang),
     native: wordIn(w, nativeLang),
     categories: w.categories || [],
@@ -167,7 +155,93 @@ export function loadWordSet(params, { count = 5 } = {}) {
   };
 }
 
-// Extra info for a pair from the built-in list (e.g. clock times), if any.
+// Extra info for a pair from the word bank (e.g. clock times), if any.
 export function wordInfo(learning, learningLang = DEFAULT_LEARNING_LANG) {
-  return COMMON_WORDS.find((w) => wordIn(w, learningLang) === learning);
+  return wordItems().find((w) => wordIn(w, learningLang) === learning);
 }
+
+// Display name for a category in the app's language ("en" or "fi").
+export function categoryLabel(category, uiLang = "en") {
+  const labels = getContent().categories[category] || {};
+  return labels[uiLang] || labels.en || category.charAt(0).toUpperCase() + category.slice(1);
+}
+
+// { [category]: label } for every category, for CategoryChips' `labels`.
+export function categoryLabels(uiLang = "en") {
+  return Object.fromEntries(ALL_CATEGORIES.map((c) => [c, categoryLabel(c, uiLang)]));
+}
+
+// Every item of one type from the word bank: "word", "gap", "rule" or "confusable".
+export function getItems({ type } = {}) {
+  const { items } = getContent();
+  return type ? items.filter((i) => i.type === type) : items;
+}
+
+// Fill-the-gap sentences: `{ id, sentence, answers, distractors, translation,
+// explanation, topic, categories, level }`, where `sentence` has one "___".
+// `topic`: only sentences practising this rule or mixed-up words set.
+// `lang`: sentence language; "en-GB" and "en" both match "en".
+// `include` / `exclude`: categories, as in filterCommonWords.
+export function getGapItems({ topic, lang = DEFAULT_LEARNING_LANG, include = [], exclude = [] } = {}) {
+  const base = lang.split("-")[0];
+  return getItems({ type: "gap" }).filter((g) => {
+    const cats = g.categories || [];
+    return (
+      g.lang.split("-")[0] === base &&
+      (topic === undefined || g.topic === topic) &&
+      (include.length === 0 || cats.some((c) => include.includes(c))) &&
+      !cats.some((c) => exclude.includes(c))
+    );
+  });
+}
+
+// Grammar rules (`type` "rule") or sets of mixed-up words ("confusable").
+export function getTopics(type) {
+  return getItems({ type });
+}
+
+// One item by id, e.g. the rule a gap sentence's `topic` points at.
+export function getItem(id) {
+  return getContent().byId.get(id);
+}
+
+export const getTopic = getItem;
+
+// Sets of small words that are easy to mix up (is / are / am …), as arrays of
+// words, for picking believable wrong options.
+export function getWordGroups() {
+  return getItems({ type: "group" }).map((g) => g.words);
+}
+
+// Every whole sentence in the word bank as pairs `{ learning, native, id }`:
+// multi-word phrases, example sentences of words and rules, and fill-the-gap
+// sentences with the gap filled in. Pairs without a translation in
+// `nativeLang` are left out.
+export function getSentences({ learningLang = DEFAULT_LEARNING_LANG, nativeLang = DEFAULT_NATIVE_LANG } = {}) {
+  const out = [];
+  const seen = new Set();
+  const add = (id, learning, native, categories = []) => {
+    const key = learning?.trim().toLowerCase();
+    if (!learning || !native || seen.has(key) || learning.trim().split(/\s+/).length < 2) return;
+    seen.add(key);
+    out.push({ id, learning, native, categories });
+  };
+  const exampleText = (ex, lang) => ex[lang] || (lang.startsWith("en") ? ex.en : undefined);
+  for (const item of getContent().items) {
+    if (item.type === "word") {
+      add(item.id, wordIn(item, learningLang), wordIn(item, nativeLang), item.categories);
+    }
+    if (item.type === "word" || item.type === "rule") {
+      (item.examples || []).forEach((ex, i) =>
+        add(`${item.id}#${i + 1}`, exampleText(ex, learningLang), exampleText(ex, nativeLang), item.categories)
+      );
+    }
+    if (item.type === "gap" && item.lang.split("-")[0] === learningLang.split("-")[0]) {
+      add(item.id, item.sentence.replace("___", item.answers[0]), item.translation?.[nativeLang], item.categories);
+    }
+  }
+  return out;
+}
+
+refresh(getContent());
+onContentChange(refresh);

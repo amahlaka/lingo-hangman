@@ -111,7 +111,7 @@ phrase and Listen and choose are built this way.
 ## Gap games
 
 Grammar check and Mixed-up words (`src/games/gap/`) are one game drawn from two
-content files, `src/content/grammar.json` and `src/content/confusables.json`.
+content files in the word database item format, `src/content/grammar.json` and `src/content/confusables.json`.
 Adding sentences or a whole new set is a content change only; the format is in
 `src/content/README.md`. `?set=<id>` practises one set, e.g.
 `/mixed-up?set=borrow-lend`.

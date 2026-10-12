@@ -5,28 +5,32 @@ import { GAP, buildGapRound, fillGap, gapQuestions, maxMissesFor, splitGap } fro
 const files = { grammar, confusables };
 
 describe.each(Object.entries(files))('%s content', (name, content) => {
-  it('has unique set ids and both languages for every rule', () => {
-    const ids = content.sets.map((s) => s.id);
+  const topics = content.items.filter((i) => i.type !== 'gap');
+  const gaps = content.items.filter((i) => i.type === 'gap');
+
+  it('has unique ids and both languages for every topic', () => {
+    const ids = content.items.map((i) => i.id);
     expect(new Set(ids).size).toBe(ids.length);
-    content.sets.forEach((set) => {
-      expect(set.title && set.titleFi).toBeTruthy();
-      expect(set.rule.en && set.rule.fi).toBeTruthy();
-      expect(set.items.length).toBeGreaterThanOrEqual(4);
+    topics.forEach((t) => {
+      expect(['rule', 'confusable']).toContain(t.type);
+      expect(t.title.en && t.title.fi).toBeTruthy();
+      expect(t.explanation.en && t.explanation.fi).toBeTruthy();
+      expect(gaps.filter((g) => g.topic === t.id).length).toBeGreaterThanOrEqual(4);
     });
   });
 
-  it('has one gap, a valid answer and a Finnish translation in every item', () => {
-    content.sets.forEach((set) =>
-      set.items.forEach((item) => {
-        const where = `${set.id}: ${item.text}`;
-        expect([where, item.text.split(GAP).length - 1]).toEqual([where, 1]);
-        const options = item.options || set.options;
-        expect([where, options.length >= 2, new Set(options).size === options.length]).toEqual([where, true, true]);
-        expect([where, options.includes(item.answer)]).toEqual([where, true]);
-        expect([where, Boolean(item.fi)]).toEqual([where, true]);
-        if (item.why) expect([where, Boolean(item.why.en && item.why.fi)]).toEqual([where, true]);
-      })
-    );
+  it('has one gap, a known topic, distinct options and a Finnish translation in every sentence', () => {
+    const topicIds = topics.map((t) => t.id);
+    gaps.forEach((g) => {
+      const where = g.id;
+      expect([where, g.sentence.split(GAP).length - 1]).toEqual([where, 1]);
+      expect([where, topicIds.includes(g.topic)]).toEqual([where, true]);
+      expect([where, g.answers.length]).toEqual([where, 1]);
+      const options = [...g.answers, ...g.distractors];
+      expect([where, g.distractors.length >= 1, new Set(options).size === options.length]).toEqual([where, true, true]);
+      expect([where, Boolean(g.translation.fi)]).toEqual([where, true]);
+      if (g.explanation) expect([where, Boolean(g.explanation.en && g.explanation.fi)]).toEqual([where, true]);
+    });
   });
 });
 
@@ -45,22 +49,23 @@ describe('gap helpers', () => {
     expect(maxMissesFor(['a', 'b', 'c', 'd'])).toBe(2);
   });
 
-  it('spreads a round over the sets', () => {
+  it('spreads a round over the topics', () => {
     const round = buildGapRound(confusables, { count: 10 });
     expect(round).toHaveLength(10);
     expect(new Set(round.map((q) => q.setId)).size).toBe(10);
     expect(new Set(round.map((q) => q.id)).size).toBe(10);
   });
 
-  it('limits a round to one set when asked, and ignores an unknown set', () => {
+  it('limits a round to one topic when asked, and ignores an unknown one', () => {
     const round = buildGapRound(confusables, { setId: 'borrow-lend' });
     expect(round.every((q) => q.setId === 'borrow-lend')).toBe(true);
     expect(buildGapRound(confusables, { setId: 'nope' })).toHaveLength(10);
   });
 
-  it('carries the set rule and the item note into each question', () => {
+  it('carries the topic rule and the sentence note into each question', () => {
     const q = gapQuestions(grammar).find((x) => x.text === 'We waited for ___ hour.');
     expect(q.sentence).toBe('We waited for an hour.');
+    expect(q.options).toEqual(['an', 'a']);
     expect(q.rule.fi).toMatch(/vokaali/);
     expect(q.why.fi).toMatch(/hour/);
   });

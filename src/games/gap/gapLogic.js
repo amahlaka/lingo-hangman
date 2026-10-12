@@ -1,6 +1,6 @@
 // Pure helpers for the gap games (Grammar check, Mixed-up words). Content
-// comes from src/content/*.json: sets of sentences with one "___" gap, the
-// options to choose from and a rule explained in English and Finnish (see
+// comes from src/content/*.json: topics with a rule explained in English and
+// Finnish, and sentences with one "___" gap and words to choose from (see
 // src/content/README.md). No React here so the rules are easy to test.
 
 import { MAX_MISSES, ROUND_LENGTH, shuffle } from "../practice/practiceLogic";
@@ -26,23 +26,31 @@ export function maxMissesFor(options) {
   return Math.max(1, Math.min(MAX_MISSES, options.length - 1));
 }
 
-// Every item of a content file as a question, with its set's rule and options.
+// Every gap item of a content file as a question, with its topic's title and
+// explanation. Items follow the word database's shapes: topics are "rule" or
+// "confusable" items, sentences are "gap" items pointing at a topic.
 export function gapQuestions(content) {
-  return (content?.sets || []).flatMap((set) =>
-    set.items.map((item, i) => ({
-      id: `${set.id}-${i + 1}`,
-      setId: set.id,
-      title: set.title,
-      titleFi: set.titleFi,
-      rule: set.rule,
-      text: item.text,
-      answer: item.answer,
-      options: item.options || set.options,
-      fi: item.fi,
-      why: item.why || null,
-      sentence: fillGap(item.text, item.answer),
-    }))
-  );
+  const items = content?.items || [];
+  const topics = new Map(items.filter((i) => i.type !== "gap").map((t) => [t.id, t]));
+  return items
+    .filter((i) => i.type === "gap" && topics.has(i.topic))
+    .map((item) => {
+      const topic = topics.get(item.topic);
+      const answer = item.answers[0];
+      return {
+        id: item.id,
+        setId: topic.id,
+        title: topic.title.en,
+        titleFi: topic.title.fi,
+        rule: topic.explanation,
+        text: item.sentence,
+        answer,
+        options: [answer, ...item.distractors],
+        fi: item.translation.fi,
+        why: item.explanation || null,
+        sentence: fillGap(item.sentence, answer),
+      };
+    });
 }
 
 // One round: `count` questions spread over as many sets as possible, so a

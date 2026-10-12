@@ -55,7 +55,7 @@ For production, additionally:
 
 ## GitHub settings
 
-Repository → Settings → Secrets and variables → Actions:
+Repository → Settings → Secrets and variables → Actions (or the `preview` environment):
 
 | Secret | Value |
 | --- | --- |
@@ -71,6 +71,15 @@ Variables:
 | `PREVIEW_SSH_HOST` | Server host name. A variable rather than a secret, because a secret equal to the domain makes GitHub mask the preview address in logs and on the environment link. |
 | `PREVIEW_DOMAIN` | Optional, default `preview.bololoo.com` |
 
-In the `production` environment, add the secrets `PROD_SSH_USER` (the production deploy user) and `PROD_SSH_KEY` (its private key) and, optionally, the variable `PRODUCTION_URL` (default `https://lingo.bololoo.com`). The host, port and known hosts are shared with previews.
+In the `production` environment:
+
+| Name | Kind | Value |
+| --- | --- | --- |
+| `PROD_SSH_HOST` | Variable | Server host name |
+| `PROD_SSH_PORT` | Variable | Only if SSH is not on port 22 |
+| `PROD_SSH_USER` | Secret | The production deploy user |
+| `PROD_SSH_KEY` | Secret | Its private key |
+| `PROD_SSH_KNOWN_HOSTS` | Secret | Output of `ssh-keyscan <host>` |
+| `PRODUCTION_URL` | Variable | Optional, default `https://lingo.bololoo.com` |
 
 Create a label named `preview` for the PR trigger. The workflow creates the `preview` environment on its first run.

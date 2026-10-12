@@ -5,7 +5,7 @@
 # so a rollback is the same workflow run with an older commit.
 #
 # Uses the "production" environment: its PROD_SSH_KEY secret only exists
-# there (with PROD_SSH_USER), and required reviewers can be added to it in the repo settings.
+# there, and required reviewers can be added to it in the repo settings.
 # The server only needs a one-time setup; see docs/preview-deployments.md.
 
 name: Production deploy
@@ -54,11 +54,11 @@ jobs:
 
       - name: Upload the release and switch to it
         env:
-          SSH_HOST: ${{ vars.PREVIEW_SSH_HOST || secrets.PREVIEW_SSH_HOST }}
-          SSH_PORT: ${{ secrets.PREVIEW_SSH_PORT || '22' }}
+          SSH_HOST: ${{ vars.PROD_SSH_HOST }}
+          SSH_PORT: ${{ vars.PROD_SSH_PORT || '22' }}
           SSH_USER: ${{ secrets.PROD_SSH_USER }}
           SSH_KEY: ${{ secrets.PROD_SSH_KEY }}
-          SSH_KNOWN_HOSTS: ${{ secrets.PREVIEW_SSH_KNOWN_HOSTS }}
+          SSH_KNOWN_HOSTS: ${{ secrets.PROD_SSH_KNOWN_HOSTS }}
           RELEASE: ${{ steps.meta.outputs.short }}
         run: |
           install -m 700 -d ~/.ssh

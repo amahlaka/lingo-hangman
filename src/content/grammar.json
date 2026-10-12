@@ -1,0 +1,253 @@
+{
+  "version": 1,
+  "kind": "gap-choice",
+  "learningLang": "en-GB",
+  "nativeLang": "fi",
+  "sets": [
+    {
+      "id": "a-or-an",
+      "title": "a or an",
+      "titleFi": "a vai an",
+      "options": ["a", "an"],
+      "rule": {
+        "en": "Use an before a vowel sound and a before a consonant sound. The sound decides, not the letter: an hour, a university.",
+        "fi": "Englannissa yksikön sanan edessä on usein a tai an, vaikka suomessa vastaavaa sanaa ei ole. An tulee vokaaliäänteen eteen ja a konsonanttiäänteen eteen. Ääntäminen ratkaisee, ei kirjain: an hour (h ei äänny), a university (alkaa ju-äänteellä)."
+      },
+      "items": [
+        { "text": "I'd like ___ apple, please.", "answer": "an", "fi": "Haluaisin omenan, kiitos." },
+        {
+          "text": "She has ___ new car.",
+          "answer": "a",
+          "fi": "Hänellä on uusi auto.",
+          "why": {
+            "en": "The word right after the gap decides. New starts with a consonant sound.",
+            "fi": "Ratkaisee se sana, joka tulee heti perään. New alkaa konsonanttiäänteellä."
+          }
+        },
+        {
+          "text": "We waited for ___ hour.",
+          "answer": "an",
+          "fi": "Odotimme tunnin.",
+          "why": { "en": "The h in hour is silent, so it starts with a vowel sound.", "fi": "Sanan hour h ei äänny, joten sana alkaa vokaaliäänteellä." }
+        },
+        {
+          "text": "He works at ___ university.",
+          "answer": "a",
+          "fi": "Hän työskentelee yliopistossa.",
+          "why": { "en": "University starts with a \"you\" sound, which is a consonant sound.", "fi": "University äännetään \"juniversiti\", ja j-äänne on konsonantti." }
+        },
+        { "text": "It was ___ easy question.", "answer": "an", "fi": "Se oli helppo kysymys." },
+        { "text": "Can I have ___ glass of water?", "answer": "a", "fi": "Saisinko lasillisen vettä?" }
+      ]
+    },
+    {
+      "id": "articles",
+      "title": "a, the or no word",
+      "titleFi": "a, the vai ei mitään",
+      "options": ["a", "the", ""],
+      "rule": {
+        "en": "Use a for one thing you mention for the first time, or any one of many. Use the when you both know which one you mean, or there is only one. Use no word for things in general: plurals and words like music, coffee or love.",
+        "fi": "a = jokin yksi, ensimmäistä kertaa mainittu. the = se tietty, jonka molemmat tietävät, tai jota on vain yksi. Ei mitään sanaa, kun puhutaan asioista yleisesti: monikko ja ainesanat kuten music, coffee, love."
+      },
+      "items": [
+        {
+          "text": "I saw ___ dog in the park.",
+          "answer": "a",
+          "fi": "Näin koiran puistossa.",
+          "why": { "en": "The dog is mentioned for the first time.", "fi": "Koira mainitaan ensimmäistä kertaa." }
+        },
+        {
+          "text": "Close ___ door, please.",
+          "answer": "the",
+          "fi": "Sulje ovi, kiitos.",
+          "why": { "en": "You both know which door.", "fi": "Molemmat tietävät, mistä ovesta on kyse." }
+        },
+        {
+          "text": "I love ___ music.",
+          "answer": "",
+          "fi": "Rakastan musiikkia.",
+          "why": { "en": "Music in general takes no article.", "fi": "Musiikki yleisesti, joten artikkelia ei tarvita." }
+        },
+        {
+          "text": "___ sun is very bright today.",
+          "answer": "the",
+          "fi": "Aurinko on tänään todella kirkas.",
+          "why": { "en": "There is only one sun.", "fi": "Aurinkoja on vain yksi." }
+        },
+        {
+          "text": "My brother is ___ teacher.",
+          "answer": "a",
+          "fi": "Veljeni on opettaja.",
+          "why": { "en": "Jobs take a: she is a doctor, he is a teacher.", "fi": "Ammatin edessä on englannissa a: she is a doctor, he is a teacher." }
+        },
+        {
+          "text": "___ cats sleep a lot.",
+          "answer": "",
+          "fi": "Kissat nukkuvat paljon.",
+          "why": { "en": "Cats in general: a plural with no article.", "fi": "Kissat yleisesti, monikko ilman artikkelia." }
+        }
+      ]
+    },
+    {
+      "id": "he-she",
+      "title": "he or she",
+      "titleFi": "hän: he vai she",
+      "options": ["he", "she"],
+      "rule": {
+        "en": "Finnish uses hän for everyone. English uses he, him and his for a man or boy, and she and her for a woman or girl.",
+        "fi": "Suomen hän on englanniksi he (mies, poika) tai she (nainen, tyttö). Sama koskee muotoja him/her (häntä) ja his/her (hänen). Valitse sen mukaan, kenestä puhutaan."
+      },
+      "items": [
+        { "text": "My sister is a nurse. ___ works at night.", "answer": "She", "options": ["He", "She"], "fi": "Siskoni on sairaanhoitaja. Hän tekee yötöitä." },
+        { "text": "Ask your dad. Maybe ___ knows.", "answer": "he", "fi": "Kysy isältäsi. Ehkä hän tietää." },
+        { "text": "Anna called. ___ will be late.", "answer": "She", "options": ["He", "She"], "fi": "Anna soitti. Hän myöhästyy." },
+        {
+          "text": "Mikko lost ___ keys.",
+          "answer": "his",
+          "options": ["his", "her"],
+          "fi": "Mikko hukkasi avaimensa.",
+          "why": { "en": "His is for a man, her for a woman.", "fi": "Omistussana seuraa myös sukupuolta: his (miehen), her (naisen)." }
+        },
+        {
+          "text": "My grandmother lives alone. I visit ___ every Sunday.",
+          "answer": "her",
+          "options": ["him", "her"],
+          "fi": "Isoäitini asuu yksin. Käyn hänen luonaan joka sunnuntai.",
+          "why": { "en": "After a verb, he becomes him and she becomes her.", "fi": "Verbin jälkeen he muuttuu muotoon him ja she muotoon her." }
+        },
+        { "text": "This is my friend Jussi. ___ is from Tampere.", "answer": "He", "options": ["He", "She"], "fi": "Tämä on ystäväni Jussi. Hän on kotoisin Tampereelta." }
+      ]
+    },
+    {
+      "id": "time-in-on-at",
+      "title": "in, on or at: time",
+      "titleFi": "in, on vai at: aika",
+      "options": ["in", "on", "at"],
+      "rule": {
+        "en": "At for clock times (at 7 o'clock), on for days and dates (on Monday), in for months, years, seasons and parts of the day (in May, in the morning). But: at night, at the weekend.",
+        "fi": "Suomessa aika näkyy sanan päätteessä (maanantaina, toukokuussa). Englannissa: at kellonajoille (at 7), on päiville ja päivämäärille (on Monday), in kuukausille, vuosille, vuodenajoille ja vuorokaudenajoille (in May, in the morning). Poikkeukset: at night, at the weekend."
+      },
+      "items": [
+        { "text": "The meeting starts ___ 9 o'clock.", "answer": "at", "fi": "Kokous alkaa kello yhdeksän." },
+        { "text": "I go swimming ___ Mondays.", "answer": "on", "fi": "Käyn uimassa maanantaisin." },
+        { "text": "My birthday is ___ June.", "answer": "in", "fi": "Syntymäpäiväni on kesäkuussa." },
+        { "text": "We always have porridge ___ the morning.", "answer": "in", "fi": "Syömme aina puuroa aamulla." },
+        { "text": "Finland became independent ___ 1917.", "answer": "in", "fi": "Suomi itsenäistyi vuonna 1917." },
+        { "text": "The shops are closed ___ Christmas Day.", "answer": "on", "fi": "Kaupat ovat kiinni joulupäivänä." },
+        {
+          "text": "I can't sleep ___ night.",
+          "answer": "at",
+          "fi": "En saa öisin unta.",
+          "why": { "en": "At night is a fixed exception.", "fi": "At night on vakiintunut poikkeus, vaikka muuten vuorokaudenajat saavat in-sanan." }
+        }
+      ]
+    },
+    {
+      "id": "place-in-on-at",
+      "title": "in, on or at: place",
+      "titleFi": "in, on vai at: paikka",
+      "options": ["in", "on", "at"],
+      "rule": {
+        "en": "In for inside something (in the box, in Helsinki), on for a surface (on the table, on the wall), at for a point or a place where something happens (at the bus stop, at work, at home).",
+        "fi": "in = jonkin sisällä (in the box, in Helsinki). on = jonkin päällä tai pinnalla (on the table, on the wall). at = tietyssä pisteessä tai paikassa, jossa tehdään jotain (at the bus stop, at work, at home). Suomen -lla ei siis aina ole on."
+      },
+      "items": [
+        { "text": "The keys are ___ the table.", "answer": "on", "fi": "Avaimet ovat pöydällä." },
+        { "text": "She lives ___ Oulu.", "answer": "in", "fi": "Hän asuu Oulussa." },
+        {
+          "text": "I'll wait for you ___ the bus stop.",
+          "answer": "at",
+          "fi": "Odotan sinua bussipysäkillä.",
+          "why": { "en": "A bus stop is a point where you wait, not a surface.", "fi": "Pysäkki on paikka, jossa ollaan, ei pinta. Siksi at, vaikka suomessa on -lla." }
+        },
+        { "text": "There's a picture ___ the wall.", "answer": "on", "fi": "Seinällä on taulu." },
+        { "text": "Is your mum ___ home?", "answer": "at", "fi": "Onko äitisi kotona?" },
+        { "text": "The milk is ___ the fridge.", "answer": "in", "fi": "Maito on jääkaapissa." },
+        { "text": "I'm ___ work until five.", "answer": "at", "fi": "Olen töissä viiteen asti." }
+      ]
+    },
+    {
+      "id": "he-works",
+      "title": "works or work",
+      "titleFi": "verbin -s",
+      "options": ["works", "work"],
+      "rule": {
+        "en": "In the present tense, add -s to the verb after he, she, it or one person: I work, but she works. Questions and negatives use does instead, and then the verb has no -s: Does she work? She doesn't work.",
+        "fi": "Preesensissä verbiin tulee -s, kun tekijä on he, she, it tai yksi henkilö: I work, mutta she works. Kysymyksissä ja kielloissa käytetään does-sanaa, ja silloin pääverbi on ilman -s:ää: Does she work? She doesn't work."
+      },
+      "items": [
+        { "text": "My father ___ in a bank.", "answer": "works", "fi": "Isäni on töissä pankissa." },
+        { "text": "They ___ near the lake.", "answer": "live", "options": ["live", "lives"], "fi": "He asuvat järven lähellä." },
+        { "text": "___ your sister speak Swedish?", "answer": "Does", "options": ["Does", "Do"], "fi": "Puhuuko siskosi ruotsia?" },
+        {
+          "text": "He doesn't ___ coffee.",
+          "answer": "drink",
+          "options": ["drink", "drinks"],
+          "fi": "Hän ei juo kahvia.",
+          "why": { "en": "After doesn't, the verb has no -s.", "fi": "Doesn't-sanan jälkeen verbi on perusmuodossa ilman -s:ää." }
+        },
+        { "text": "The bus ___ at 8.15.", "answer": "leaves", "options": ["leaves", "leave"], "fi": "Bussi lähtee kello 8.15." },
+        { "text": "___ you like sauna?", "answer": "Do", "options": ["Do", "Does"], "fi": "Pidätkö saunasta?" }
+      ]
+    },
+    {
+      "id": "much-many",
+      "title": "much or many",
+      "titleFi": "much vai many",
+      "options": ["much", "many"],
+      "rule": {
+        "en": "Many is for things you can count (many cars, many people). Much is for things you can't count (much time, much money). In positive sentences, a lot of works for both.",
+        "fi": "many = monta, kun asioita voi laskea (many cars). much = paljon, kun ei voi laskea (much time, much money). Myönteisissä lauseissa a lot of käy molempiin."
+      },
+      "items": [
+        { "text": "How ___ people came?", "answer": "many", "fi": "Montako ihmistä tuli?" },
+        { "text": "I don't have ___ time.", "answer": "much", "fi": "Minulla ei ole paljon aikaa." },
+        {
+          "text": "How ___ does it cost?",
+          "answer": "much",
+          "fi": "Paljonko se maksaa?",
+          "why": { "en": "You ask about money, which you can't count as pieces.", "fi": "Kysytään rahasta, jota ei lasketa kappaleina." }
+        },
+        { "text": "There aren't ___ shops in our village.", "answer": "many", "fi": "Kylässämme ei ole montaa kauppaa." },
+        { "text": "Don't put too ___ salt in the soup.", "answer": "much", "fi": "Älä laita keittoon liikaa suolaa." },
+        { "text": "How ___ children do you have?", "answer": "many", "fi": "Montako lasta sinulla on?" }
+      ]
+    },
+    {
+      "id": "for-since",
+      "title": "for or since",
+      "titleFi": "for vai since",
+      "options": ["for", "since"],
+      "rule": {
+        "en": "To say how long something has gone on: for with a length of time (for two years), since with the moment it started (since 2020, since Monday).",
+        "fi": "Kun kerrotaan, kuinka kauan jokin on jatkunut: for + aikamäärä (for two years = kaksi vuotta), since + alkuhetki (since 2020 = vuodesta 2020 asti)."
+      },
+      "items": [
+        { "text": "I have lived here ___ ten years.", "answer": "for", "fi": "Olen asunut täällä kymmenen vuotta." },
+        { "text": "She has worked here ___ 2019.", "answer": "since", "fi": "Hän on ollut täällä töissä vuodesta 2019." },
+        { "text": "We've known each other ___ school.", "answer": "since", "fi": "Olemme tunteneet toisemme kouluajoista asti." },
+        { "text": "I've been waiting ___ an hour.", "answer": "for", "fi": "Olen odottanut tunnin." },
+        { "text": "He hasn't called ___ Monday.", "answer": "since", "fi": "Hän ei ole soittanut maanantain jälkeen." },
+        { "text": "They have been married ___ a long time.", "answer": "for", "fi": "He ovat olleet naimisissa pitkään." }
+      ]
+    },
+    {
+      "id": "who-which",
+      "title": "who or which",
+      "titleFi": "joka: who vai which",
+      "options": ["who", "which"],
+      "rule": {
+        "en": "Use who for people and which for things and animals. In everyday English, that works for both.",
+        "fi": "Suomen joka on englanniksi who, kun puhutaan ihmisistä, ja which, kun puhutaan asioista tai eläimistä. Arkikielessä that käy molempiin."
+      },
+      "items": [
+        { "text": "The woman ___ lives next door is a doctor.", "answer": "who", "fi": "Nainen, joka asuu naapurissa, on lääkäri." },
+        { "text": "This is the book ___ I told you about.", "answer": "which", "fi": "Tämä on se kirja, josta kerroin sinulle." },
+        { "text": "I have a friend ___ speaks five languages.", "answer": "who", "fi": "Minulla on ystävä, joka puhuu viittä kieltä." },
+        { "text": "The train ___ goes to Turku is late.", "answer": "which", "fi": "Juna, joka menee Turkuun, on myöhässä." },
+        { "text": "Do you know anyone ___ can fix a bike?", "answer": "who", "fi": "Tunnetko ketään, joka osaa korjata pyörän?" },
+        { "text": "We stayed at a hotel ___ had a sauna.", "answer": "which", "fi": "Yövyimme hotellissa, jossa oli sauna." }
+      ]
+    }
+  ]
+}

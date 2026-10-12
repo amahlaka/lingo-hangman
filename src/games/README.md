@@ -17,7 +17,7 @@ import WordPairsGame from "./word-pairs/WordPairsGame";
   description: "Match each English word with its Finnish meaning.",
   art: "cat · kissa",            // typographic card art: real letters, no emoji
   minutes: 3,
-  skill: "Vocabulary",           // Vocabulary, Spelling, Sentences or Listening
+  skill: "Vocabulary",           // Vocabulary, Spelling, Sentences, Listening or Grammar
   path: "/word-pairs",           // where the card links to
   routes: [{ path: "/word-pairs", Component: WordPairsGame }],
 }
@@ -107,3 +107,11 @@ call `onDone({ solved, firstTry, tries, triesLeft, answer, meaning })`.
 `practiceLogic.js` has `practicePool(params)` (a shared link or every built-in
 word), distractor picking and the phrase helpers. Pick the meaning, Build the
 phrase and Listen and choose are built this way.
+
+## Gap games
+
+Grammar check and Mixed-up words (`src/games/gap/`) are one game drawn from two
+content files, `src/content/grammar.json` and `src/content/confusables.json`.
+Adding sentences or a whole new set is a content change only; the format is in
+`src/content/README.md`. `?set=<id>` practises one set, e.g.
+`/mixed-up?set=borrow-lend`.

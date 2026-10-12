@@ -1,0 +1,269 @@
+{
+  "version": 1,
+  "kind": "gap-choice",
+  "learningLang": "en-GB",
+  "nativeLang": "fi",
+  "sets": [
+    {
+      "id": "borrow-lend",
+      "title": "borrow or lend",
+      "titleFi": "lainata: borrow vai lend",
+      "options": ["borrow", "lend"],
+      "rule": {
+        "en": "Borrow: you get something for a while (borrow from someone). Lend: you give something for a while (lend to someone).",
+        "fi": "Suomen lainata on englanniksi kaksi eri verbiä. borrow = lainata joltakulta (saat itse). lend = lainata jollekulle (annat toiselle). Can I borrow your pen? = Voinko lainata kynääsi? Can you lend me your pen? = Voitko lainata minulle kynääsi?"
+      },
+      "items": [
+        { "text": "Can I ___ your umbrella?", "answer": "borrow", "fi": "Voinko lainata sateenvarjoasi?" },
+        { "text": "Could you ___ me ten euros?", "answer": "lend", "fi": "Voisitko lainata minulle kymmenen euroa?" },
+        { "text": "I ___ this book from the library.", "answer": "borrowed", "options": ["borrowed", "lent"], "fi": "Lainasin tämän kirjan kirjastosta." },
+        { "text": "My neighbour ___ me his ladder.", "answer": "lent", "options": ["borrowed", "lent"], "fi": "Naapurini lainasi minulle tikkaansa." },
+        { "text": "You can ___ my car tomorrow.", "answer": "borrow", "fi": "Voit lainata autoani huomenna." }
+      ]
+    },
+    {
+      "id": "make-do",
+      "title": "make or do",
+      "titleFi": "tehdä: make vai do",
+      "options": ["make", "do"],
+      "rule": {
+        "en": "Do is for tasks, work and activities (do the dishes, do homework, do yoga). Make is for creating or producing something (make dinner, make a plan, make a mistake).",
+        "fi": "Suomen tehdä on englanniksi joko do tai make. do = tehtävät, työt ja harrastukset (do the dishes, do homework, do yoga). make = jonkin valmistaminen tai aikaansaaminen (make dinner, make a mistake, make a decision). Monet kannattaa opetella valmiina fraaseina."
+      },
+      "items": [
+        { "text": "I'll ___ dinner tonight.", "answer": "make", "fi": "Minä teen illallisen tänään." },
+        { "text": "Have you ___ your homework?", "answer": "done", "options": ["made", "done"], "fi": "Oletko tehnyt läksysi?" },
+        { "text": "Everyone ___ mistakes.", "answer": "makes", "options": ["makes", "does"], "fi": "Kaikki tekevät virheitä." },
+        {
+          "text": "Can you ___ the dishes?",
+          "answer": "do",
+          "fi": "Voitko tiskata?",
+          "why": { "en": "Washing up is a task, so it's do the dishes.", "fi": "Tiskaaminen on kotityö, joten do the dishes." }
+        },
+        { "text": "We need to ___ a decision.", "answer": "make", "fi": "Meidän pitää tehdä päätös." },
+        { "text": "I ___ yoga twice a week.", "answer": "do", "fi": "Joogaan kaksi kertaa viikossa." }
+      ]
+    },
+    {
+      "id": "say-tell",
+      "title": "say or tell",
+      "titleFi": "say vai tell",
+      "options": ["say", "tell"],
+      "rule": {
+        "en": "Tell has a person right after it: tell me, tell your boss. Say does not: say hello, say something. To add a person to say, use to: say it to me.",
+        "fi": "Molemmat voivat olla suomeksi sanoa tai kertoa. tell + ihminen: tell me, tell her (kerro minulle). say + asia, ilman ihmistä: say hello, say yes. Jos say-verbin kanssa haluaa ihmisen, tarvitaan to: say it to me."
+      },
+      "items": [
+        { "text": "Can you ___ me the way to the station?", "answer": "tell", "fi": "Voitko neuvoa minulle tien asemalle?" },
+        { "text": "She ___ hello to everyone.", "answer": "said", "options": ["said", "told"], "fi": "Hän sanoi kaikille hei." },
+        { "text": "He ___ me a funny story.", "answer": "told", "options": ["said", "told"], "fi": "Hän kertoi minulle hauskan tarinan." },
+        { "text": "What did you ___?", "answer": "say", "fi": "Mitä sanoit?" },
+        { "text": "Don't ___ anyone!", "answer": "tell", "fi": "Älä kerro kenellekään!" },
+        { "text": "I ___ yes.", "answer": "said", "options": ["said", "told"], "fi": "Sanoin kyllä." }
+      ]
+    },
+    {
+      "id": "long-tall",
+      "title": "long or tall",
+      "titleFi": "pitkä: long vai tall",
+      "options": ["long", "tall"],
+      "rule": {
+        "en": "Tall is for people, trees and buildings standing up. Long is for length from end to end, or time: a long road, long hair, a long day.",
+        "fi": "Suomen pitkä on englanniksi kaksi sanaa. tall = pitkä ylöspäin: ihmiset, puut, rakennukset (a tall man). long = pitkä päästä päähän tai ajallisesti: a long road, long hair, a long meeting."
+      },
+      "items": [
+        { "text": "My son is very ___ for his age.", "answer": "tall", "fi": "Poikani on ikäisekseen tosi pitkä." },
+        { "text": "It was a ___ meeting.", "answer": "long", "fi": "Se oli pitkä kokous." },
+        { "text": "She has ___ hair.", "answer": "long", "fi": "Hänellä on pitkät hiukset." },
+        { "text": "There are ___ pine trees behind our house.", "answer": "tall", "fi": "Talomme takana on korkeita mäntyjä." },
+        { "text": "How ___ is the bridge?", "answer": "long", "fi": "Kuinka pitkä silta on?" },
+        { "text": "How ___ are you? I'm 180 cm.", "answer": "tall", "fi": "Kuinka pitkä olet? Olen 180 cm." }
+      ]
+    },
+    {
+      "id": "learn-teach",
+      "title": "learn or teach",
+      "titleFi": "learn vai teach",
+      "options": ["learn", "teach"],
+      "rule": {
+        "en": "Learn is what the student does. Teach is what the teacher does: she teaches me English, and I learn English.",
+        "fi": "learn = oppia, opiskella (sinä itse). teach = opettaa (toiselle). Ei siis \"learn me\", vaan teach me = opeta minua."
+      },
+      "items": [
+        { "text": "Can you ___ me to swim?", "answer": "teach", "fi": "Voitko opettaa minut uimaan?" },
+        { "text": "I want to ___ English.", "answer": "learn", "fi": "Haluan oppia englantia." },
+        { "text": "My grandfather ___ me how to fish.", "answer": "taught", "options": ["learned", "taught"], "fi": "Isoisäni opetti minut kalastamaan." },
+        { "text": "Children ___ fast.", "answer": "learn", "fi": "Lapset oppivat nopeasti." },
+        { "text": "She ___ maths at a school in Lahti.", "answer": "teaches", "options": ["learns", "teaches"], "fi": "Hän opettaa matematiikkaa koulussa Lahdessa." }
+      ]
+    },
+    {
+      "id": "remember-remind",
+      "title": "remember or remind",
+      "titleFi": "remember vai remind",
+      "options": ["remember", "remind"],
+      "rule": {
+        "en": "Remember: you keep something in your own mind. Remind: you help another person remember (remind me to call).",
+        "fi": "remember = muistaa (itse). remind = muistuttaa (toista). Remind me to call Mum = Muistuta minua soittamaan äidille."
+      },
+      "items": [
+        { "text": "Please ___ me to buy milk.", "answer": "remind", "fi": "Muistuta minua ostamaan maitoa." },
+        { "text": "Do you ___ my name?", "answer": "remember", "fi": "Muistatko nimeni?" },
+        { "text": "This song ___ me of summer.", "answer": "reminds", "options": ["remembers", "reminds"], "fi": "Tämä laulu muistuttaa minua kesästä." },
+        { "text": "I can't ___ where I parked.", "answer": "remember", "fi": "En muista, mihin pysäköin." },
+        { "text": "___ to lock the door!", "answer": "Remember", "options": ["Remember", "Remind"], "fi": "Muista lukita ovi!" }
+      ]
+    },
+    {
+      "id": "bring-take",
+      "title": "bring or take",
+      "titleFi": "bring vai take",
+      "options": ["bring", "take"],
+      "rule": {
+        "en": "Bring: towards the place where you (or the listener) are. Take: away to another place.",
+        "fi": "bring = tuoda (tänne, puhujan luo). take = viedä (sinne, pois täältä). Suomessa nämä ovat eri sanat, mutta englanniksi ne menevät helposti sekaisin."
+      },
+      "items": [
+        { "text": "Can you ___ me a glass of water?", "answer": "bring", "fi": "Voitko tuoda minulle lasin vettä?" },
+        { "text": "Don't forget to ___ your passport to the airport.", "answer": "take", "fi": "Muista viedä passi mukanasi lentokentälle." },
+        { "text": "I'll ___ the kids to school.", "answer": "take", "fi": "Vien lapset kouluun." },
+        { "text": "___ a friend to the party tonight!", "answer": "Bring", "options": ["Bring", "Take"], "fi": "Tuo kaveri mukanasi juhliin tänä iltana!" },
+        { "text": "Please ___ the rubbish out.", "answer": "take", "fi": "Vie roskat ulos." }
+      ]
+    },
+    {
+      "id": "hear-listen",
+      "title": "hear or listen",
+      "titleFi": "hear vai listen",
+      "options": ["hear", "listen"],
+      "rule": {
+        "en": "Hear: a sound reaches you without trying. Listen: you pay attention on purpose. Note: listen to something (listen to music).",
+        "fi": "hear = kuulla (ääni vain tulee korviin). listen = kuunnella (keskityt tarkoituksella). Huomaa to: listen to music = kuunnella musiikkia."
+      },
+      "items": [
+        { "text": "I ___ to the radio in the car.", "answer": "listen", "fi": "Kuuntelen radiota autossa." },
+        { "text": "Can you ___ me?", "answer": "hear", "fi": "Kuuletko minua?" },
+        { "text": "I ___ a strange noise last night.", "answer": "heard", "options": ["heard", "listened"], "fi": "Kuulin oudon äänen eilen illalla." },
+        { "text": "___ carefully, please.", "answer": "Listen", "options": ["Hear", "Listen"], "fi": "Kuunnelkaa tarkasti." },
+        { "text": "Sorry, I didn't ___ what you said.", "answer": "hear", "fi": "Anteeksi, en kuullut, mitä sanoit." }
+      ]
+    },
+    {
+      "id": "see-watch-look",
+      "title": "see, watch or look at",
+      "titleFi": "see, watch vai look at",
+      "options": ["see", "watch", "look at"],
+      "rule": {
+        "en": "See: something comes into your eyes. Watch: you follow something that moves or changes, like TV or a game. Look at: you turn your eyes to something on purpose.",
+        "fi": "see = nähdä. watch = katsella, seurata jotain liikkuvaa (TV, ottelu). look at = katsoa jotain tarkoituksella (look at this photo = katso tätä kuvaa)."
+      },
+      "items": [
+        { "text": "Did you ___ the hockey game last night?", "answer": "watch", "fi": "Katsoitko jääkiekko-ottelun eilen illalla?" },
+        { "text": "___ this photo!", "answer": "Look at", "options": ["See", "Watch", "Look at"], "fi": "Katso tätä kuvaa!" },
+        { "text": "I can't ___ without my glasses.", "answer": "see", "fi": "En näe ilman silmälasejani." },
+        { "text": "I ___ a moose on the road this morning.", "answer": "saw", "options": ["saw", "watched", "looked at"], "fi": "Näin aamulla hirven tiellä." },
+        { "text": "The children are ___ cartoons.", "answer": "watching", "options": ["seeing", "watching", "looking at"], "fi": "Lapset katsovat piirrettyjä." }
+      ]
+    },
+    {
+      "id": "than-then",
+      "title": "than or then",
+      "titleFi": "than vai then",
+      "options": ["than", "then"],
+      "rule": {
+        "en": "Than is for comparing (bigger than). Then is about time (first this, then that) or means \"in that case\".",
+        "fi": "than = kuin vertailussa (bigger than = isompi kuin). then = sitten, silloin. Sanat kuulostavat melkein samalta, siksi ne sekoittuvat helposti kirjoittaessa."
+      },
+      "items": [
+        { "text": "My car is older ___ yours.", "answer": "than", "fi": "Autoni on vanhempi kuin sinun." },
+        { "text": "First we eat, ___ we go to the sauna.", "answer": "then", "fi": "Ensin syödään, sitten mennään saunaan." },
+        { "text": "Helsinki is bigger ___ Turku.", "answer": "than", "fi": "Helsinki on isompi kuin Turku." },
+        { "text": "I lived in Spain back ___.", "answer": "then", "fi": "Asuin silloin Espanjassa." },
+        { "text": "She runs faster ___ me.", "answer": "than", "fi": "Hän juoksee nopeammin kuin minä." }
+      ]
+    },
+    {
+      "id": "its-its",
+      "title": "its or it's",
+      "titleFi": "its vai it's",
+      "options": ["its", "it's"],
+      "rule": {
+        "en": "It's is short for it is or it has. Its means \"belonging to it\", like his or her, and has no apostrophe.",
+        "fi": "it's = it is tai it has (se on). its = sen (omistus), aivan kuten his ja her, eikä siinä ole heittomerkkiä. Testi: jos voit sanoa it is, kirjoita it's."
+      },
+      "items": [
+        { "text": "___ cold today.", "answer": "It's", "options": ["Its", "It's"], "fi": "Tänään on kylmä." },
+        { "text": "The dog wagged ___ tail.", "answer": "its", "fi": "Koira heilutti häntäänsä." },
+        { "text": "I think ___ going to rain.", "answer": "it's", "fi": "Luulen, että alkaa sataa." },
+        { "text": "The company changed ___ name.", "answer": "its", "fi": "Yritys vaihtoi nimensä." },
+        { "text": "___ been a long day.", "answer": "It's", "options": ["Its", "It's"], "fi": "On ollut pitkä päivä." }
+      ]
+    },
+    {
+      "id": "fun-funny",
+      "title": "fun or funny",
+      "titleFi": "hauska: fun vai funny",
+      "options": ["fun", "funny"],
+      "rule": {
+        "en": "Fun: you enjoy doing it (a fun evening). Funny: it makes you laugh (a funny joke). Funny can also mean strange.",
+        "fi": "Suomen hauska on englanniksi kaksi sanaa. fun = mukava, kiva tehdä (the party was fun). funny = naurattava (a funny joke). Funny voi tarkoittaa myös outoa."
+      },
+      "items": [
+        { "text": "The party was really ___.", "answer": "fun", "fi": "Juhlat olivat tosi hauskat." },
+        { "text": "He told a ___ joke.", "answer": "funny", "fi": "Hän kertoi hauskan vitsin." },
+        { "text": "Skiing is ___.", "answer": "fun", "fi": "Hiihtäminen on kivaa." },
+        { "text": "That smell is ___. Is something burning?", "answer": "funny", "fi": "Tuo haju on outo. Palaako jokin?" },
+        { "text": "Have ___ at the concert!", "answer": "fun", "fi": "Pidä hauskaa konsertissa!" }
+      ]
+    },
+    {
+      "id": "lose-loose",
+      "title": "lose or loose",
+      "titleFi": "lose vai loose",
+      "options": ["lose", "loose"],
+      "rule": {
+        "en": "Lose (one o) is a verb: lose your keys, lose a game. Loose (two o's) means not tight.",
+        "fi": "lose = hukata, kadottaa, hävitä (lose your keys, lose a game). loose = löysä (loose trousers). Ääntämisessäkin on ero: lose loppuu soinnilliseen z-äänteeseen, loose s-äänteeseen."
+      },
+      "items": [
+        { "text": "Don't ___ your ticket.", "answer": "lose", "fi": "Älä hukkaa lippuasi." },
+        { "text": "These jeans are too ___.", "answer": "loose", "fi": "Nämä farkut ovat liian löysät." },
+        { "text": "We always ___ against Sweden.", "answer": "lose", "fi": "Häviämme aina Ruotsille." },
+        { "text": "One of my teeth is ___.", "answer": "loose", "fi": "Yksi hampaistani heiluu." }
+      ]
+    },
+    {
+      "id": "nice-sympathetic",
+      "title": "nice or sympathetic",
+      "titleFi": "sympaattinen: nice vai sympathetic",
+      "options": ["nice", "sympathetic"],
+      "rule": {
+        "en": "Sympathetic means you understand and feel for someone's troubles. It does not mean \"nice\". A person or place you like is nice, kind or friendly.",
+        "fi": "Harhaanjohtava sana: sympaattinen ei ole englanniksi sympathetic. sympathetic = myötätuntoinen, ymmärtäväinen. Mukava, sympaattinen ihminen tai paikka on englanniksi nice, kind tai friendly."
+      },
+      "items": [
+        { "text": "Our new neighbour is very ___. She always says hello.", "answer": "nice", "fi": "Uusi naapurimme on tosi mukava. Hän tervehtii aina." },
+        { "text": "The nurse was ___ when I told her about my pain.", "answer": "sympathetic", "fi": "Hoitaja oli myötätuntoinen, kun kerroin kivuistani." },
+        { "text": "What a ___ little café!", "answer": "nice", "fi": "Onpa sympaattinen pikku kahvila!" },
+        { "text": "My boss was ___ when my father was ill.", "answer": "sympathetic", "fi": "Pomoni oli ymmärtäväinen, kun isäni oli sairaana." }
+      ]
+    },
+    {
+      "id": "current-actual",
+      "title": "current or actual",
+      "titleFi": "aktuaalinen: current vai actual",
+      "options": ["current", "actual"],
+      "rule": {
+        "en": "Actual means real or exact, not \"happening now\". For something happening now, say current or latest.",
+        "fi": "Harhaanjohtava sana: aktuaalinen tai ajankohtainen on englanniksi current tai latest, ei actual. actual = todellinen, varsinainen. Samoin actually = itse asiassa, ei \"nykyään\"."
+      },
+      "items": [
+        { "text": "Let's talk about ___ events.", "answer": "current", "fi": "Puhutaan ajankohtaisista asioista." },
+        { "text": "He looks young, but his ___ age is 60.", "answer": "actual", "fi": "Hän näyttää nuorelta, mutta hänen todellinen ikänsä on 60." },
+        { "text": "What is your ___ address?", "answer": "current", "fi": "Mikä on nykyinen osoitteesi?" },
+        { "text": "That's not his ___ name. It's a nickname.", "answer": "actual", "fi": "Se ei ole hänen oikea nimensä. Se on lempinimi." },
+        { "text": "Is this the ___ version of the app?", "answer": "current", "fi": "Onko tämä sovelluksen nykyinen versio?" }
+      ]
+    }
+  ]
+}

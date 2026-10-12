@@ -3,6 +3,7 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { SettingsProvider } from "./app/SettingsContext";
 import { ProgressProvider } from "./app/ProgressContext";
 import Home from "./app/Home";
+import ContentAdmin from "./admin/ContentAdmin";
 import { GAMES, PLAYABLE_GAME_IDS } from "./games/registry";
 
 // Providers and routes, without the router, so tests can wrap it in a MemoryRouter.
@@ -10,6 +11,8 @@ export function AppRoutes() {
   return (
     <Routes>
       <Route path="/" element={<Home />} />
+      {/* Word bank editor; not linked from the app, see content/README.md. */}
+      <Route path="/admin" element={<ContentAdmin />} />
       {GAMES.flatMap((game) =>
         (game.routes || []).map(({ path, Component }) => (
           <Route key={path} path={path} element={<Component />} />

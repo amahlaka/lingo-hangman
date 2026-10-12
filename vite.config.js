@@ -1,11 +1,42 @@
 import { defineConfig } from 'vite'
+import fs from 'fs';
 import path from 'path';
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 import tailwindcss from '@tailwindcss/vite'
 
+// The word bank in content/ is also published as /content/... (in the build,
+// and served from the folder in dev) so the app can fetch the newest copy at
+// startup. On the live site that path can be overridden by content published
+// without a release; see content/README.md.
+function wordBankFiles() {
+  const dir = path.resolve(__dirname, 'content');
+  const jsonFiles = () =>
+    fs.readdirSync(dir, { recursive: true })
+      .map((f) => f.split(path.sep).join('/'))
+      .filter((f) => f.endsWith('.json'));
+  return {
+    name: 'lingo-word-bank',
+    configureServer(server) {
+      server.middlewares.use('/content/', (req, res, next) => {
+        const file = decodeURIComponent(req.url.split('?')[0]).replace(/^\//, '');
+        if (!jsonFiles().includes(file)) return next();
+        res.setHeader('Content-Type', 'application/json');
+        res.setHeader('Cache-Control', 'no-cache');
+        res.end(fs.readFileSync(path.join(dir, file)));
+      });
+    },
+    generateBundle() {
+      for (const file of jsonFiles()) {
+        this.emitFile({ type: 'asset', fileName: `content/${file}`, source: fs.readFileSync(path.join(dir, file)) });
+      }
+    },
+  };
+}
+
 export default defineConfig({
   plugins: [
+    wordBankFiles(),
     tailwindcss(),
     react(),
     VitePWA({

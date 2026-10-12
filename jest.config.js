@@ -8,6 +8,8 @@ export default {
   },
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
+    // Vite-only import.meta.glob; tests read content/ with fs instead.
+    '^(.*)/bundledContent$': '$1/bundledContent.node.js',
     '\\.(css|less|scss|sass)$': '<rootDir>/src/__tests__/styleStub.js',
   },
 };

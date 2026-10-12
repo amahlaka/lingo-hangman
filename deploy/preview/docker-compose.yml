@@ -1,5 +1,5 @@
-# Small static server for preview builds. Nginx Proxy Manager forwards
-# *.preview.bololoo.com to this container.
+# Small static server for preview builds and the live site. The reverse proxy
+# forwards *.preview.bololoo.com and bololoo.com to this container.
 services:
   lingo-previews:
     image: nginx:1.27-alpine
@@ -8,6 +8,7 @@ services:
     volumes:
       - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
       - /srv/previews:/srv/previews:ro
+      - /srv/lingo-prod:/srv/lingo-prod:ro
     networks:
       - npm
 

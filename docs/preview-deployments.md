@@ -1,4 +1,4 @@
-# Preview deployments
+# Preview and production deployments
 
 Any branch, tag, commit or pull request can be published at its own address:
 
@@ -14,6 +14,12 @@ Every commit gets its own address, so an older preview keeps working after new p
 - **A pull request, automatically:** add the `preview` label to the PR. It deploys straight away and again on every push while the label is on, and posts (then keeps updating) a comment on the PR with the latest address.
 
 The label trigger only works for PRs whose branch already contains `.github/workflows/preview.yml`; for older branches use *Run workflow*, which works for anything.
+
+## Deploying to production
+
+GitHub → Actions → *Production deploy* → *Run workflow*, with `master` or any branch, tag or commit. It runs the tests, builds, uploads the build to its own release folder and then switches the live site to it. To roll back, run it again with the previous commit.
+
+The job uses the `production` environment, so it can be gated with required reviewers in the repository settings, and its deploy key only exists there.
 
 ## How it works
 
@@ -41,6 +47,12 @@ The server needs, once:
 - A dedicated SSH user whose key is restricted to rsync into `/srv/previews`, for example with `command="/usr/bin/rrsync /srv/previews",restrict` in `authorized_keys`. SSH must be reachable from GitHub's hosted runners.
 - Optionally, a cron job that removes old preview folders.
 
+For production, additionally:
+
+- A `/srv/lingo-prod` folder, mounted read-only into the same nginx container. Releases go to `releases/<sha>/` and `current` is a link to the live one.
+- A second deploy key restricted to rsync into `/srv/lingo-prod`, for example `command="/usr/bin/rrsync /srv/lingo-prod",restrict`.
+- The live site's proxy host forwarding to the nginx container.
+
 ## GitHub settings
 
 Repository → Settings → Secrets and variables → Actions:
@@ -58,5 +70,7 @@ Variables:
 | --- | --- |
 | `PREVIEW_SSH_HOST` | Server host name. A variable rather than a secret, because a secret equal to the domain makes GitHub mask the preview address in logs and on the environment link. |
 | `PREVIEW_DOMAIN` | Optional, default `preview.bololoo.com` |
+
+In the `production` environment, add the secret `PROD_SSH_KEY` (the production deploy key) and, optionally, the variable `PRODUCTION_URL` (default `https://bololoo.com`). The host, user and known hosts are shared with previews.
 
 Create a label named `preview` for the PR trigger. The workflow creates the `preview` environment on its first run.

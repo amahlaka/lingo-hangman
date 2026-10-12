@@ -66,7 +66,7 @@ export default function ContentAdmin() {
   // On narrow screens the editor sits under the list, so bring it into view.
   useEffect(() => {
     if (selected === null || !window.matchMedia?.("(max-width: 899px)").matches) return;
-    document.querySelector(".ad-editor")?.scrollIntoView?.({ block: "start", behavior: "smooth" });
+    document.querySelector(".wb-editor")?.scrollIntoView?.({ block: "start", behavior: "smooth" });
   }, [selected, packId]);
 
   const pack = draft.packs.find((p) => p.id === packId) || draft.packs[0];
@@ -128,16 +128,16 @@ export default function ContentAdmin() {
 
   return (
     <GameScreen title="Word bank">
-      <main className="lg-board lg-page ad-page">
+      <main className="lg-board lg-page wb-page">
         <p className="lg-body-lg">
           Add and edit words, sentences, grammar rules and languages. Changes stay on this device until you publish them.
         </p>
         {restored && changes.length > 0 && (
-          <p className="lg-note lg-note--info ad-note">Your unpublished changes from last time are still here.</p>
+          <p className="lg-note lg-note--info wb-note">Your unpublished changes from last time are still here.</p>
         )}
 
         <section className="lg-section">
-          <div className="ad-grid">
+          <div className="wb-grid">
             <label className="lg-field">
               <span>Pack</span>
               <select className="lg-input" value={pack?.id} onChange={(e) => { setPackId(e.target.value); setSelected(null); }}>
@@ -159,7 +159,7 @@ export default function ContentAdmin() {
             </label>
           </div>
           <div className="lg-row">
-            <select className="lg-input ad-inline" aria-label="Type of new item" value={newType} onChange={(e) => setNewType(e.target.value)}>
+            <select className="lg-input wb-inline" aria-label="Type of new item" value={newType} onChange={(e) => setNewType(e.target.value)}>
               {ITEM_TYPES.map((t) => <option key={t} value={t}>{TYPE_NAMES[t]}</option>)}
             </select>
             <button type="button" className="lg-btn lg-btn--secondary" onClick={addItem} disabled={!pack}>
@@ -168,19 +168,19 @@ export default function ContentAdmin() {
           </div>
         </section>
 
-        <div className="ad-layout">
-          <ul className="ad-list" aria-label="Items">
+        <div className="wb-layout">
+          <ul className="wb-list" aria-label="Items">
             {visible.map(({ item, index }) => {
               const bad = validateItem(tidyItem(item), ctx).length > 0;
               return (
                 <li key={index}>
                   <button
                     type="button"
-                    className={`ad-item ${selected === index ? "ad-item--on" : ""}`}
+                    className={`wb-item ${selected === index ? "wb-item--on" : ""}`}
                     aria-current={selected === index}
                     onClick={() => setSelected(index)}
                   >
-                    <span className="ad-item__text">{itemLabel(item) || "(empty)"}</span>
+                    <span className="wb-item__text">{itemLabel(item) || "(empty)"}</span>
                     <span className="lg-caption">{TYPE_NAMES[item.type] || item.type}{bad ? " · needs fixing" : ""}</span>
                   </button>
                 </li>
@@ -190,8 +190,8 @@ export default function ContentAdmin() {
           </ul>
 
           {current && (
-            <section className="ad-editor lg-stack" aria-label="Edit item">
-              <div className="lg-row ad-editor__head">
+            <section className="wb-editor lg-stack" aria-label="Edit item">
+              <div className="lg-row wb-editor__head">
                 <h2 className="lg-heading">{TYPE_NAMES[current.type]}</h2>
                 <button type="button" className="lg-btn lg-btn--quiet" onClick={() => setItem(selected, { ...current, id: suggestId(current, new Set([...takenIds].filter((id) => id !== current.id))) })}>
                   Make id from text
@@ -201,7 +201,7 @@ export default function ContentAdmin() {
                 </button>
               </div>
               {currentProblems.length > 0 && (
-                <ul className="ad-problems">
+                <ul className="wb-problems">
                   {currentProblems.map((p) => <li key={p}>{p}</li>)}
                 </ul>
               )}
@@ -226,7 +226,7 @@ export default function ContentAdmin() {
           <Languages draft={draft} setDraft={setDraft} />
         </details>
 
-        <section className="lg-section ad-publish">
+        <section className="lg-section wb-publish">
           <h2 className="lg-heading">Publish</h2>
           {changes.length === 0 ? (
             <p className="lg-caption">No changes yet.</p>
@@ -236,7 +236,7 @@ export default function ContentAdmin() {
           {problems.length > 0 && (
             <>
               <p>Fix these first:</p>
-              <ul className="ad-problems">{problems.map((p) => <li key={p}>{p}</li>)}</ul>
+              <ul className="wb-problems">{problems.map((p) => <li key={p}>{p}</li>)}</ul>
             </>
           )}
           <details className="lg-details">
@@ -246,7 +246,7 @@ export default function ContentAdmin() {
                 Publishing needs a GitHub fine-grained access token with only the word base repository selected and
                 "Contents: read and write". It can change words but not the app. It is kept only in this browser.
               </p>
-              <div className="ad-grid">
+              <div className="wb-grid">
                 <label className="lg-field">
                   <span>Access token</span>
                   <input className="lg-input" type="password" autoComplete="off" value={github.token} onChange={(e) => savePublishSettings({ token: e.target.value.trim() })} />
@@ -283,11 +283,11 @@ export default function ContentAdmin() {
             </button>
           </div>
           {publishState.status === "done" && (
-            <p className="lg-note lg-note--correct ad-note">
+            <p className="lg-note lg-note--correct wb-note">
               Published as <a href={publishState.url} target="_blank" rel="noreferrer">one commit</a>. The live site picks it up in a few minutes.
             </p>
           )}
-          {publishState.status === "error" && <p className="lg-note lg-note--retry ad-note">{publishState.message}</p>}
+          {publishState.status === "error" && <p className="lg-note lg-note--retry wb-note">{publishState.message}</p>}
         </section>
       </main>
     </GameScreen>
@@ -313,7 +313,7 @@ function PacksAndCategories({ draft, setDraft, categories, onAdded }) {
   return (
     <div className="lg-stack">
       <h3 className="lg-heading">New pack</h3>
-      <div className="ad-grid">
+      <div className="wb-grid">
         <label className="lg-field"><span>Id</span><input className="lg-input" value={newPack.id} onChange={(e) => setNewPack({ ...newPack, id: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "-") })} /></label>
         <label className="lg-field"><span>Name in English</span><input className="lg-input" value={newPack.en} onChange={(e) => setNewPack({ ...newPack, en: e.target.value })} /></label>
         <label className="lg-field"><span>Name in Finnish</span><input className="lg-input" value={newPack.fi} onChange={(e) => setNewPack({ ...newPack, fi: e.target.value })} /></label>
@@ -323,8 +323,8 @@ function PacksAndCategories({ draft, setDraft, categories, onAdded }) {
       <h3 className="lg-heading">Category names</h3>
       <p className="lg-caption">Shown on the category chips. A category without a name is shown as it is written.</p>
       {categories.map((cat) => (
-        <div key={cat} className="ad-grid">
-          <span className="ad-cat">{cat}</span>
+        <div key={cat} className="wb-grid">
+          <span className="wb-cat">{cat}</span>
           <label className="lg-field"><span>English</span><input className="lg-input" value={labels[cat]?.en ?? ""} onChange={(e) => setLabel(cat, "en", e.target.value)} /></label>
           <label className="lg-field"><span>Finnish</span><input className="lg-input" value={labels[cat]?.fi ?? ""} onChange={(e) => setLabel(cat, "fi", e.target.value)} /></label>
         </div>
@@ -335,19 +335,36 @@ function PacksAndCategories({ draft, setDraft, categories, onAdded }) {
 
 function Languages({ draft, setDraft }) {
   const set = (i, patch) =>
-    setDraft((d) => ({ ...d, languages: d.languages.map((l, j) => (j === i ? Object.fromEntries(Object.entries({ ...l, ...patch }).filter(([, v]) => v !== "")) : l)) }));
+    setDraft((d) => ({
+      ...d,
+      languages: d.languages.map((l, j) => {
+        if (j !== i) return l;
+        const next = { ...l, ...patch };
+        // Optional fields are left out of the file when empty.
+        for (const key of ["alphabet", "fallback"]) if (next[key] === "") delete next[key];
+        return next;
+      }),
+    }));
   const add = () => setDraft((d) => ({ ...d, languages: [...d.languages, { code: "", label: "" }] }));
+  const remove = (i) => {
+    const l = draft.languages[i];
+    if ((l.code || l.label) && !window.confirm(`Remove the language "${l.label || l.code}"?`)) return;
+    setDraft((d) => ({ ...d, languages: d.languages.filter((_, j) => j !== i) }));
+  };
   return (
     <div className="lg-stack">
       <p className="lg-caption">
         A new language appears in the word list menus once words have a translation in it. The alphabet is the letters on the hangman keyboard.
       </p>
       {draft.languages.map((l, i) => (
-        <div key={i} className="ad-grid">
-          <label className="lg-field"><span>Code</span><input className="lg-input" value={l.code} onChange={(e) => set(i, { code: e.target.value.trim() })} /></label>
-          <label className="lg-field"><span>Name</span><input className="lg-input" value={l.label} onChange={(e) => set(i, { label: e.target.value })} /></label>
+        <div key={i} className="wb-grid">
+          <label className="lg-field"><span>Code</span><input className="lg-input" value={l.code ?? ""} onChange={(e) => set(i, { code: e.target.value.trim() })} /></label>
+          <label className="lg-field"><span>Name</span><input className="lg-input" value={l.label ?? ""} onChange={(e) => set(i, { label: e.target.value })} /></label>
           <label className="lg-field"><span>Alphabet</span><input className="lg-input" value={l.alphabet ?? ""} onChange={(e) => set(i, { alphabet: e.target.value.toUpperCase().replace(/\s/g, "") })} /></label>
           <label className="lg-field"><span>Falls back to</span><input className="lg-input" value={l.fallback ?? ""} onChange={(e) => set(i, { fallback: e.target.value.trim() })} /></label>
+          <button type="button" className="lg-btn lg-btn--quiet lg-icon-btn" aria-label={`Remove language ${l.label || l.code || i + 1}`} onClick={() => remove(i)}>
+            <Trash2 size={18} aria-hidden="true" />
+          </button>
         </div>
       ))}
       <div><button type="button" className="lg-btn lg-btn--secondary" onClick={add}><Plus size={18} aria-hidden="true" /> Add language</button></div>

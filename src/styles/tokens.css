@@ -1,0 +1,70 @@
+/* Lingo design tokens, generated from the Lingo design system's tokens.json.
+   Light (birch) is the default; dark (kaamos) applies under the .dark class on <html>. */
+:root {
+  color-scheme: light;
+  --font-display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --font-sans: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 22px;
+  --radius-pill: 999px;
+  --surface: #f4f6f4;
+  --surface-raised: #ffffff;
+  --surface-sunken: #e6ebe8;
+  --line: #d3dad6;
+  --border: #7d8c94;
+  --ink: #17252e;
+  --ink-muted: #4f5f68;
+  --lake: #1e5b80;
+  --lake-strong: #164764;
+  --lake-soft: #dceaf2;
+  --on-lake: #ffffff;
+  --lingon: #b3214a;
+  --lingon-soft: #f8e1e7;
+  --on-lingon: #ffffff;
+  --pine: #2c7044;
+  --pine-soft: #dcefe2;
+  --on-pine: #ffffff;
+  --cloudberry: #f0a73a;
+  --cloudberry-ink: #7d4a00;
+  --cloudberry-soft: #fcecd0;
+  --on-cloudberry: #2a1a00;
+  --scrim: #0f1b23cc;
+  --shadow-raised: 0 1px 2px #17252e14, 0 4px 12px #17252e0f;
+  --shadow-dialog: 0 12px 40px #17252e33;
+}
+
+:root.dark {
+  color-scheme: dark;
+  --surface: #0f1b23;
+  --surface-raised: #182833;
+  --surface-sunken: #22343f;
+  --line: #2f4552;
+  --border: #6f8591;
+  --ink: #e9eff1;
+  --ink-muted: #a9b8bf;
+  --lake: #7cc0e6;
+  --lake-strong: #a3d4ef;
+  --lake-soft: #173a50;
+  --on-lake: #0b1a24;
+  --lingon: #f07a98;
+  --lingon-soft: #4a1726;
+  --on-lingon: #2a0a14;
+  --pine: #74cc93;
+  --pine-soft: #183a26;
+  --on-pine: #0b1a12;
+  --cloudberry: #f2b45a;
+  --cloudberry-ink: #f2b45a;
+  --cloudberry-soft: #3d2a0c;
+  --on-cloudberry: #2a1a00;
+  --scrim: #050b0fcc;
+  --shadow-raised: 0 1px 2px #00000066;
+  --shadow-dialog: 0 12px 40px #000000aa;
+}

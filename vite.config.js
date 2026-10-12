@@ -11,11 +11,11 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       manifest: {
-        name: 'Lingo Hangman',
-        short_name: 'LingoHangman',
-        description: 'A language learning hangman game',
-        theme_color: '#2563eb',
-        background_color: '#f3f4f6',
+        name: 'Lingo',
+        short_name: 'Lingo',
+        description: 'Short English word games for Finnish-speaking adults',
+        theme_color: '#1e5b80',
+        background_color: '#f4f6f4',
         display: 'standalone',
         start_url: '/',
         icons: [

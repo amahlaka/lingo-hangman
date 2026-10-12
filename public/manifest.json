@@ -1,11 +1,11 @@
 {
-  "name": "Lingo Hangman",
-  "short_name": "LingoHangman",
-  "description": "A language learning hangman game",
+  "name": "Lingo",
+  "short_name": "Lingo",
+  "description": "Short English word games for Finnish-speaking adults",
   "start_url": ".",
   "display": "standalone",
-  "background_color": "#f3f4f6",
-  "theme_color": "#2563eb",
+  "background_color": "#f4f6f4",
+  "theme_color": "#1e5b80",
   "scope": "/",
   "id": "https://bololoo.com",
   "icons": [
@@ -22,9 +22,9 @@
   ],
   "shortcuts": [
     {
-    "name": "Lingo Hangman",
+    "name": "Lingo",
     "short_name": "Home",
-    "description": "Go to create game page",
+    "description": "Choose a game",
     "url": "."
     },
     {

@@ -1,0 +1,76 @@
+# Puts the word bank (content/) on the live site without a new release.
+#
+# Runs when content/ changes on master, e.g. after "Publish" on the /admin
+# page, and can be run by hand from Actions > "Content publish". The files go
+# to content/ next to the releases; nginx serves /content/ from there and
+# falls back to the copy inside the live release. See content/README.md.
+
+name: Content publish
+
+on:
+  push:
+    branches: [master]
+    paths: ["content/**"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: ${{ vars.PRODUCTION_URL || 'https://lingo.bololoo.com' }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+
+      # Plain Node, no install needed. Stops here if anything is wrong, so the
+      # live site keeps the last good content.
+      - run: node scripts/check-content.mjs
+
+      - name: Upload the content
+        env:
+          SSH_HOST: ${{ vars.PROD_SSH_HOST }}
+          SSH_PORT: ${{ vars.PROD_SSH_PORT || '22' }}
+          SSH_USER: ${{ secrets.PROD_SSH_USER }}
+          SSH_KEY: ${{ secrets.PROD_SSH_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.PROD_SSH_KNOWN_HOSTS }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/prod_key
+          chmod 600 ~/.ssh/prod_key
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          ssh_cmd="ssh -p $SSH_PORT -i ~/.ssh/prod_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes"
+          # Packs first and index.json last, so a visitor never gets an index
+          # naming a pack that isn't there yet. Paths are relative to the
+          # production folder (the key is restricted with rrsync).
+          rsync -rlz --mkpath --chmod=D755,F644 --exclude=index.json --include='*/' --include='*.json' --exclude='*' \
+            -e "$ssh_cmd" content/ "$SSH_USER@$SSH_HOST:content/"
+          rsync -z --chmod=F644 -e "$ssh_cmd" content/index.json "$SSH_USER@$SSH_HOST:content/index.json"
+          rm -f ~/.ssh/prod_key
+
+      - name: Check the live site serves it
+        env:
+          URL: ${{ vars.PRODUCTION_URL || 'https://lingo.bololoo.com' }}
+        run: |
+          for i in 1 2 3 4 5; do
+            if curl -fsS --compressed "$URL/content/index.json" | cmp -s - content/index.json; then
+              echo "Live at $URL/content/"; exit 0
+            fi
+            sleep 3
+          done
+          echo "::warning::Uploaded, but $URL/content/index.json is not the new file. Check the /content/ location in the nginx config (see content/README.md)."
+
+      - name: Summary
+        run: |
+          echo "### Published the word bank from ${GITHUB_SHA:0:8}" >> "$GITHUB_STEP_SUMMARY"
+          node -e 'const i=require("./content/index.json");console.log(`Packs: ${i.packs.join(", ")}`)' >> "$GITHUB_STEP_SUMMARY"

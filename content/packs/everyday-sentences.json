@@ -1,0 +1,13 @@
+{
+  "id": "everyday-sentences",
+  "title": {
+    "en": "Everyday sentences",
+    "fi": "Arkilauseet"
+  },
+  "items": [
+    {"id":"have-the-bill","type":"gap","lang":"en","sentence":"We would like to pay. Could I have the ___, please?","answers":["bill","check"],"distractors":["menu","table"],"translation":{"fi":"Haluaisimme maksaa. Saisinko laskun, kiitos?"},"explanation":{"fi":"Ravintolassa lasku on brittienglanniksi bill ja amerikanenglanniksi check."},"categories":["food","money","politeness"],"level":1},
+    {"id":"nice-to-meet-you","type":"gap","lang":"en","sentence":"Nice to ___ you.","answers":["meet"],"distractors":["make","take"],"translation":{"fi":"Hauska tavata."},"categories":["greeting","politeness"],"level":1},
+    {"id":"how-much-gap","type":"gap","lang":"en","sentence":"How ___ is this?","answers":["much"],"distractors":["many"],"translation":{"fi":"Paljonko tämä maksaa?"},"explanation":{"fi":"Hinnasta kysytään aina how much."},"categories":["shopping","money","questions"],"level":1},
+    {"id":"waiting-for-the-bus","type":"gap","lang":"en","sentence":"I am ___ for the bus.","answers":["waiting"],"distractors":["staying","expecting"],"translation":{"fi":"Odotan bussia."},"explanation":{"fi":"Odottaa jotakin on wait for: wait for the bus."},"categories":["commuting","transport"],"level":1}
+  ]
+}

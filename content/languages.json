@@ -1,0 +1,78 @@
+[
+  {
+    "code": "en-GB",
+    "label": "English (UK)",
+    "fallback": "en",
+    "alphabet": "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+  },
+  {
+    "code": "en",
+    "label": "English (US)",
+    "alphabet": "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+  },
+  {
+    "code": "fi",
+    "label": "Finnish",
+    "alphabet": "ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖ"
+  },
+  {
+    "code": "de",
+    "label": "German",
+    "alphabet": "AÄBCDEFGHIJKLMNOÖPQRSßTUÜVWXYZ"
+  },
+  {
+    "code": "fr",
+    "label": "French",
+    "alphabet": "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+  },
+  {
+    "code": "es",
+    "label": "Spanish",
+    "alphabet": "AÁBCDEÉFGHIÍJKLMNÑOÓPQRSTUÚÜVWXYZ"
+  },
+  {
+    "code": "it",
+    "label": "Italian",
+    "alphabet": "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+  },
+  {
+    "code": "sv",
+    "label": "Swedish",
+    "alphabet": "AÅÄBCDEFGHIJKLMNOPQRSTUVWXYZÖ"
+  },
+  {
+    "code": "pt",
+    "label": "Portuguese",
+    "alphabet": "AÁÂÃÀBCÇDEÉÊFGHIÍJKLMNOÓÔÕPQRSTUÚÜVWXYZ"
+  },
+  {
+    "code": "nl",
+    "label": "Dutch",
+    "alphabet": "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+  },
+  {
+    "code": "pl",
+    "label": "Polish",
+    "alphabet": "AĄBCĆDEĘFGHIJKLŁMNŃOÓPQRSŚTUVWXYZŹŻ"
+  },
+  {
+    "code": "cs",
+    "label": "Czech",
+    "alphabet": "AÁBCČDĎEÉĚFGHIÍJKLMNŇOÓPQRŘSŠTŤUÚŮVWXZÝŽ"
+  },
+  {
+    "code": "ro",
+    "label": "Romanian",
+    "alphabet": "AĂÂBCDEFGHIÎJKLMNOPQRSȘTȚUVWXYZ"
+  },
+  {
+    "code": "hu",
+    "label": "Hungarian",
+    "alphabet": "AÁBCDEÉFGHIÍJKLMNOÓÖŐPQRSTUÚÜŰVWXYZ"
+  },
+  {
+    "code": "tr",
+    "label": "Turkish",
+    "alphabet": "AÂBCÇDEFGĞHIİJKLMNOÖPRSŞTUÜVYZ"
+  }
+]

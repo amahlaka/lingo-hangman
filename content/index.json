@@ -1,0 +1,104 @@
+{
+  "packs": [
+    "everyday-words",
+    "everyday-phrases",
+    "everyday-sentences",
+    "word-groups",
+    "grammar",
+    "mixed-up-words"
+  ],
+  "categories": {
+    "adjective": {
+      "en": "Adjectives",
+      "fi": "Adjektiivit"
+    },
+    "bathroom": {
+      "en": "Bathroom",
+      "fi": "Kylpyhuone"
+    },
+    "bedroom": {
+      "en": "Bedroom",
+      "fi": "Makuuhuone"
+    },
+    "commuting": {
+      "en": "Commuting",
+      "fi": "Työmatka"
+    },
+    "drink": {
+      "en": "Drinks",
+      "fi": "Juomat"
+    },
+    "food": {
+      "en": "Food",
+      "fi": "Ruoka"
+    },
+    "greeting": {
+      "en": "Greetings",
+      "fi": "Tervehdykset"
+    },
+    "hanging-out": {
+      "en": "Hanging out",
+      "fi": "Ajanviete"
+    },
+    "home": {
+      "en": "Home",
+      "fi": "Koti"
+    },
+    "important": {
+      "en": "Important",
+      "fi": "Tärkeät"
+    },
+    "money": {
+      "en": "Money",
+      "fi": "Raha"
+    },
+    "people": {
+      "en": "People",
+      "fi": "Ihmiset"
+    },
+    "phrases": {
+      "en": "Phrases",
+      "fi": "Fraasit"
+    },
+    "places": {
+      "en": "Places",
+      "fi": "Paikat"
+    },
+    "politeness": {
+      "en": "Politeness",
+      "fi": "Kohteliaisuus"
+    },
+    "pronoun": {
+      "en": "Pronouns",
+      "fi": "Pronominit"
+    },
+    "questions": {
+      "en": "Questions",
+      "fi": "Kysymykset"
+    },
+    "relationships": {
+      "en": "Relationships",
+      "fi": "Ihmissuhteet"
+    },
+    "rooms": {
+      "en": "Rooms",
+      "fi": "Huoneet"
+    },
+    "shopping": {
+      "en": "Shopping",
+      "fi": "Ostokset"
+    },
+    "time": {
+      "en": "Time",
+      "fi": "Aika"
+    },
+    "transport": {
+      "en": "Transport",
+      "fi": "Liikenne"
+    },
+    "verb": {
+      "en": "Verbs",
+      "fi": "Verbit"
+    }
+  }
+}

@@ -52,6 +52,7 @@ For production, additionally:
 - A `/srv/lingo-prod` folder, mounted read-only into the same nginx container. Releases go to `releases/<sha>/` and `current` is a link to the live one.
 - A separate SSH user for production, whose key is restricted to rsync into `/srv/lingo-prod` (for example `command="/usr/bin/rrsync /srv/lingo-prod",restrict`). A separate user rather than a second key on the preview user, because rrsync allows one run per user at a time, so preview and production deploys would block each other.
 - A proxy host for the live address (`lingo.bololoo.com`) forwarding to the nginx container. Set its `server_name` in `nginx.conf` if you use another address.
+- The `/content/` location from `deploy/preview/nginx.conf` in the live site's server block, so word bank changes published by the **Content publish** workflow (`.github/workflows/content.yml`) reach visitors without a release. It uses the same production user and secrets and uploads to `content/` in the production folder. See `content/README.md`.
 
 ## GitHub settings
 

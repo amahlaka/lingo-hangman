@@ -10,6 +10,7 @@ import {
   DEFAULT_NATIVE_LANG,
   LANGUAGE_OPTIONS,
   buildWordsQuery,
+  categoryLabels,
   filterCommonWords,
   pickCommonWords,
 } from "../../lib/words";
@@ -19,7 +20,7 @@ const WORD_COUNTS = [5, 10, 15];
 // Hangman's start screen: pick categories and go, or type your own word pairs
 // and share them as a /play?words=... link.
 export default function HangmanSetup() {
-  const { t } = useSettings();
+  const { t, lang } = useSettings();
   const navigate = useNavigate();
   const [included, setIncluded] = useState(DEFAULT_CATEGORIES.filter((c) => ALL_CATEGORIES.includes(c)));
   const [excluded, setExcluded] = useState([]);
@@ -64,6 +65,7 @@ export default function HangmanSetup() {
           <p className="lg-caption">{t.categoryHint}</p>
           <CategoryChips
             all={ALL_CATEGORIES}
+            labels={categoryLabels(lang)}
             included={included}
             excluded={excluded}
             onChange={({ included: inc, excluded: exc }) => {

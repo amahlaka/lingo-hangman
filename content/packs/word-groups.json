@@ -1,0 +1,17 @@
+{
+  "id": "word-groups",
+  "title": {
+    "en": "Word groups",
+    "fi": "Sanaryhmät"
+  },
+  "items": [
+    {"id":"be-forms","type":"group","title":{"en":"Forms of be","fi":"Be-verbin muodot"},"words":["is","are","am","was","were"]},
+    {"id":"helper-verbs","type":"group","title":{"en":"Helper verbs","fi":"Apuverbit"},"words":["do","does","did","can","would","will","have","has"]},
+    {"id":"article-words","type":"group","title":{"en":"Articles and pointing words","fi":"Artikkelit ja osoittavat sanat"},"words":["a","an","the","this","that","some"]},
+    {"id":"prepositions","type":"group","title":{"en":"Small place and time words","fi":"Prepositiot"},"words":["in","on","at","to","past","near","of","for","from","with"]},
+    {"id":"pronouns","type":"group","title":{"en":"Pronouns","fi":"Pronominit"},"words":["I","me","my","you","your","he","she","it","we","they","him","her","us","them"]},
+    {"id":"question-words","type":"group","title":{"en":"Question words","fi":"Kysymyssanat"},"words":["what","where","when","how","who","why","which"]},
+    {"id":"amounts","type":"group","title":{"en":"Amounts","fi":"Määrät"},"words":["much","many","lot","more","few"]},
+    {"id":"numbers","type":"group","title":{"en":"Numbers","fi":"Numerot"},"words":["one","two","three","four","five","six","seven","eight","nine","ten","eleven","twelve","twenty","quarter","half"]}
+  ]
+}

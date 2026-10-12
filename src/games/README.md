@@ -38,7 +38,23 @@ Replace the matching `soon: true` placeholder if there is one. An entry with
   `DEFAULT_CATEGORIES`).
 - `buildWordsQuery({ pairs, learningLang, nativeLang, swap })` makes a
   shareable query string; `encodeWords` / `decodeWords` are the raw format.
-- `shuffle`, `getAlphabet(lang)`, `languageLabel(code)`.
+- `shuffle`, `getAlphabet(lang)`, `languageLabel(code)`, `categoryLabel(cat, uiLang)`.
+
+The built-in words come from the word bank in `content/` (format and admin
+editing: `content/README.md`). Besides word pairs it has:
+
+- `getGapItems({ topic, include, exclude, lang })`: fill-the-gap sentences,
+  each with one `___`, `answers`, `distractors`, a Finnish `translation`, an
+  optional `explanation` and the `topic` it practises.
+- `getTopics("rule" | "confusable")` and `getItem(id)`: grammar rules and
+  sets of mixed-up words, with titles and explanations in English and Finnish.
+- `getWordGroups()`: sets of small words that are easy to confuse
+  (is / are / am …), for believable wrong options.
+- `getSentences({ learningLang, nativeLang })`: every whole sentence in the
+  bank (phrases, example sentences, filled-in gap sentences) as pairs.
+
+Content can change after a release, so look items up by `id` and don't
+hard-code words in a game.
 
 ## 3. Report progress
 

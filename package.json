@@ -6,7 +6,9 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "jest"
+    "test": "jest",
+    "content:check": "node scripts/check-content.mjs",
+    "content:format": "node scripts/check-content.mjs --format"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.4",

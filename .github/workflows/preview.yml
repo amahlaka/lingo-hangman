@@ -84,7 +84,8 @@ jobs:
 
       - name: Upload to the preview server
         env:
-          SSH_HOST: ${{ secrets.PREVIEW_SSH_HOST }}
+          # A variable, not a secret: a secret equal to the domain would mask the preview URL in logs.
+          SSH_HOST: ${{ vars.PREVIEW_SSH_HOST || secrets.PREVIEW_SSH_HOST }}
           SSH_PORT: ${{ secrets.PREVIEW_SSH_PORT || '22' }}
           SSH_USER: ${{ secrets.PREVIEW_SSH_USER }}
           SSH_KEY: ${{ secrets.PREVIEW_SSH_KEY }}

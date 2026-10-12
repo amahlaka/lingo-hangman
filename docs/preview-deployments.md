@@ -47,12 +47,16 @@ Repository → Settings → Secrets and variables → Actions:
 
 | Secret | Value |
 | --- | --- |
-| `PREVIEW_SSH_HOST` | Server host name |
 | `PREVIEW_SSH_PORT` | Only if SSH is not on port 22 |
 | `PREVIEW_SSH_USER` | The deploy user |
 | `PREVIEW_SSH_KEY` | The deploy user's private key |
 | `PREVIEW_SSH_KNOWN_HOSTS` | Output of `ssh-keyscan <host>` |
 
-Optional variable `PREVIEW_DOMAIN` (default `preview.bololoo.com`).
+Variables:
+
+| Variable | Value |
+| --- | --- |
+| `PREVIEW_SSH_HOST` | Server host name. A variable rather than a secret, because a secret equal to the domain makes GitHub mask the preview address in logs and on the environment link. |
+| `PREVIEW_DOMAIN` | Optional, default `preview.bololoo.com` |
 
 Create a label named `preview` for the PR trigger. The workflow creates the `preview` environment on its first run.

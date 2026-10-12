@@ -1,9 +1,11 @@
 import React, { useState } from "react";
+import { sounds } from "../../lib/sounds";
 import { MAX_MISSES } from "./practiceLogic";
 
 // Four options in the learning language for one target word. A miss strikes that option out
-// and lets the learner try again; after MAX_MISSES the answer is shown.
-export default function ChoiceQuestion({ question, learningLang, done, onDone, prompt, tryAnother, label }) {
+// and lets the learner try again; after MAX_MISSES the answer is shown. Once the question is
+// done every option shows its meaning underneath, so the learner links the two languages.
+export default function ChoiceQuestion({ question, learningLang, nativeLang, done, onDone, prompt, tryAnother, label }) {
   const { target, options } = question;
   const [missed, setMissed] = useState([]);
   const [picked, setPicked] = useState(null);
@@ -29,6 +31,8 @@ export default function ChoiceQuestion({ question, learningLang, done, onDone, p
     const nextMissed = [...missed, option];
     setMissed(nextMissed);
     setWobble(option);
+    // The last miss gets the session's "answer shown" sound instead.
+    if (nextMissed.length < MAX_MISSES) sounds.miss();
     if (nextMissed.length >= MAX_MISSES) finish(false, nextMissed.length);
   };
 
@@ -43,9 +47,10 @@ export default function ChoiceQuestion({ question, learningLang, done, onDone, p
     <div className="lg-stack pg-question">
       {prompt}
       <div className="pg-choices" role="group" aria-label={label}>
-        {options.map((option) => {
+        {options.map((option, i) => {
           const state = stateOf(option);
           const text = option.learning;
+          const ariaLabel = done ? `${text}, ${option.native}` : state === "miss" ? `${text}, not this one` : undefined;
           return (
             <button
               key={text}
@@ -56,12 +61,19 @@ export default function ChoiceQuestion({ question, learningLang, done, onDone, p
               }`}
               onClick={() => choose(option)}
               disabled={done || state === "miss"}
-              aria-label={state === "miss" ? `${text}, not this one` : undefined}
+              aria-label={ariaLabel}
             >
               <span className="pg-choice__mark" aria-hidden="true">
                 {state === "right" || state === "shown" ? "✓" : ""}
               </span>
-              <span>{text}</span>
+              <span className="pg-choice__words">
+                <span className="pg-choice__text">{text}</span>
+                {done && (
+                  <span className="pg-choice__native lg-reveal" lang={nativeLang} style={{ "--i": i }}>
+                    {option.native}
+                  </span>
+                )}
+              </span>
             </button>
           );
         })}

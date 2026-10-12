@@ -87,6 +87,9 @@
 .lg-pop { animation: lg-pop .32s cubic-bezier(.3, 1.6, .5, 1) both; animation-delay: calc(var(--i, 0) * 60ms); }
 .lg-tiles--win .lg-tile { animation: lg-wave .5s ease-in-out both; animation-delay: calc(var(--i, 0) * 70ms); }
 .lg-wobble { animation: lg-wobble .3s ease-in-out; }
+/* Meaning reveal: the translation rises in after a word is done, one item after another. */
+@keyframes lg-reveal { from { transform: translateY(6px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+.lg-reveal { animation: lg-reveal .35s ease-out both; animation-delay: calc(.15s + var(--i, 0) * 80ms); }
 .lg-celebrate { position: relative; padding: var(--space-6) var(--space-4); background: var(--surface-raised); border-radius: var(--radius-lg); box-shadow: var(--shadow-raised); overflow: hidden; }
 .lg-confetti { position: absolute; inset: 0; pointer-events: none; }
 .lg-confetti i { position: absolute; left: 50%; top: 45%; width: 8px; height: 12px; border-radius: 2px; background: var(--c); animation: lg-burst 1.3s cubic-bezier(.15, .8, .3, 1) both; animation-delay: var(--d, 0s); }

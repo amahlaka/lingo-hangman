@@ -4,7 +4,8 @@ import { useSettings } from "../../app/SettingsContext";
 import { useProgress } from "../../app/ProgressContext";
 import i18n, { fill } from "../../i18n";
 import { ACHIEVEMENTS } from "../../lib/progress";
-import { DailyProgress, Feedback, GameScreen, ScorePill, useConfetti } from "../../components/lingo";
+import { DailyProgress, Feedback, GameScreen, ScorePill, WordRecap, useConfetti } from "../../components/lingo";
+import { sounds } from "../../lib/sounds";
 import { addResult, emptyTally } from "./practiceLogic";
 
 // The large celebration banner for what this answer unlocked, as in hangman.
@@ -31,10 +32,11 @@ function bannerFor(events, { t, dailyGoal, answer }) {
 // Props:
 //   gameId, title, intro   game identity and its one-line instruction
 //   learningLang           language of the answers, reported with each word
+//   nativeLang             language of the meanings, shown in the end-of-round word list
 //   buildQuestions()       returns this round's questions
 //   renderQuestion({ question, done, onDone })
 //   empty                  message shown when there are too few words
-export default function PracticeSession({ gameId, title, intro, learningLang, buildQuestions, renderQuestion, empty }) {
+export default function PracticeSession({ gameId, title, intro, learningLang, nativeLang, buildQuestions, renderQuestion, empty }) {
   const { t, lang } = useSettings();
   const { recordWord, dailyGoal } = useProgress();
   const { celebrate, confetti } = useConfetti();
@@ -62,7 +64,9 @@ export default function PracticeSession({ gameId, title, intro, learningLang, bu
   }, [current]);
 
   useEffect(() => {
-    if (finished) celebrate("large");
+    if (!finished) return;
+    celebrate("large");
+    sounds.celebrate();
   }, [finished, celebrate]);
 
   const handleDone = (outcome) => {
@@ -80,8 +84,18 @@ export default function PracticeSession({ gameId, title, intro, learningLang, bu
     setTally((s) => addResult(s, { ...outcome, xp: events.xpGained }));
     setResults((r) => [...r, outcome]);
     setPlus({ n: events.xpGained, key: Date.now() });
-    if (outcome.solved) celebrate("medium");
-    if (banner?.big) timer.current = setTimeout(() => celebrate("large"), 250);
+    if (outcome.solved) {
+      celebrate("medium");
+      sounds.correct();
+    } else {
+      sounds.shown();
+    }
+    if (banner?.big) {
+      timer.current = setTimeout(() => {
+        celebrate("large");
+        sounds.celebrate();
+      }, 250);
+    }
   };
 
   const goNext = () => {
@@ -124,6 +138,12 @@ export default function PracticeSession({ gameId, title, intro, learningLang, bu
             <div><dt>{p.endBestRun}</dt><dd>{tally.bestRun}</dd></div>
             <div><dt>{t.pointsLabel}</dt><dd>{tally.xp}</dd></div>
           </dl>
+          <WordRecap
+            title={p.recapTitle}
+            words={results.map((r) => ({ learning: r.answer, native: r.meaning, solved: r.solved }))}
+            learningLang={learningLang}
+            nativeLang={nativeLang}
+          />
           <DailyProgress />
           <button type="button" className="lg-btn lg-btn--primary lg-btn--hero" onClick={restart} autoFocus>
             {p.playAgain}

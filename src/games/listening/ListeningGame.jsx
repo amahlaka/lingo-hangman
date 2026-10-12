@@ -36,7 +36,7 @@ export default function ListeningGame() {
   const { t, lang } = useSettings();
   const p = t.practice;
   const search = params.toString();
-  const { pairs, learningLang } = useMemo(() => {
+  const { pairs, learningLang, nativeLang } = useMemo(() => {
     const pool = practicePool(new URLSearchParams(search));
     return { ...pool, pairs: pool.pairs.filter((w) => wordCount(w.learning) <= MAX_LISTEN_WORDS) };
   }, [search]);
@@ -58,11 +58,13 @@ export default function ListeningGame() {
       title={p.listenName}
       intro={p.listenIntro}
       learningLang={learningLang}
+      nativeLang={nativeLang}
       buildQuestions={() => (pairs.length >= 4 ? buildRound(pairs).map((w) => buildChoiceQuestion(w, pairs)) : [])}
       renderQuestion={({ question, done, onDone }) => (
         <ChoiceQuestion
           question={question}
           learningLang={learningLang}
+          nativeLang={nativeLang}
           done={done}
           onDone={onDone}
           tryAnother={p.tryAnother}

@@ -34,8 +34,11 @@ const NO_MEANING_IN_FEEDBACK = ["grammar", "mixed-up", "sounds"];
 
 // Everything Quick play can ask, one target per word or sentence (by progress
 // word key), each with the games that can ask it:
-//   { key, group, kinds: [{ game, lesson, make(random) -> question | null }] }
+//   { key, group, categories, levels, kinds: [{ game, lesson, make(random) -> question | null }] }
 // `group` is "word", "sentence", "grammar" or "sounds", for variety.
+// `categories` and `levels` come from the word bank items behind the target,
+// so learner settings (focus areas, difficulty) can filter targets; see
+// pickQuickTargets' `include`.
 export function quickTargets({
   pairs = [],
   sentences = [],
@@ -48,10 +51,12 @@ export function quickTargets({
   withSound = true,
 }) {
   const byKey = new Map();
-  const add = (text, group, kind) => {
+  const add = (text, group, kind, source = {}) => {
     const key = wordKey(text, learningLang);
-    if (!byKey.has(key)) byKey.set(key, { key, group, kinds: [] });
+    if (!byKey.has(key)) byKey.set(key, { key, group, categories: [], levels: [], kinds: [] });
     const target = byKey.get(key);
+    for (const c of source.categories || []) if (!target.categories.includes(c)) target.categories.push(c);
+    if (source.level && !target.levels.includes(source.level)) target.levels.push(source.level);
     // Grammar sentences are rarer than plain ones, so grammar names the group.
     // Sounds names it only for words no other game asks (most lesson words
     // are everyday words too).
@@ -63,9 +68,9 @@ export function quickTargets({
   if (pool.length >= 4) {
     for (const pair of pool) {
       const group = wordCount(pair.learning) > 1 ? "sentence" : "word";
-      add(pair.learning, group, { game: "meaning", make: (r) => buildChoiceQuestion(pair, pool, r) });
+      add(pair.learning, group, { game: "meaning", make: (r) => buildChoiceQuestion(pair, pool, r) }, pair);
       if (withSound && wordCount(pair.learning) <= MAX_LISTEN_WORDS) {
-        add(pair.learning, group, { game: "listening", make: (r) => buildChoiceQuestion(pair, pool, r) });
+        add(pair.learning, group, { game: "listening", make: (r) => buildChoiceQuestion(pair, pool, r) }, pair);
       }
     }
   }
@@ -74,19 +79,20 @@ export function quickTargets({
   const onTopic = new Set(gapItems.filter((g) => g.topic).map((g) => g.id));
   const everyday = new Map(gapItems.filter((g) => !g.topic).map((g) => [g.id, g]));
   for (const s of usableWords([...pool.filter((p) => wordCount(p.learning) > 1), ...sentences])) {
-    if (isPhraseCandidate(s)) add(s.learning, "sentence", { game: "phrase", make: (r) => buildPhrasePuzzle(s, r) });
+    if (isPhraseCandidate(s)) add(s.learning, "sentence", { game: "phrase", make: (r) => buildPhrasePuzzle(s, r) }, s);
     if (onTopic.has(s.id)) continue;
     const item = everyday.get(s.id);
-    if (item) add(s.learning, "sentence", { game: "fill-the-gap", make: (r) => gapItemQuestion(item, nativeLang, r) });
+    if (item) add(s.learning, "sentence", { game: "fill-the-gap", make: (r) => gapItemQuestion(item, nativeLang, r) }, item);
     else if (isGapCandidate(s)) {
-      add(s.learning, "sentence", { game: "fill-the-gap", make: (r) => buildGapQuestion(s, pool, r, groups) });
+      add(s.learning, "sentence", { game: "fill-the-gap", make: (r) => buildGapQuestion(s, pool, r, groups) }, s);
     }
   }
 
+  const gapById = new Map(gapItems.map((g) => [g.id, g]));
   const topicGames = [["grammar", topics.rule || []], ["mixed-up", topics.confusable || []]];
   for (const [game, list] of topicGames) {
     for (const q of gapQuestions({ topics: list, gaps: gapItems })) {
-      add(q.sentence, "grammar", { game, lesson: q.setId, make: (r) => ({ ...q, options: shuffle(q.options, r) }) });
+      add(q.sentence, "grammar", { game, lesson: q.setId, make: (r) => ({ ...q, options: shuffle(q.options, r) }) }, gapById.get(q.id));
     }
   }
 
@@ -95,7 +101,7 @@ export function quickTargets({
     for (const q of lessonQuestions(lesson)) {
       // Sound-alike and letter questions draw their options when made, so build them fresh each time.
       const make = (r) => lessonQuestions(lesson, r).find((x) => x.id === q.id) || null;
-      add(q.word.text, "sounds", { game: "sounds", lesson: lesson.id, make });
+      add(q.word.text, "sounds", { game: "sounds", lesson: lesson.id, make }, lesson);
     }
   }
 
@@ -122,7 +128,15 @@ function roundRobin(targets, n, random) {
 }
 
 // Which targets go in the round, and in what role: "easy", "challenge" or "fresh".
-export function pickQuickTargets(targets, state, { count = QUICK_ROUND, quota = QUICK_QUOTA, random = Math.random } = {}) {
+// `include(target)` narrows the round to the learner's settings (focus areas,
+// difficulty); if too few targets pass, the round uses everything.
+export function pickQuickTargets(
+  allTargets,
+  state,
+  { count = QUICK_ROUND, quota = QUICK_QUOTA, random = Math.random, include = null } = {}
+) {
+  const narrowed = include ? allTargets.filter(include) : allTargets;
+  const targets = narrowed.length >= count ? narrowed : allTargets;
   const words = state?.words || {};
   const weakLessons = challengeLessons(state || {});
   const known = [];

@@ -205,3 +205,6 @@ sentences, grammar and sounds, with no two challenges side by side and an easy
 win first and last. Each question is asked by one of the other games
 (`quickTargets` lists which games can ask what) and recorded under that game,
 so a new practice game can join Quick play by adding its questions there.
+Targets carry the `categories` and `levels` of their word bank items, and
+`buildQuickRound(targets, state, { include })` keeps only targets that pass
+`include`, for learner settings such as focus areas and difficulty.

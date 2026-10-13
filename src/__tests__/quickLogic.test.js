@@ -168,6 +168,22 @@ describe("quick play round", () => {
     expect(out.map((x) => x.quick.role)).toEqual(["easy", "fresh", "fresh", "fresh", "fresh", "easy"]);
   });
 
+  it("narrows the round to the learner's settings when enough targets fit", () => {
+    const targets = quickTargets({
+      pairs: filterCommonWords({ learningLang: "en-GB", nativeLang: "fi" }),
+      sentences: getSentences(),
+      gapItems: getGapItems(),
+      lessons: getSoundLessons(),
+    });
+    const counts = {};
+    targets.forEach((t) => t.categories.forEach((c) => (counts[c] = (counts[c] || 0) + 1)));
+    const [top] = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
+    const inTop = (t) => t.categories.includes(top);
+    expect(targets.filter(inTop).length).toBeGreaterThanOrEqual(10);
+    expect(pickQuickTargets(targets, emptyProgress(), { include: inTop }).every((p) => inTop(p.target))).toBe(true);
+    expect(pickQuickTargets(targets, emptyProgress(), { include: () => false })).toHaveLength(10);
+  });
+
   it("summarises easy wins and challenges", () => {
     const r = (role, solved) => ({ solved, question: { quick: { role } } });
     expect(quickSummary([r("easy", true), r("easy", true), r("challenge", false), r("challenge", true), r("fresh", true)])).toEqual({

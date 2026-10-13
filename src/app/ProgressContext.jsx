@@ -10,6 +10,14 @@ import {
   setDailyGoal as setDailyGoalPure,
   streakStatus,
 } from "../lib/progress";
+import {
+  accentVars,
+  buyItem as buyItemPure,
+  equipItem as equipItemPure,
+  equippedValues,
+  shopBalance,
+} from "../lib/cosmetics";
+import { useSettings } from "./SettingsContext";
 
 // Shared progress for every game. See src/lib/progress.js for the rules and
 // src/games/README.md for how a game reports a finished word.
@@ -58,6 +66,35 @@ export function ProgressProvider({ children, storage, gameIds = [] }) {
     setState((s) => setDailyGoalPure(s, goal));
   }, []);
 
+  // Shop: buy an item with points (and put it in use), or switch to an owned
+  // one. buyItem returns { ok, reason } like cosmetics.buyItem.
+  const buyItem = useCallback((id) => {
+    const { state: next, ok, reason } = buyItemPure(stateRef.current, id);
+    if (ok) {
+      stateRef.current = next;
+      setState(next);
+    }
+    return { ok, reason };
+  }, []);
+
+  const equipItem = useCallback((id) => {
+    const next = equipItemPure(stateRef.current, id);
+    stateRef.current = next;
+    setState(next);
+  }, []);
+
+  // The bought accent colour replaces the lake tokens on <html>.
+  const cosmetics = useMemo(() => equippedValues(state), [state]);
+  const { dark } = useSettings();
+  useEffect(() => {
+    const root = document.documentElement;
+    const vars = accentVars(cosmetics.accent, dark);
+    for (const [name, value] of Object.entries(vars)) {
+      if (cosmetics.accent === "lake") root.style.removeProperty(name);
+      else root.style.setProperty(name, value);
+    }
+  }, [cosmetics.accent, dark]);
+
   const value = useMemo(() => {
     const todayStats = dayStats(state, dayKey());
     return {
@@ -71,10 +108,20 @@ export function ProgressProvider({ children, storage, gameIds = [] }) {
       wordStreak,
       recordWord,
       setDailyGoal,
+      points: shopBalance(state),
+      cosmetics,
+      buyItem,
+      equipItem,
     };
-  }, [state, wordStreak, recordWord, setDailyGoal]);
+  }, [state, wordStreak, recordWord, setDailyGoal, cosmetics, buyItem, equipItem]);
 
   return <ProgressContext.Provider value={value}>{children}</ProgressContext.Provider>;
+}
+
+// For shared pieces that also render outside the providers (in tests):
+// the progress, or null.
+export function useOptionalProgress() {
+  return useContext(ProgressContext);
 }
 
 export function useProgress() {

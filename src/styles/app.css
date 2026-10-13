@@ -474,3 +474,40 @@ a { color: var(--lake); }
 .pf-table th[scope="row"], .pf-table th:first-child { text-align: left; }
 .pf-table thead th { font-size: 13px; line-height: 18px; color: var(--ink-muted); font-weight: 700; }
 .pf-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* ---- Shop (cosmetics bought with points) ---- */
+/* Confetti shapes from the shop's sets; `--c` is the piece colour. */
+.lg-confetti i.lg-piece--berry, .sh-preview i.lg-piece--berry { width: 10px; height: 10px; border-radius: var(--radius-pill); background: radial-gradient(circle at 35% 35%, #ffffffaa 0 1.5px, var(--c) 2.5px); }
+.lg-confetti i.lg-piece--flake, .sh-preview i.lg-piece--flake { width: 9px; height: 9px; border-radius: var(--radius-pill); box-shadow: 0 0 0 1px #ffffff99, 0 0 6px var(--c); }
+.lg-confetti i.lg-piece--leaf, .sh-preview i.lg-piece--leaf { width: 13px; height: 9px; border-radius: 0 100% 0 100%; }
+.lg-confetti i.lg-piece--star, .sh-preview i.lg-piece--star { width: 14px; height: 14px; border-radius: 0; clip-path: polygon(50% 0, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%); }
+.lg-confetti i.lg-piece--streak, .sh-preview i.lg-piece--streak { width: 4px; height: 22px; border-radius: var(--radius-pill); opacity: .85; }
+
+.sh-balance { margin: 0; font: 700 18px/24px var(--font-sans); }
+.sh-balance__n { font: 700 40px/44px var(--font-display); color: var(--lake); font-variant-numeric: tabular-nums; }
+.sh-items { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: var(--space-3); }
+.sh-item { display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-3); background: var(--surface-raised); border-radius: var(--radius-lg); box-shadow: var(--shadow-raised); border: 2px solid transparent; }
+.sh-item--on { border-color: var(--lake); }
+.sh-item__name { font: 600 18px/24px var(--font-display); }
+.sh-item__actions { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-top: auto; }
+.sh-item__actions .lg-btn { flex: 1 1 auto; padding: 0 var(--space-3); }
+.sh-inuse { display: inline-flex; align-items: center; min-height: var(--space-12); font: 700 15px/20px var(--font-sans); color: var(--lake); }
+.sh-preview { position: relative; display: flex; align-items: center; justify-content: center; gap: var(--space-2); height: 72px; border-radius: var(--radius-sm); background: var(--surface-sunken); overflow: hidden; }
+.sh-preview--accent { background: var(--lake-soft); }
+.sh-swatch { display: inline-flex; align-items: center; justify-content: center; width: 52px; height: 36px; border-radius: var(--radius-md); background: var(--lake); color: var(--on-lake); font: 700 15px/1 var(--font-sans); }
+.sh-swatch--soft { width: 36px; background: transparent; border: 3px solid var(--lake); }
+.sh-preview--confetti i { position: absolute; width: 8px; height: 12px; border-radius: 2px; background: var(--c); }
+.sh-preview--confetti i.lg-dot { width: 9px; height: 9px; border-radius: var(--radius-pill); }
+.hm-preview { height: 64px; width: auto; }
+.hm-figure--still { stroke-width: 3; }
+.hm-figure--still > * { animation: none; }
+.hm-acc { stroke: var(--ink); stroke-width: 1.5; stroke-linejoin: round; animation: lg-pop .32s cubic-bezier(.3, 1.6, .5, 1) both; transform-box: fill-box; transform-origin: center; }
+.hm-acc--glasses { fill: #ffffff55; stroke-width: 2; }
+.hm-acc--scarf { fill: var(--lingon); }
+.hm-acc--beanie { fill: var(--lake); }
+.hm-acc--beanie .hm-acc__trim { fill: var(--surface-raised); }
+.hm-acc--bowtie { fill: var(--lingon); }
+.hm-acc--crown { fill: var(--cloudberry); stroke: var(--cloudberry-ink); }
+
+.sh-card { flex-direction: row; align-items: center; gap: var(--space-4); }
+.sh-card__icon { flex: none; display: flex; align-items: center; justify-content: center; width: 56px; height: 56px; border-radius: var(--radius-pill); background: var(--cloudberry-soft); color: var(--cloudberry-ink); }

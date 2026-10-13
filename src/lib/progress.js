@@ -18,6 +18,8 @@
 // adapt: how long answers take per game and per lesson, and for each word its
 // misses, answer time and last few results (see `recent` below).
 
+import { emptyShop } from "./cosmetics";
+
 export const XP_PER_LEVEL = 250;
 export const DAILY_GOAL_OPTIONS = [5, 10, 20];
 export const DEFAULT_DAILY_GOAL = 10;
@@ -44,6 +46,8 @@ export function emptyProgress() {
     achievements: {},
     // Answer tallies (see addTally) per game id and per "gameId:lesson".
     stats: { games: {}, lessons: {} },
+    // Cosmetics bought with points: { spent, owned, equipped }, see cosmetics.js.
+    shop: emptyShop(),
   };
 }
 
@@ -378,6 +382,7 @@ export function loadProgress(storage = globalThis.localStorage) {
       streak: { ...base.streak, ...parsed.streak },
       totals: { ...base.totals, ...parsed.totals },
       stats: { ...base.stats, ...parsed.stats },
+      shop: { ...base.shop, ...parsed.shop, equipped: { ...base.shop.equipped, ...parsed.shop?.equipped } },
     };
   } catch {
     return emptyProgress();

@@ -32,3 +32,20 @@ describe("word sets", () => {
     expect(pickCommonWords({ count: 3 })).toHaveLength(3);
   });
 });
+
+describe("texts", () => {
+  const { getTexts, getSentences } = require("../lib/words");
+
+  it("lists text items, filtered by kind", () => {
+    const dialogues = getTexts({ kind: "dialogue" });
+    expect(dialogues.length).toBeGreaterThan(0);
+    dialogues.forEach((t) => t.sentences.forEach((s) => expect(s.speaker).toBeTruthy()));
+    expect(getTexts().length).toBeGreaterThanOrEqual(dialogues.length);
+  });
+
+  it("offers the sentences of texts as sentence material", () => {
+    const [text] = getTexts();
+    const ids = getSentences().map((s) => s.id);
+    expect(ids.some((id) => id.startsWith(`${text.id}#`))).toBe(true);
+  });
+});

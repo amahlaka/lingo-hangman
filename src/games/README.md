@@ -55,7 +55,18 @@ README; `npm run content:pull` downloads it). Besides word pairs it has:
   more than one sound, letter names), each a rule in English and Finnish and
   its words, with `[ ]` around the letters the rule is about (`[k]nife`).
 - `getSentences({ learningLang, nativeLang })`: every whole sentence in the
-  bank (phrases, example sentences, filled-in gap sentences) as pairs.
+  bank (phrases, example sentences, sentences of texts, filled-in gap
+  sentences) as pairs.
+- `getTexts({ kind })`: short texts (dialogues, stories, messages, emails,
+  notices, instructions, descriptions) as `sentences` in English and Finnish,
+  dialogue lines with a `speaker`, plus optional comprehension `questions`.
+  Meant for reading and listening games.
+
+Items can also carry metadata for choosing what to practise: `level` (1-3),
+`features` (what they show about English: `th-sound`, `present-perfect`…),
+`contexts` (`shopping`, `work`…), `register`, and on words `ipa` and `pos`.
+The allowed values are in `src/lib/contentSchema.js`; how to fill them in is
+in the wordbase's AUTHORING.md.
 
 Content can change after a release, so look items up by `id` and don't
 hard-code words in a game.

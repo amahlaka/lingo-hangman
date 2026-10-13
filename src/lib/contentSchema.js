@@ -3,7 +3,51 @@
 // while editing) and `npm run content:check`. No imports, so Node runs it as is.
 // The lingo-wordbase README describes the format for people editing it.
 
-export const ITEM_TYPES = ["word", "gap", "rule", "confusable", "group", "sound"];
+export const ITEM_TYPES = ["word", "gap", "rule", "confusable", "group", "sound", "text"];
+
+// ---- Metadata, all optional (the lingo-wordbase AUTHORING.md explains each) ----
+
+// Part of speech of a `word` item. Multi-word entries are "phrase" (a chunk
+// like "next stop") or "sentence" (a whole sentence or question).
+export const PARTS_OF_SPEECH = [
+  "noun", "verb", "adjective", "adverb", "pronoun", "preposition", "conjunction",
+  "determiner", "number", "interjection", "phrase", "sentence",
+];
+
+// Features of English an item shows, so games and statistics can pick or
+// group items by them. Weighted towards what is hard for Finnish speakers.
+export const FEATURES = [
+  // Pronunciation
+  "th-sound", "w-v-sound", "z-sound", "sh-ch-j-sound", "voiced-consonant", "silent-letter",
+  "schwa", "vowel-length", "diphthong", "word-stress", "linking", "weak-form",
+  // Spelling
+  "irregular-spelling", "double-letter", "uk-us-spelling", "homophone",
+  // Grammar
+  "article", "uncountable", "irregular-plural", "pronoun-gender", "possessive",
+  "preposition-time", "preposition-place", "phrasal-verb", "irregular-verb", "third-person-s",
+  "present-simple", "present-continuous", "past-simple", "present-perfect", "future",
+  "modal-verb", "question-form", "negative", "do-support", "contraction", "there-is",
+  "imperative", "comparative", "superlative", "conditional", "passive", "gerund-infinitive",
+  "word-order", "quantity",
+  // Vocabulary and use
+  "false-friend", "confusable", "collocation", "idiom", "compound", "polite-form",
+  "uk-us-word", "cognate",
+];
+
+// Situations where an item is used.
+export const CONTEXTS = [
+  "home", "work", "study", "shopping", "eating-out", "travel", "transport", "hotel",
+  "health", "emergency", "social", "small-talk", "family", "phone", "online", "money",
+  "services", "sport", "nature", "weather", "culture",
+];
+
+export const REGISTERS = ["neutral", "formal", "informal"];
+
+// Multi-sentence `text` items.
+export const TEXT_KINDS = ["dialogue", "story", "message", "email", "notice", "instructions", "description"];
+
+// IPA between slashes: "/ˈkɪtʃɪn/".
+const IPA_PATTERN = /^\/[^/]+\/$/;
 
 // Pronunciation lessons ("sound" items) come in three kinds:
 //   silent   words with a letter you don't say: "[k]nife"
@@ -78,6 +122,7 @@ const CHECKS = {
       problems.push('time must be a list of clock times like "09:00"');
     }
     checkExamples(item.examples, problems);
+    checkTextMap(item.note, "note", problems, { required: false });
   },
 
   gap(item, problems, ctx) {
@@ -182,9 +227,74 @@ const CHECKS = {
       checkTextMap(w.meaning, `${name}.meaning`, problems, { required: false });
       checkTextMap(w.note, `${name}.note`, problems, { required: false });
       if (w.speak !== undefined && !isText(w.speak)) problems.push(`${name}.speak is empty`);
+      if (w.ipa !== undefined && !(typeof w.ipa === "string" && IPA_PATTERN.test(w.ipa))) {
+        problems.push(`${name}.ipa must be written between slashes, like /naɪf/`);
+      }
     });
   },
+
+  // Several sentences that belong together: a dialogue, a short story, a
+  // message. Each sentence in English, usually with Finnish; dialogue lines
+  // name their speaker. `questions` (optional) test understanding.
+  text(item, problems) {
+    checkTextMap(item.title, "title", problems, { mustHave: ["en"] });
+    if (!TEXT_KINDS.includes(item.kind)) problems.push(`kind must be one of ${TEXT_KINDS.join(", ")}`);
+    if (!Array.isArray(item.sentences) || item.sentences.length < 2) {
+      problems.push("sentences needs at least two sentences");
+    } else {
+      item.sentences.forEach((line, i) => {
+        const name = `sentences[${i + 1}]`;
+        if (!isObject(line)) return problems.push(`${name} must be like { "en": "...", "fi": "..." }`);
+        const { speaker, ...text } = line;
+        checkTextMap(text, name, problems, { mustHave: ["en"] });
+        if (item.kind === "dialogue" && !isText(speaker)) problems.push(`${name}.speaker is missing (dialogue lines name who speaks)`);
+        if (speaker !== undefined && !isText(speaker)) problems.push(`${name}.speaker is empty`);
+      });
+    }
+    if (item.questions !== undefined) {
+      if (!Array.isArray(item.questions)) problems.push("questions must be a list");
+      else {
+        item.questions.forEach((q, i) => {
+          const name = `questions[${i + 1}]`;
+          if (!isObject(q)) return problems.push(`${name} must be an object`);
+          checkTextMap(q.question, `${name}.question`, problems, { mustHave: ["en"] });
+          const answersOk = checkWordList(q.answers, `${name}.answers`, problems);
+          const distractorsOk = checkWordList(q.distractors, `${name}.distractors`, problems);
+          if (answersOk && distractorsOk) {
+            const answers = new Set(q.answers.map(norm));
+            if (q.distractors.some((d) => answers.has(norm(d)))) problems.push(`${name}: an answer is also a wrong option`);
+          }
+        });
+      }
+    }
+    checkTextMap(item.note, "note", problems, { required: false });
+  },
 };
+
+function checkList(value, name, allowed, problems) {
+  if (value === undefined) return;
+  if (!Array.isArray(value) || !value.every((v) => allowed.includes(v))) {
+    problems.push(`${name} must be a list of: ${allowed.join(", ")}`);
+  } else if (new Set(value).size !== value.length) {
+    problems.push(`${name} lists something twice`);
+  }
+}
+
+// The optional metadata any item may carry.
+function checkMetadata(item, problems) {
+  if (item.ipa !== undefined) {
+    if (!isObject(item.ipa) || !Object.keys(item.ipa).length) problems.push('ipa must be like { "en-GB": "/ˈwɔːtə/" }');
+    else {
+      for (const [lang, v] of Object.entries(item.ipa)) {
+        if (!(typeof v === "string" && IPA_PATTERN.test(v))) problems.push(`ipa.${lang} must be written between slashes, like /ˈwɔːtə/`);
+      }
+    }
+  }
+  if (item.pos !== undefined && !PARTS_OF_SPEECH.includes(item.pos)) problems.push(`pos must be one of ${PARTS_OF_SPEECH.join(", ")}`);
+  checkList(item.features, "features", FEATURES, problems);
+  checkList(item.contexts, "contexts", CONTEXTS, problems);
+  if (item.register !== undefined && !REGISTERS.includes(item.register)) problems.push(`register must be one of ${REGISTERS.join(", ")}`);
+}
 
 // Problems with one item, as short sentences. Empty when the item is fine.
 // ctx (optional): { languageCodes: Set, topicIds: Set } from the rest of the content.
@@ -206,6 +316,7 @@ export function validateItem(item, ctx = {}) {
   if (item.level !== undefined && ![1, 2, 3].includes(item.level)) {
     problems.push("level must be 1, 2 or 3");
   }
+  checkMetadata(item, problems);
   CHECKS[item.type](item, problems, ctx);
   return problems;
 }

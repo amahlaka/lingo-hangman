@@ -1,5 +1,6 @@
 import React from "react";
 import { Plus, X } from "lucide-react";
+import { CONTEXTS, FEATURES, PARTS_OF_SPEECH, REGISTERS, TEXT_KINDS } from "../lib/contentSchema";
 
 // Form for one word bank item. Edits go straight to onChange(newItem); empty
 // optional fields are dropped when the files are written (see tidyItem).
@@ -208,6 +209,83 @@ function SoundLesson({ item, set }) {
   );
 }
 
+// IPA, part of speech, features, contexts and register: optional metadata for
+// games and statistics. The lingo-wordbase AUTHORING.md explains each.
+function Metadata({ item, set }) {
+  const choose = (key, options, label) => (
+    <Field label={label}>
+      <select className="lg-input" value={item[key] ?? ""} onChange={(e) => set({ [key]: e.target.value || undefined })}>
+        <option value="">Not set</option>
+        {options.map((o) => <option key={o} value={o}>{o}</option>)}
+      </select>
+    </Field>
+  );
+  return (
+    <fieldset className="wb-fieldset">
+      <legend>Details for games and statistics (optional)</legend>
+      <div className="wb-grid">
+        {item.type === "word" && (
+          <Field label="IPA, British" hint="Between slashes, like /ˈwɔːtə/.">
+            <TextInput value={item.ipa?.["en-GB"]} onChange={(v) => set({ ipa: { ...item.ipa, "en-GB": v } })} spellCheck={false} />
+          </Field>
+        )}
+        {item.type === "word" && choose("pos", PARTS_OF_SPEECH, "Part of speech")}
+        {choose("register", REGISTERS, "Register")}
+        <Field label="Features of English" hint={`Comma separated. One of: ${FEATURES.join(", ")}`}>
+          <ListInput value={item.features} onChange={(features) => set({ features })} spellCheck={false} />
+        </Field>
+        <Field label="Contexts" hint={`Comma separated. One of: ${CONTEXTS.join(", ")}`}>
+          <ListInput value={item.contexts} onChange={(contexts) => set({ contexts })} spellCheck={false} />
+        </Field>
+      </div>
+    </fieldset>
+  );
+}
+
+function TextItem({ item, set }) {
+  return (
+    <>
+      <TextMap label="Title" value={item.title} langs={EN_FI} onChange={(title) => set({ title })} />
+      <Field label="Kind">
+        <select className="lg-input" value={item.kind ?? ""} onChange={(e) => set({ kind: e.target.value })}>
+          {TEXT_KINDS.map((k) => <option key={k} value={k}>{k}</option>)}
+        </select>
+      </Field>
+      <Rows
+        label="Sentences, in order"
+        addLabel="Add sentence"
+        rows={item.sentences}
+        blank={() => ({ en: "", fi: "", ...(item.kind === "dialogue" ? { speaker: "" } : {}) })}
+        onChange={(sentences) => set({ sentences })}
+        render={(line, change) => (
+          <>
+            {item.kind === "dialogue" && (
+              <Field label="Speaker"><TextInput value={line.speaker} onChange={(speaker) => change({ ...line, speaker })} /></Field>
+            )}
+            <Field label="English"><TextInput value={line.en} onChange={(en) => change({ ...line, en })} /></Field>
+            <Field label="Finnish"><TextInput value={line.fi} onChange={(fi) => change({ ...line, fi })} /></Field>
+          </>
+        )}
+      />
+      <Rows
+        label="Questions about the text (optional)"
+        addLabel="Add question"
+        rows={item.questions}
+        blank={() => ({ question: { en: "", fi: "" }, answers: [], distractors: [] })}
+        onChange={(questions) => set({ questions })}
+        render={(q, change) => (
+          <>
+            <Field label="Question in English"><TextInput value={q.question?.en} onChange={(en) => change({ ...q, question: { ...q.question, en } })} /></Field>
+            <Field label="Question in Finnish"><TextInput value={q.question?.fi} onChange={(fi) => change({ ...q, question: { ...q.question, fi } })} /></Field>
+            <Field label="Right answers" hint="Comma separated."><ListInput value={q.answers} onChange={(answers) => change({ ...q, answers })} /></Field>
+            <Field label="Wrong options" hint="Comma separated."><ListInput value={q.distractors} onChange={(distractors) => change({ ...q, distractors })} /></Field>
+          </>
+        )}
+      />
+    </>
+  );
+}
+
 export default function ItemForm({ item, onChange, languages, topics, categories }) {
   const set = (patch) => onChange({ ...item, ...patch });
   const languageLabels = Object.fromEntries(languages.map((l) => [l.code, `${l.label} (${l.code})`]));
@@ -227,7 +305,7 @@ export default function ItemForm({ item, onChange, languages, topics, categories
           </select>
         </Field>
       )}
-      {(item.type === "word" || item.type === "gap") && (
+      {(item.type === "word" || item.type === "gap" || item.type === "text") && (
         <Field label="Categories" hint={`Comma separated. In use: ${categories.join(", ")}`}>
           <ListInput value={item.categories} onChange={(c) => set({ categories: c.map((x) => x.toLowerCase().replace(/\s+/g, "-")) })} />
         </Field>
@@ -318,6 +396,10 @@ export default function ItemForm({ item, onChange, languages, topics, categories
           </Field>
         </>
       )}
+
+      {item.type === "text" && <TextItem item={item} set={set} />}
+
+      {(item.type === "word" || item.type === "gap" || item.type === "text") && <Metadata item={item} set={set} />}
     </div>
   );
 }

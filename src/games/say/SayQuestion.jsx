@@ -3,7 +3,7 @@ import { Mic, Volume2 } from "lucide-react";
 import { TriesMeter } from "../../components/lingo";
 import { fill } from "../../i18n";
 import { sounds } from "../../lib/sounds";
-import { isBlockingError, listenOnce } from "../../lib/speechRecognition";
+import { isBlockingError, isOnDeviceFailure, listenOnce } from "../../lib/speechRecognition";
 import { RATE_SLOW, speak, stopSpeaking } from "../../lib/speech";
 import { MAX_SAY_TRIES, checkSaid } from "./sayLogic";
 
@@ -44,7 +44,7 @@ function HeardLine({ result, done, p }) {
 // One word to say. In "mic" mode the browser listens and checks it; in "self"
 // mode (no speech recognition, or no microphone) the learner checks themselves.
 export default function SayQuestion({
-  word, learningLang, nativeLang, done, onDone, p, mode, selfNote, privacy, prepareOnDevice, onBlocked,
+  word, learningLang, nativeLang, done, onDone, p, mode, selfNote, privacy, prepareOnDevice, onBlocked, onOnDeviceFailed,
 }) {
   const [misses, setMisses] = useState(0);
   const [state, setState] = useState("idle"); // idle | preparing | listening
@@ -91,10 +91,19 @@ export default function SayQuestion({
     }
     setResult(null);
     setState("listening");
-    const s = listenOnce({ lang: learningLang, onDevice });
+    let s = listenOnce({ lang: learningLang, onDevice });
     session.current = s;
-    const { alternatives, error } = await s.done;
+    let { alternatives, error } = await s.done;
     if (!alive.current || session.current !== s) return;
+    // The browser said it could listen on the device but then couldn't: carry
+    // on with its online service, for this tap and the rest of the round.
+    if (onDevice && !alternatives.length && isOnDeviceFailure(error)) {
+      onOnDeviceFailed?.(error);
+      s = listenOnce({ lang: learningLang, onDevice: false });
+      session.current = s;
+      ({ alternatives, error } = await s.done);
+      if (!alive.current || session.current !== s) return;
+    }
     session.current = null;
     setState("idle");
     if (!alternatives.length) {

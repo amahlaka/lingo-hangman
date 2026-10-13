@@ -111,4 +111,22 @@ describe('Say it', () => {
     await tapMic();
     expect(made[0].processLocally).toBe(true);
   });
+
+  it('falls back to online recognition when on-device recognition fails', async () => {
+    const script = [{ error: 'language-not-supported' }];
+    const made = fakeRecognition(script);
+    window.SpeechRecognition.available = async () => 'available';
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    renderApp(link);
+    await act(async () => {});
+    const said = prompt();
+    script.push({ said: [said] });
+    await tapMic();
+    await act(async () => {});
+    expect(made).toHaveLength(2);
+    expect(made[1].processLocally).toBeUndefined();
+    expect(screen.getByText(`Nicely said: "${said}".`)).toBeInTheDocument();
+    expect(screen.getByText(/online service/)).toBeInTheDocument();
+    warn.mockRestore();
+  });
 });

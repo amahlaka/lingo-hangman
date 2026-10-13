@@ -61,6 +61,14 @@ export default function SayGame() {
     return Promise.race([install.current, timeout]);
   }, [learningLang]);
 
+  // On-device recognition failed although the browser offered it: use the
+  // online service from now on (Arttu's rule: on-device when it works, else online).
+  const onDeviceFailed = useCallback((error) => {
+    if (typeof console !== "undefined") console.warn(`On-device speech recognition failed (${error}); using the browser's online service.`);
+    install.current = Promise.resolve(false);
+    setPrivacy("online");
+  }, []);
+
   const selfNote =
     selfReason === "unsupported"
       ? p.saySelfUnsupported
@@ -93,6 +101,7 @@ export default function SayGame() {
           privacy={privacy}
           prepareOnDevice={prepareOnDevice}
           onBlocked={setSelfReason}
+          onOnDeviceFailed={onDeviceFailed}
         />
       )}
     />

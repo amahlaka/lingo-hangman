@@ -1,7 +1,6 @@
 import React, { useMemo, useRef } from "react";
 import { useSettings } from "../../app/SettingsContext";
 import { useProgress } from "../../app/ProgressContext";
-import i18n, { fill } from "../../i18n";
 import {
   DEFAULT_LEARNING_LANG,
   DEFAULT_NATIVE_LANG,
@@ -20,7 +19,7 @@ import { PhraseQuestion } from "../phrase/PhraseGame";
 import { GapQuestion as FillGapQuestion } from "../fill-gap/FillGapGame";
 import GapQuestion from "../gap/GapQuestion";
 import SoundQuestion from "../sounds/SoundQuestion";
-import { buildQuickRound, preferenceFilter, quickSummary, quickTargets } from "./quickLogic";
+import { buildQuickRound, preferenceFilter, quickTargets } from "./quickLogic";
 
 const learningLang = DEFAULT_LEARNING_LANG;
 const nativeLang = DEFAULT_NATIVE_LANG;
@@ -39,16 +38,14 @@ function gameText(game, t) {
   }[game];
 }
 
-// Which game this question comes from, what to do, and whether it is an easy
-// win or a challenge.
+// Which game this question comes from and what to do. Whether it is an easy
+// win or a challenge stays behind the scenes.
 function QuestionHeader({ question, t }) {
   const [name, intro] = gameText(question.quick.game, t);
-  const { role } = question.quick;
   return (
     <div className="qp-head">
       <div className="qp-head__row">
         <span className="lg-caption qp-head__game">{name}</span>
-        {role !== "fresh" && <span className={`qp-tag qp-tag--${role}`}>{t.quick[role]}</span>}
       </div>
       <p className="qp-head__intro">{intro}</p>
     </div>
@@ -119,24 +116,6 @@ function QuickQuestion({ question, done, onDone, t, lang }) {
   );
 }
 
-// Easy wins and challenges on the end screen. A missed challenge isn't
-// counted against anyone: it just comes back in a later round.
-function QuickEndNote({ results, t, lang }) {
-  const { easy, challenge } = quickSummary(results);
-  if (!easy.total && !challenge.total) return null;
-  const q = t.quick;
-  return (
-    <div className="qp-end" data-testid="quick-summary">
-      {easy.total > 0 && <p className="qp-end__line">{fill(q.easyResult, { n: easy.solved, total: easy.total })}</p>}
-      {challenge.total > 0 && (
-        <p className="qp-end__line">{fill(q.challengeResult, { n: challenge.solved, total: challenge.total })}</p>
-      )}
-      {challenge.total > 0 && <p className="lg-caption">{q.challengeNote}</p>}
-      {lang === "en" && challenge.total > 0 && <p className="lg-caption" lang="fi">{i18n.fi.quick.challengeNote}</p>}
-    </div>
-  );
-}
-
 // Quick play (/quick): one round mixing questions from the other games, picked
 // from the learner's own answer statistics. See quickLogic.js.
 export default function QuickPlay() {
@@ -176,7 +155,6 @@ export default function QuickPlay() {
       renderQuestion={({ question, done, onDone }) => (
         <QuickQuestion question={question} done={done} onDone={onDone} t={t} lang={lang} />
       )}
-      endNote={(results) => <QuickEndNote results={results} t={t} lang={lang} />}
     />
   );
 }

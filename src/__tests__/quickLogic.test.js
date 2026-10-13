@@ -4,7 +4,6 @@ import {
   buildQuickRound,
   orderRound,
   pickQuickTargets,
-  quickSummary,
   preferenceFilter,
   quickTargets,
   separateGames,
@@ -203,13 +202,5 @@ describe("quick play round", () => {
     const easy = targets.filter(preferenceFilter(targets, { focus: [], difficulty: "easy" }));
     expect(easy.length).toBeLessThan(targets.length);
     expect(targets.filter(preferenceFilter(targets, { focus: [], difficulty: "any" }))).toHaveLength(targets.length);
-  });
-
-  it("summarises easy wins and challenges", () => {
-    const r = (role, solved) => ({ solved, question: { quick: { role } } });
-    expect(quickSummary([r("easy", true), r("easy", true), r("challenge", false), r("challenge", true), r("fresh", true)])).toEqual({
-      easy: { total: 2, solved: 2 },
-      challenge: { total: 2, solved: 1 },
-    });
   });
 });

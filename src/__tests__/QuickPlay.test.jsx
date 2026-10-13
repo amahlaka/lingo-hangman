@@ -23,7 +23,7 @@ describe("Quick play", () => {
       state = recordWord(state, { gameId: "meaning", word: w.learning, lang: "en-GB", solved: false, ms: 9000 }).state;
     }
     renderApp("/quick", { storage: saved(state) });
-    expect(screen.getByText("Easy win")).toBeInTheDocument();
+    expect(screen.queryByText(/easy win|challenge/i)).not.toBeInTheDocument();
     expect(screen.getByText(/A mix of games/)).toBeInTheDocument();
   });
 

@@ -426,11 +426,6 @@ a { color: var(--lake); }
 .qp-head__row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2); }
 .qp-head__game { font-weight: 700; }
 .qp-head__intro { margin: 0; }
-.qp-tag { display: inline-flex; align-items: center; min-height: 28px; padding: 0 var(--space-3); border-radius: var(--radius-pill); font: 700 13px/18px var(--font-sans); }
-.qp-tag--easy { background: var(--pine-soft); color: var(--pine); }
-.qp-tag--challenge { background: var(--lingon-soft); color: var(--lingon); }
-.qp-end { width: 100%; box-sizing: border-box; display: flex; flex-direction: column; gap: var(--space-1); padding: var(--space-3) var(--space-4); background: var(--surface-raised); border-radius: var(--radius-md); }
-.qp-end__line { margin: 0; font-weight: 700; }
 .pg-stats dd.qp-stats__name { font-size: 18px; line-height: 24px; }
 
 /* ---- Profile (/profile) ---- */

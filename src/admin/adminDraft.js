@@ -37,6 +37,7 @@ export function itemLabel(item) {
     case "rule": return item.title?.en || item.id;
     case "confusable": return item.title?.en || (item.words || []).map((w) => w.text).filter(Boolean).join(" / ") || item.id;
     case "group": return item.title?.en || item.id;
+    case "sound": return item.title?.en || item.id;
     default: return item.id;
   }
 }
@@ -47,6 +48,7 @@ export const TYPE_NAMES = {
   rule: "Grammar rule",
   confusable: "Mixed-up words",
   group: "Word group",
+  sound: "Pronunciation lesson",
 };
 
 // A new item of `type` with an id that isn't taken yet.
@@ -60,6 +62,7 @@ export function blankItem(type, takenIds) {
     case "rule": return { id, type, title: { en: "", fi: "" }, explanation: { en: "", fi: "" }, examples: [] };
     case "confusable": return { id, type, words: [{ text: "", meaning: { fi: "" } }, { text: "", meaning: { fi: "" } }], explanation: { en: "", fi: "" } };
     case "group": return { id, type, title: { en: "", fi: "" }, words: [] };
+    case "sound": return { id, type, kind: "silent", title: { en: "", fi: "" }, explanation: { en: "", fi: "" }, words: [{ text: "", say: { fi: "" }, meaning: { fi: "" } }] };
     default: return { id, type };
   }
 }
@@ -102,6 +105,20 @@ export function tidyItem(item) {
       dropIfEmpty(word, "note");
       return word;
     });
+  }
+  if (out.type === "sound") {
+    if (Array.isArray(out.words)) {
+      out.words = out.words.map((w) => {
+        const word = { ...w, say: tidyMap(w.say), meaning: tidyMap(w.meaning), note: tidyMap(w.note) };
+        for (const key of ["say", "meaning", "note"]) dropIfEmpty(word, key);
+        if (out.kind !== "sound") delete word.sound;
+        if (out.kind !== "pairs") delete word.pair;
+        if (typeof word.speak === "string" && !word.speak.trim()) delete word.speak;
+        return word;
+      });
+    }
+    if (out.kind !== "sound") delete out.sounds;
+    else if (Array.isArray(out.sounds)) out.sounds = out.sounds.map((s) => ({ ...s, label: tidyMap(s.label) }));
   }
   if (Array.isArray(out.categories) && out.categories.length === 0) delete out.categories;
   if (out.topic === "") delete out.topic;

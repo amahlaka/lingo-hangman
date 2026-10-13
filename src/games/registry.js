@@ -8,6 +8,7 @@ import ListeningGame from "./listening/ListeningGame";
 import WordPairsGame from "./word-pairs/WordPairsGame";
 import FillGapGame from "./fill-gap/FillGapGame";
 import { GrammarGame, MixedUpGame } from "./gap/GapGames";
+import SoundsGame from "./sounds/SoundsGame";
 
 export const GAMES = [
   {
@@ -79,6 +80,17 @@ export const GAMES = [
     skill: "Vocabulary",
     path: "/mixed-up",
     routes: [{ path: "/mixed-up", Component: MixedUpGame }],
+  },
+  {
+    id: "sounds",
+    name: "Sounds of English",
+    nameFi: "Englannin äänteet",
+    description: "Silent letters, tricky letters and letter names: hear the rule, then practise.",
+    art: "knife · naif",
+    minutes: 4,
+    skill: "Pronunciation",
+    path: "/sounds",
+    routes: [{ path: "/sounds", Component: SoundsGame }],
   },
   {
     id: "word-pairs",

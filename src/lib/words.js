@@ -171,7 +171,7 @@ export function categoryLabels(uiLang = "en") {
   return Object.fromEntries(ALL_CATEGORIES.map((c) => [c, categoryLabel(c, uiLang)]));
 }
 
-// Every item of one type from the word bank: "word", "gap", "rule" or "confusable".
+// Every item of one type from the word bank: "word", "gap", "rule", "confusable", "group" or "sound".
 export function getItems({ type } = {}) {
   const { items } = getContent();
   return type ? items.filter((i) => i.type === type) : items;
@@ -206,6 +206,14 @@ export function getItem(id) {
 }
 
 export const getTopic = getItem;
+
+// Pronunciation lessons ("sound" items), in word bank order: `{ id, kind,
+// title, explanation, words: [{ text, say, meaning, sound, note, speak }],
+// sounds, level }`. `kind` is "silent", "sound" or "letters"; in `text`,
+// square brackets mark the letters the lesson is about ("[k]nife").
+export function getSoundLessons() {
+  return getItems({ type: "sound" });
+}
 
 // Sets of small words that are easy to mix up (is / are / am …), as arrays of
 // words, for picking believable wrong options.

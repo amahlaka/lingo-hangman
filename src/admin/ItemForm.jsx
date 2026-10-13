@@ -115,6 +115,99 @@ function Examples({ item, set }) {
   );
 }
 
+const SOUND_KIND_HINTS = {
+  silent: "Silent letters: learners tap the letter they don't hear.",
+  sound: "Tricky letters: learners pick which sound the marked letters make.",
+  pairs: "Sound-alike words: learners hear a word and pick it or its pair.",
+  letters: "Letter names: learners hear a letter and pick it.",
+};
+
+// A pronunciation lesson: the rule, then the words that show it.
+function SoundLesson({ item, set }) {
+  const kind = item.kind;
+  const sounds = item.sounds || [];
+  return (
+    <>
+      <Field label="Kind" hint={SOUND_KIND_HINTS[kind]}>
+        <select
+          className="lg-input"
+          value={kind ?? ""}
+          onChange={(e) => {
+            const next = e.target.value;
+            set({ kind: next, sounds: next === "sound" ? (sounds.length ? sounds : [{ id: "", label: { en: "", fi: "" } }, { id: "", label: { en: "", fi: "" } }]) : undefined });
+          }}
+        >
+          <option value="silent">Silent letters</option>
+          <option value="sound">Tricky letters (more than one sound)</option>
+          <option value="pairs">Sound-alike words (ship / sheep)</option>
+          <option value="letters">Letter names</option>
+        </select>
+      </Field>
+      <TextMap label="Title" value={item.title} langs={EN_FI} onChange={(title) => set({ title })} />
+      <TextMap label="The rule" value={item.explanation} langs={EN_FI} multiline onChange={(explanation) => set({ explanation })} />
+      {kind === "sound" && (
+        <Rows
+          label="Sounds to choose from"
+          addLabel="Add sound"
+          rows={sounds}
+          blank={() => ({ id: "", label: { en: "", fi: "" } })}
+          onChange={(next) => set({ sounds: next })}
+          render={(s, change) => (
+            <>
+              <Field label="Short id" hint='Like "s" or "k". Words point at it.'>
+                <TextInput value={s.id} onChange={(id) => change({ ...s, id: id.trim() })} spellCheck={false} />
+              </Field>
+              <Field label="English"><TextInput value={s.label?.en} onChange={(en) => change({ ...s, label: { ...s.label, en } })} /></Field>
+              <Field label="Finnish"><TextInput value={s.label?.fi} onChange={(fi) => change({ ...s, label: { ...s.label, fi } })} /></Field>
+            </>
+          )}
+        />
+      )}
+      <Rows
+        label="Words"
+        addLabel="Add word"
+        rows={item.words}
+        blank={() => ({ text: "", say: { fi: "" }, meaning: { fi: "" } })}
+        onChange={(words) => set({ words })}
+        render={(w, change) => (
+          <>
+            <Field
+              label={kind === "letters" ? "Letter" : "Word"}
+              hint={kind === "silent" ? "Put [ ] around the silent letters: [k]nife" : kind === "sound" ? "Put [ ] around the letters that make the sound: [c]ity" : undefined}
+            >
+              <TextInput value={w.text} onChange={(text) => change({ ...w, text })} spellCheck={false} />
+            </Field>
+            <Field label="Read the Finnish way" hint="How a Finn would write the sound, like naif.">
+              <TextInput value={w.say?.fi} onChange={(fi) => change({ ...w, say: { ...w.say, fi } })} />
+            </Field>
+            {kind !== "letters" && (
+              <Field label="Meaning in Finnish"><TextInput value={w.meaning?.fi} onChange={(fi) => change({ ...w, meaning: { ...w.meaning, fi } })} /></Field>
+            )}
+            {kind === "pairs" && (
+              <Field label="Sounds like" hint="Another word in this lesson.">
+                <TextInput value={w.pair} onChange={(pair) => change({ ...w, pair })} spellCheck={false} />
+              </Field>
+            )}
+            {kind === "sound" && (
+              <Field label="Sound">
+                <select className="lg-input" value={w.sound ?? ""} onChange={(e) => change({ ...w, sound: e.target.value || undefined })}>
+                  <option value="">Choose</option>
+                  {sounds.filter((s) => s.id).map((s) => <option key={s.id} value={s.id}>{s.label?.en || s.id}</option>)}
+                </select>
+              </Field>
+            )}
+            <Field label="Note in English (optional)"><TextInput value={w.note?.en} onChange={(en) => change({ ...w, note: { ...w.note, en } })} /></Field>
+            <Field label="Note in Finnish (optional)"><TextInput value={w.note?.fi} onChange={(fi) => change({ ...w, note: { ...w.note, fi } })} /></Field>
+            <Field label="Read aloud as (optional)" hint="Only if the voice says the word wrong.">
+              <TextInput value={w.speak} onChange={(speak) => change({ ...w, speak })} />
+            </Field>
+          </>
+        )}
+      />
+    </>
+  );
+}
+
 export default function ItemForm({ item, onChange, languages, topics, categories }) {
   const set = (patch) => onChange({ ...item, ...patch });
   const languageLabels = Object.fromEntries(languages.map((l) => [l.code, `${l.label} (${l.code})`]));
@@ -214,6 +307,8 @@ export default function ItemForm({ item, onChange, languages, topics, categories
           <TextMap label="How to tell them apart" value={item.explanation} langs={EN_FI} multiline onChange={(explanation) => set({ explanation })} />
         </>
       )}
+
+      {item.type === "sound" && <SoundLesson item={item} set={set} />}
 
       {item.type === "group" && (
         <>

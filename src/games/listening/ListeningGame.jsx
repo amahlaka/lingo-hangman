@@ -7,7 +7,7 @@ import { Feedback, GameScreen } from "../../components/lingo";
 import PracticeSession from "../practice/PracticeSession";
 import ChoiceQuestion from "../practice/ChoiceQuestion";
 import { buildChoiceQuestion, buildRound, practicePool, wordCount } from "../practice/practiceLogic";
-import { RATE_SLOW, canSpeak, speak, stopSpeaking } from "../practice/speech";
+import { RATE_SLOW, canSpeak, speak, stopSpeaking } from "../../lib/speech";
 
 // Short items only: long sentences are a different skill from catching a word.
 const MAX_LISTEN_WORDS = 4;

@@ -1,0 +1,228 @@
+import React from 'react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
+import ItemForm from '../admin/ItemForm';
+import { renderApp } from '../test-utils';
+import bundled from '../lib/bundledContent';
+import { setContent } from '../lib/content';
+import { validateItem } from '../lib/contentSchema';
+import { blankItem, tidyItem } from '../admin/adminDraft';
+import { buildSoundRound, lessonProgress, lessonQuestions, lessonWord, markedIndexes } from '../games/sounds/soundsLogic';
+
+// Lessons of their own, so the tests don't depend on what the word base holds.
+const silentK = {
+  id: 'test-silent-k', type: 'sound', kind: 'silent',
+  title: { en: 'Test silent k', fi: 'Testi äänetön k' },
+  explanation: { en: 'The k in kn is silent.', fi: 'K jätetään sanomatta.' },
+  words: [
+    { text: '[k]nife', say: { fi: 'naif' }, meaning: { fi: 'veitsi' } },
+    { text: '[k]nee', say: { fi: 'nii' }, meaning: { fi: 'polvi' } },
+    { text: '[k]nock', say: { fi: 'nok' }, meaning: { fi: 'koputtaa' } },
+  ],
+};
+const cSounds = {
+  id: 'test-c', type: 'sound', kind: 'sound',
+  title: { en: 'Test c', fi: 'Testi c' },
+  explanation: { en: 'c before e, i or y is s.', fi: 'c ennen e, i tai y on s.' },
+  sounds: [{ id: 's', label: { en: 's, as in sun', fi: 's, kuten sun' } }, { id: 'k', label: { en: 'k, as in key', fi: 'k, kuten key' } }],
+  words: [
+    { text: '[c]ity', say: { fi: 'siti' }, meaning: { fi: 'kaupunki' }, sound: 's' },
+    { text: '[c]at', say: { fi: 'kät' }, meaning: { fi: 'kissa' }, sound: 'k' },
+    { text: 'i[c]e', say: { fi: 'ais' }, meaning: { fi: 'jää' }, sound: 's' },
+  ],
+};
+const letters = {
+  id: 'test-letters', type: 'sound', kind: 'letters',
+  title: { en: 'Test letters', fi: 'Testikirjaimet' },
+  explanation: { en: 'A is ei.', fi: 'A on ei.' },
+  words: [{ text: 'A', say: { fi: 'ei' } }, { text: 'E', say: { fi: 'ii' } }, { text: 'I', say: { fi: 'ai' } }, { text: 'O', say: { fi: 'ou' } }],
+};
+const shipSheep = {
+  id: 'test-pairs', type: 'sound', kind: 'pairs',
+  title: { en: 'Test ship or sheep', fi: 'Testi ship vai sheep' },
+  explanation: { en: 'Short i and long ee.', fi: 'Lyhyt i ja pitkä ii.' },
+  words: [
+    { text: 'ship', say: { fi: 'šip' }, meaning: { fi: 'laiva' }, pair: 'sheep' },
+    { text: 'sheep', say: { fi: 'šiip' }, meaning: { fi: 'lammas' }, pair: 'ship' },
+    { text: 'sit', meaning: { fi: 'istua' }, pair: 'seat' },
+    { text: 'seat', meaning: { fi: 'istuin' }, pair: 'sit' },
+  ],
+};
+const pack = { id: 'test-sounds', title: { en: 'Test sounds' }, items: [silentK, cSounds, letters, shipSheep] };
+
+beforeAll(() => {
+  setContent({ ...bundled, index: { ...bundled.index, packs: [...bundled.index.packs, pack.id] }, packs: [...bundled.packs, pack] });
+});
+afterAll(() => setContent(bundled));
+afterEach(() => {
+  delete window.speechSynthesis;
+  delete window.SpeechSynthesisUtterance;
+});
+
+function fakeSpeech() {
+  const spoken = [];
+  window.SpeechSynthesisUtterance = function (text) { this.text = text; };
+  window.speechSynthesis = { speak: (u) => spoken.push(u), cancel: () => {}, getVoices: () => [] };
+  return spoken;
+}
+
+describe('sound items in the word bank', () => {
+  it('accepts the three kinds of lesson', () => {
+    expect(validateItem(silentK)).toEqual([]);
+    expect(validateItem(cSounds)).toEqual([]);
+    expect(validateItem(letters)).toEqual([]);
+    expect(validateItem(shipSheep)).toEqual([]);
+  });
+
+  it('needs each sound-alike word to point at another word in the lesson', () => {
+    const broken = { ...shipSheep, words: [...shipSheep.words.slice(1), { text: 'ship', pair: 'shop' }] };
+    expect(validateItem(broken).join(' ')).toMatch(/pair must be another word in this lesson/);
+  });
+
+  it('explains missing brackets, unknown sounds and letter names with brackets', () => {
+    const noMark = { ...silentK, words: [...silentK.words.slice(1), { text: 'knot' }] };
+    expect(validateItem(noMark).join(' ')).toMatch(/put \[ \] around the silent letters/);
+    const badSound = { ...cSounds, words: [...cSounds.words.slice(1), { text: '[c]up', sound: 'x' }] };
+    expect(validateItem(badSound).join(' ')).toMatch(/sound must be one of the ids/);
+    const marked = { ...letters, words: [...letters.words.slice(1), { text: '[A]' }] };
+    expect(validateItem(marked).join(' ')).toMatch(/letter names don't use/);
+    expect(validateItem({ ...silentK, kind: 'other' }).join(' ')).toMatch(/kind must be one of/);
+  });
+});
+
+describe('admin editing of lessons', () => {
+  it('starts a new lesson that the checks explain, and tidies empty fields away', () => {
+    const fresh = blankItem('sound', new Set());
+    expect(validateItem(tidyItem(fresh)).join(' ')).toMatch(/words needs at least three words/);
+    const tidy = tidyItem({ ...silentK, sounds: cSounds.sounds, words: [{ text: '[k]nit', say: { fi: '' }, meaning: { fi: 'neuloa' }, speak: ' ', sound: 's' }] });
+    expect(tidy.sounds).toBeUndefined();
+    expect(tidy.words[0]).toEqual({ text: '[k]nit', meaning: { fi: 'neuloa' } });
+  });
+
+  it('has a form with the sounds to choose from for tricky letters', () => {
+    const changes = [];
+    render(<ItemForm item={cSounds} onChange={(i) => changes.push(i)} languages={[]} topics={[]} categories={[]} />);
+    expect(screen.getByRole('group', { name: 'Sounds to choose from' })).toBeInTheDocument();
+    expect(screen.getAllByDisplayValue('[c]ity')).toHaveLength(1);
+    fireEvent.change(screen.getByRole('combobox', { name: /Kind/ }), { target: { value: 'silent' } });
+    expect(changes.at(-1).kind).toBe('silent');
+    expect(changes.at(-1).sounds).toBeUndefined();
+  });
+});
+
+describe('soundsLogic', () => {
+  it('finds the marked letters in the plain word', () => {
+    const w = lessonWord(silentK, { text: 'ni[gh]t' });
+    expect(w.text).toBe('night');
+    expect(markedIndexes(w)).toEqual([2, 3]);
+  });
+
+  it('asks letter names with four letters from the same lesson', () => {
+    const q = lessonQuestions(letters)[0];
+    expect(q.options).toHaveLength(4);
+    expect(q.options.map((o) => o.id)).toContain(q.answer);
+  });
+
+  it('asks a sound-alike word against its own pair', () => {
+    const q = lessonQuestions(shipSheep).find((x) => x.answer === 'sit');
+    expect(q.options.map((o) => o.id).sort()).toEqual(['seat', 'sit']);
+  });
+
+  it('mixes lessons and leaves letter names out without sound', () => {
+    const lessons = [silentK, cSounds, letters];
+    const round = buildSoundRound(lessons, { count: 3 });
+    expect(new Set(round.map((q) => q.lessonId)).size).toBe(3);
+    expect(buildSoundRound([...lessons, shipSheep], { withSound: false }).some((q) => q.kind === 'letters' || q.kind === 'pairs')).toBe(false);
+    expect(buildSoundRound(lessons, { setId: 'test-c' }).every((q) => q.lessonId === 'test-c')).toBe(true);
+  });
+
+  it('counts lesson words solved in any game', () => {
+    const state = { words: { 'en-GB:knife': { solved: 1 }, 'en-GB:knee': { solved: 0, lost: 1 } } };
+    expect(lessonProgress(silentK, state)).toEqual({ solved: 1, total: 3 });
+  });
+});
+
+describe('Sounds of English', () => {
+  it('has a card on the home screen and lists lessons by kind', () => {
+    renderApp('/');
+    fireEvent.click(screen.getByRole('link', { name: /Sounds of English/ }));
+    expect(screen.getByRole('heading', { name: 'Silent letters' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Tricky letters' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Test silent k/ })).toHaveTextContent('0 of 3 words practised');
+  });
+
+  it('shows the rule in English and Finnish and reads a word aloud', () => {
+    const spoken = fakeSpeech();
+    renderApp('/sounds?set=test-silent-k');
+    expect(screen.getByText('The k in kn is silent.')).toBeInTheDocument();
+    expect(screen.getByText('K jätetään sanomatta.')).toHaveAttribute('lang', 'fi');
+    fireEvent.click(screen.getByRole('button', { name: 'knife' }));
+    expect(spoken[spoken.length - 1].text).toBe('knife');
+    fireEvent.click(screen.getByRole('button', { name: 'knife, slowly' }));
+    expect(spoken[spoken.length - 1].rate).toBeLessThan(0.9);
+  });
+
+  it('practises silent letters: tap the letter you do not hear', () => {
+    const spoken = fakeSpeech();
+    const { storage } = renderApp('/sounds?set=test-silent-k&practise=1');
+    const word = spoken[spoken.length - 1].text;
+    const tiles = within(screen.getByRole('group', { name: 'Letters in the word' })).getAllByRole('button');
+    expect(tiles.map((b) => b.textContent).join('')).toBe(word);
+    fireEvent.click(tiles[1]);
+    expect(screen.getByText('Not quite. Try another one.')).toBeInTheDocument();
+    fireEvent.click(tiles[0]);
+    expect(screen.getByText(`Yes, "${word}" is right.`)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'k, silent' })).toBeInTheDocument();
+    const lessonWordFor = silentK.words.map((w) => lessonWord(silentK, w)).find((w) => w.text === word);
+    expect(screen.getByText(lessonWordFor.say)).toHaveAttribute('lang', 'fi');
+    expect(screen.getByText(lessonWordFor.fi)).toHaveAttribute('lang', 'fi');
+    expect(JSON.stringify(storage.data)).toContain(`en-GB:${word}`);
+  });
+
+  it('practises tricky letters: pick the sound, with Finnish under each option', () => {
+    fakeSpeech();
+    renderApp('/sounds?set=test-c&practise=1');
+    const group = screen.getByRole('group', { name: 'Sounds to choose from' });
+    expect(within(group).getByText('s, kuten sun')).toHaveAttribute('lang', 'fi');
+    const word = screen.getByText((_, el) => el?.classList?.contains('snd-word-big')).textContent;
+    const answer = cSounds.words.find((w) => w.text.replace(/[[\]]/g, '') === word).sound;
+    fireEvent.click(within(group).getByRole('button', { name: new RegExp(`^${answer}, as in`) }));
+    expect(screen.getByText(`Yes, "${word}" is right.`)).toBeInTheDocument();
+  });
+
+  it('practises letter names by ear and shows how each is said', () => {
+    const spoken = fakeSpeech();
+    renderApp('/sounds?set=test-letters&practise=1');
+    const heard = spoken[spoken.length - 1].text;
+    const group = screen.getByRole('group', { name: 'Letters to choose from' });
+    fireEvent.click(within(group).getByRole('button', { name: heard }));
+    expect(screen.getByText(`Yes, "${heard}" is right.`)).toBeInTheDocument();
+    const say = letters.words.find((w) => w.text === heard).say.fi;
+    expect(within(group).getByText(say)).toBeInTheDocument();
+  });
+
+  it('practises sound-alike words by ear and shows both meanings', () => {
+    const spoken = fakeSpeech();
+    renderApp('/sounds?set=test-pairs&practise=1');
+    const heard = spoken[spoken.length - 1].text;
+    const group = screen.getByRole('group', { name: 'Words to choose from' });
+    expect(within(group).getAllByRole('button')).toHaveLength(2);
+    fireEvent.click(within(group).getByRole('button', { name: heard }));
+    expect(screen.getByText(`Yes, "${heard}" is right.`)).toBeInTheDocument();
+    const other = shipSheep.words.find((w) => w.text === heard).pair;
+    const otherFi = shipSheep.words.find((w) => w.text === other).meaning.fi;
+    expect(within(group).getByText(new RegExp(otherFi))).toHaveAttribute('lang', 'fi');
+  });
+
+  it('works without sound, leaving letter names out', () => {
+    renderApp('/sounds?set=mix');
+    expect(screen.queryByRole('group', { name: 'Letters to choose from' })).not.toBeInTheDocument();
+    renderApp('/sounds');
+    expect(screen.getAllByText(/can't play sound/).length).toBeGreaterThan(0);
+  });
+
+  it('uses Finnish titles and rules in the Finnish interface', () => {
+    renderApp('/sounds?set=test-silent-k', { lang: 'fi' });
+    expect(screen.getByRole('heading', { name: 'Testi äänetön k' })).toBeInTheDocument();
+    expect(screen.queryByText('The k in kn is silent.')).not.toBeInTheDocument();
+  });
+});

@@ -71,3 +71,62 @@ describe('Grammar check', () => {
     expect(screen.getByRole('region', { name: 'Sentences from this round' })).toBeInTheDocument();
   });
 });
+
+describe('The rule after answering', () => {
+  const rect = (top, bottom) => ({ top, bottom, left: 0, right: 0, width: 0, height: bottom - top, x: 0, y: top });
+  let spy;
+  const innerHeight = window.innerHeight;
+  // The explanation lands under the bottom bar, as on a phone.
+  beforeEach(() => {
+    spy = jest.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(function () {
+      if (this.querySelector?.('.gp-why')) return rect(900, 1200);
+      if (this.classList.contains('lg-tray')) return rect(500, 800);
+      return rect(0, 0);
+    });
+  });
+  afterEach(() => {
+    spy.mockRestore();
+    window.innerHeight = innerHeight;
+  });
+
+  it('moves into the bottom bar when it would be hidden under it', () => {
+    window.innerHeight = 800;
+    const { container } = renderApp('/mixed-up?set=borrow-lend');
+    fireEvent.click(options().find((b) => b.textContent === current().answer));
+    const why = screen.getByRole('region', { name: 'Why' });
+    expect(container.querySelector('.lg-tray')).toContainElement(why);
+    expect(within(why).getByText(/kaksi eri verbiä/)).toBeInTheDocument();
+  });
+
+  it('gets its own view after Next on a short screen', () => {
+    window.innerHeight = 480;
+    const { container } = renderApp('/mixed-up?set=borrow-lend');
+    fireEvent.click(options().find((b) => b.textContent === current().answer));
+    expect(screen.queryByRole('region', { name: 'Why' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+    const why = screen.getByRole('region', { name: 'Why' });
+    expect(container.querySelector('.pg-rule-step')).toContainElement(why);
+    expect(screen.getByText(`1 of ${borrowLend.length}`)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+    expect(screen.getByText(`2 of ${borrowLend.length}`)).toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'Why' })).not.toBeInTheDocument();
+  });
+});
+
+describe('Peeking at the rule', () => {
+  it('costs points from this round and shows only the rule before answering', () => {
+    renderApp('/mixed-up?set=borrow-lend');
+    expect(screen.getByRole('button', { name: /Show the rule/ })).toBeDisabled();
+    expect(screen.getByText('Earn 5 points to unlock the rule.')).toBeInTheDocument();
+    fireEvent.click(options().find((b) => b.textContent === current().answer));
+    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+    const points = () => Number(screen.getByLabelText(/^Points \d+$/).getAttribute('aria-label').split(' ')[1]);
+    const before = points();
+    expect(before).toBeGreaterThanOrEqual(5);
+    expect(screen.queryByRole('region', { name: 'Why' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Show the rule (−5 points)' }));
+    expect(points()).toBe(before - 5);
+    expect(within(screen.getByRole('region', { name: 'Why' })).getByText(/kaksi eri verbiä/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Show the rule/ })).not.toBeInTheDocument();
+  });
+});

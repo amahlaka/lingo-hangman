@@ -7,6 +7,8 @@ import { DEFAULT_LEARNING_LANG, DEFAULT_NATIVE_LANG, decodeWords, filterCommonWo
 export const ROUND_LENGTH = 10;
 // After this many misses on one question the answer is shown, so nobody gets stuck.
 export const MAX_MISSES = 2;
+// Points from this round it costs to see a question's rule before answering.
+export const RULE_PEEK_COST = 5;
 
 // The pairs a practice game draws from: a shared `?words=...` link if there is
 // one, otherwise every built-in word in the chosen languages.

@@ -4,7 +4,7 @@ import { Volume2 } from "lucide-react";
 import { useSettings } from "../../app/SettingsContext";
 import { useProgress } from "../../app/ProgressContext";
 import i18n, { fill } from "../../i18n";
-import { Feedback, GameScreen } from "../../components/lingo";
+import { ExampleText, Feedback, GameScreen } from "../../components/lingo";
 import { DEFAULT_LEARNING_LANG, DEFAULT_NATIVE_LANG, getSoundLessons } from "../../lib/words";
 import { RATE_SLOW, canSpeak, speak } from "../../lib/speech";
 import PracticeSession from "../practice/PracticeSession";
@@ -94,11 +94,11 @@ function Lesson({ lesson }) {
         </div>
         <section className="gp-why snd-rule" aria-label={s.rule}>
           {lang === "fi" ? (
-            <p className="gp-why__text" lang="fi">{ex.fi || ex.en}</p>
+            <p className="gp-why__text" lang="fi"><ExampleText text={ex.fi || ex.en} /></p>
           ) : (
             <>
-              <p className="gp-why__text">{ex.en}</p>
-              {ex.fi && <p className="gp-why__fi" lang="fi">{ex.fi}</p>}
+              <p className="gp-why__text"><ExampleText text={ex.en} /></p>
+              {ex.fi && <p className="gp-why__fi" lang="fi"><ExampleText text={ex.fi} /></p>}
             </>
           )}
         </section>

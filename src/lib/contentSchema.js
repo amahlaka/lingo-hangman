@@ -87,6 +87,8 @@ function checkTextMap(value, name, problems, { required = true, mustHave = [] } 
   }
   for (const [lang, text] of Object.entries(value)) {
     if (!isText(text)) problems.push(`${name}.${lang} is empty`);
+    // English examples are marked *like this* (see ExampleText).
+    else if (text.split("*").length % 2 === 0) problems.push(`${name}.${lang} has an unpaired *`);
   }
   for (const lang of mustHave) {
     if (!isText(value[lang])) problems.push(`${name} needs "${lang}"`);

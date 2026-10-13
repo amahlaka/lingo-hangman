@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Volume2 } from "lucide-react";
 import { useSettings } from "../../app/SettingsContext";
+import { ExampleText } from "../../components/lingo";
 import i18n, { fill } from "../../i18n";
 import { sounds } from "../../lib/sounds";
 import { RATE_SLOW, canSpeak, speak, stopSpeaking } from "../../lib/speech";
@@ -46,11 +47,11 @@ export function ListenButtons({ text, s, autoPlay = false }) {
 // in the Finnish one.
 function Both({ text, lang, className = "" }) {
   if (!text) return null;
-  if (lang === "fi") return <p className={`${className}__text`} lang="fi">{text.fi || text.en}</p>;
+  if (lang === "fi") return <p className={`${className}__text`} lang="fi"><ExampleText text={text.fi || text.en} /></p>;
   return (
     <>
-      <p className={`${className}__text`}>{text.en}</p>
-      {text.fi && <p className={`${className}__fi`} lang="fi">{text.fi}</p>}
+      <p className={`${className}__text`}><ExampleText text={text.en} /></p>
+      {text.fi && <p className={`${className}__fi`} lang="fi"><ExampleText text={text.fi} /></p>}
     </>
   );
 }

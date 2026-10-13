@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useSettings } from "../../app/SettingsContext";
+import { ExampleText } from "../../components/lingo";
 import { sounds } from "../../lib/sounds";
 import { maxMissesFor, splitGap } from "./gapLogic";
 import { RuleBox, RulePeek } from "../practice/RuleBox";
@@ -33,12 +34,12 @@ function Explanation({ parts, lang, p }) {
       {parts.map((part, i) =>
         lang === "en" ? (
           <div key={i} className="gp-why__part">
-            <p className="gp-why__text">{part.en}</p>
-            <p className="gp-why__fi" lang="fi">{part.fi}</p>
+            <p className="gp-why__text"><ExampleText text={part.en} /></p>
+            <p className="gp-why__fi" lang="fi"><ExampleText text={part.fi} /></p>
           </div>
         ) : (
           <div key={i} className="gp-why__part">
-            <p className="gp-why__text" lang="fi">{part.fi}</p>
+            <p className="gp-why__text" lang="fi"><ExampleText text={part.fi} /></p>
           </div>
         )
       )}

@@ -1,0 +1,103 @@
+// Thin wrapper over the browser's speech recognition (Web Speech API), used by
+// "Say it". Lingo never records, uploads or stores audio itself: the browser
+// turns speech into text and we only look at that text.
+//
+// Where the browser can recognise speech on the device (newer Chrome and Edge),
+// we ask it to. Otherwise the browser uses its own online speech service, and
+// the game says so next to the microphone.
+
+import { speechLang } from "./speech";
+
+// Give up on one attempt after this long, in case the browser never ends it.
+const LISTEN_TIMEOUT_MS = 10000;
+
+export function recognitionCtor() {
+  if (typeof window === "undefined") return null;
+  return window.SpeechRecognition || window.webkitSpeechRecognition || null;
+}
+
+export function canRecognise() {
+  return Boolean(recognitionCtor());
+}
+
+// "available": the browser can recognise this language on the device now.
+// "downloadable" / "downloading": it can after downloading a language pack.
+// "unavailable": only its online service can. "unknown": the browser can't say.
+export async function onDeviceStatus(lang) {
+  const Ctor = recognitionCtor();
+  if (!Ctor || typeof Ctor.available !== "function") return "unknown";
+  try {
+    return await Ctor.available({ langs: [speechLang(lang)], processLocally: true });
+  } catch {
+    return "unknown";
+  }
+}
+
+// Download the on-device language pack. Resolves true when it is ready.
+export async function installOnDevice(lang) {
+  const Ctor = recognitionCtor();
+  if (!Ctor || typeof Ctor.install !== "function") return false;
+  try {
+    return Boolean(await Ctor.install({ langs: [speechLang(lang)], processLocally: true }));
+  } catch {
+    return false;
+  }
+}
+
+// Listen for one utterance. Returns { done, stop }: `done` resolves to
+// { alternatives: [text…], error } once the browser stops listening, where
+// error is the browser's code ("no-speech", "not-allowed", "audio-capture" …)
+// or null. `stop` ends listening early and keeps what was heard; `abort`
+// throws it away.
+export function listenOnce({ lang = "en-GB", onDevice = false, onSound } = {}) {
+  const Ctor = recognitionCtor();
+  if (!Ctor) return { done: Promise.resolve({ alternatives: [], error: "unsupported" }), stop() {}, abort() {} };
+
+  const rec = new Ctor();
+  rec.lang = speechLang(lang);
+  rec.continuous = false;
+  rec.interimResults = false;
+  rec.maxAlternatives = 5;
+  if (onDevice) rec.processLocally = true;
+
+  let alternatives = [];
+  let error = null;
+  let timer = null;
+  const done = new Promise((resolve) => {
+    rec.onresult = (event) => {
+      const results = Array.from(event.results || []);
+      const last = results[results.length - 1];
+      if (last) alternatives = Array.from(last).map((a) => a.transcript).filter(Boolean);
+    };
+    rec.onerror = (event) => {
+      error = event.error || "unknown";
+    };
+    rec.onsoundstart = () => onSound && onSound();
+    rec.onend = () => {
+      clearTimeout(timer);
+      resolve({ alternatives, error: alternatives.length ? null : error });
+    };
+  });
+
+  try {
+    rec.start();
+    timer = setTimeout(() => rec.stop(), LISTEN_TIMEOUT_MS);
+  } catch {
+    return { done: Promise.resolve({ alternatives: [], error: "start-failed" }), stop() {}, abort() {} };
+  }
+  return {
+    done,
+    stop: () => rec.stop(),
+    abort: () => {
+      clearTimeout(timer);
+      rec.onresult = null;
+      rec.abort();
+    },
+  };
+}
+
+// Errors that mean the microphone can't be used at all here, as opposed to
+// one attempt that didn't catch anything.
+export function isBlockingError(error) {
+  return ["not-allowed", "service-not-allowed", "audio-capture", "network", "language-not-supported", "unsupported", "start-failed"].includes(error);
+}

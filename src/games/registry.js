@@ -5,8 +5,11 @@ import HangmanGame from "./hangman/HangmanGame";
 import MeaningGame from "./meaning/MeaningGame";
 import PhraseGame from "./phrase/PhraseGame";
 import ListeningGame from "./listening/ListeningGame";
+import WordPairsGame from "./word-pairs/WordPairsGame";
+import FillGapGame from "./fill-gap/FillGapGame";
 import { GrammarGame, MixedUpGame } from "./gap/GapGames";
 import SayGame from "./say/SayGame";
+import SoundsGame from "./sounds/SoundsGame";
 
 export const GAMES = [
   {
@@ -91,18 +94,37 @@ export const GAMES = [
     routes: [{ path: "/mixed-up", Component: MixedUpGame }],
   },
   {
+    id: "sounds",
+    name: "Sounds of English",
+    nameFi: "Englannin äänteet",
+    description: "Silent letters, tricky letters and letter names: hear the rule, then practise.",
+    art: "knife · naif",
+    minutes: 4,
+    skill: "Pronunciation",
+    path: "/sounds",
+    routes: [{ path: "/sounds", Component: SoundsGame }],
+  },
+  {
     id: "word-pairs",
     name: "Word Pairs",
     nameFi: "Yhdistä parit",
+    description: "Match each English word with its Finnish meaning.",
     art: "cat · kissa",
-    soon: true,
+    minutes: 3,
+    skill: "Vocabulary",
+    path: "/word-pairs",
+    routes: [{ path: "/word-pairs", Component: WordPairsGame }],
   },
   {
     id: "fill-the-gap",
     name: "Fill the Gap",
     nameFi: "Täydennä lause",
-    art: "I ___ coffee",
-    soon: true,
+    description: "Choose the missing word in an everyday English sentence.",
+    art: "Where ___ it?",
+    minutes: 4,
+    skill: "Sentences",
+    path: "/fill-the-gap",
+    routes: [{ path: "/fill-the-gap", Component: FillGapGame }],
   },
 ];
 

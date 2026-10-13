@@ -6,7 +6,7 @@
 // we ask it to. Otherwise the browser uses its own online speech service, and
 // the game says so next to the microphone.
 
-import { speechLang } from "../games/practice/speech";
+import { speechLang } from "./speech";
 
 // Give up on one attempt after this long, in case the browser never ends it.
 const LISTEN_TIMEOUT_MS = 10000;

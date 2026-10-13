@@ -17,7 +17,7 @@ import WordPairsGame from "./word-pairs/WordPairsGame";
   description: "Match each English word with its Finnish meaning.",
   art: "cat · kissa",            // typographic card art: real letters, no emoji
   minutes: 3,
-  skill: "Vocabulary",           // Vocabulary, Spelling, Sentences, Listening, Speaking or Grammar
+  skill: "Vocabulary",           // Vocabulary, Spelling, Sentences, Listening, Speaking, Grammar or Pronunciation
   path: "/word-pairs",           // where the card links to
   routes: [{ path: "/word-pairs", Component: WordPairsGame }],
 }
@@ -51,6 +51,9 @@ README; `npm run content:pull` downloads it). Besides word pairs it has:
   sets of mixed-up words, with titles and explanations in English and Finnish.
 - `getWordGroups()`: sets of small words that are easy to confuse
   (is / are / am …), for believable wrong options.
+- `getSoundLessons()`: pronunciation lessons (silent letters, letters with
+  more than one sound, letter names), each a rule in English and Finnish and
+  its words, with `[ ]` around the letters the rule is about (`[k]nife`).
 - `getSentences({ learningLang, nativeLang })`: every whole sentence in the
   bank (phrases, example sentences, filled-in gap sentences) as pairs.
 
@@ -123,7 +126,19 @@ Next button and the end screen. Render one question in `renderQuestion` and
 call `onDone({ solved, firstTry, tries, triesLeft, answer, meaning })`.
 `practiceLogic.js` has `practicePool(params)` (a shared link or every built-in
 word), distractor picking and the phrase helpers. Pick the meaning, Build the
-phrase and Listen and choose are built this way.
+phrase, Listen and choose, Fill the Gap and the gap games below are built this way.
+
+A question that holds several words, like a Word Pairs board, gets `onItem` as
+well: call `onItem(outcome)` for each word as it is finished (it records the
+word and plays the sound), then `onDone({ board: true })` when the whole
+question is done. The session shows one "All pairs found" banner for it.
+
+Fill the Gap mixes the word bank's everyday gap sentences (`getGapItems` items
+without a `topic`; topic sentences belong to the gap games below) with every
+other sentence in it (`getSentences`), gapped automatically. For an
+automatic gap that is a small grammar word (is/are, a/the, in/at …) the other
+options come from the same word group (`getWordGroups`), so adding a group or
+words to one in the word bank widens it.
 
 ## Gap games
 
@@ -134,6 +149,23 @@ The sentences live in the lingo-wordbase repository (`packs/grammar.json` and
 `packs/mixed-up-words.json`), so adding sentences or a whole new topic needs no
 app change. `?set=<topic id>` practises one topic, e.g.
 `/mixed-up?set=borrow-lend`.
+
+## Speech
+
+`src/lib/speech.js` wraps the browser's speech synthesis for every game that
+reads words aloud: `canSpeak()`, `speak(text, { lang, rate })` (`RATE_SLOW`
+for "Slowly") and `stopSpeaking()`. Check `canSpeak()` and keep the game
+usable, or explain, when the browser has no voices.
+
+## Sounds of English
+
+`src/games/sounds/` teaches pronunciation from the word bank's `sound` items
+(`packs/pronunciation.json` in lingo-wordbase). `/sounds` lists the lessons,
+`?set=<id>` shows one lesson's rule and words to listen to, `&practise=1`
+practises them and `?set=mix` mixes every lesson. The four question kinds
+(tap the silent letter, pick the sound, pick which of two sound-alike words
+you heard, pick the letter you heard) are in
+`soundsLogic.js` and `SoundQuestion.jsx`.
 
 ## Say it (speaking)
 

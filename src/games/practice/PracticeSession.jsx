@@ -29,20 +29,25 @@ function bannerFor(events, { t, dailyGoal, answer }) {
 // screen. Each game only renders one question and calls
 // onDone({ solved, firstTry, tries, triesLeft, answer, meaning }) when it is answered.
 //
+// A question that holds several words (a Word Pairs board) instead calls
+// onItem(outcome) for each word as it is finished, then onDone({ board: true })
+// once the whole question is done.
+//
 // Props:
 //   gameId, title, intro   game identity and its one-line instruction
 //   learningLang           language of the answers, reported with each word
 //   nativeLang             language of the meanings, shown in the end-of-round word list
 //   buildQuestions()       returns this round's questions
-//   renderQuestion({ question, done, onDone })
+//   renderQuestion({ question, done, onDone, onItem })
 //   empty                  message shown when there are too few words
 //   endTitleKey, recapTitleKey  practice strings for the end screen ("words" by default)
 //   meaningInFeedback      false when the question already shows the meaning
 //   keys                   practice string keys to use instead of correctTitle,
 //                          correctFirstTry, correctLater and retryTitle
+//   endExtra               optional element shown above "All games" on the end screen
 export default function PracticeSession({
   gameId, title, intro, learningLang, nativeLang, buildQuestions, renderQuestion, empty,
-  endTitleKey = "endTitle", recapTitleKey = "recapTitle", meaningInFeedback = true, keys,
+  endTitleKey = "endTitle", recapTitleKey = "recapTitle", meaningInFeedback = true, keys, endExtra = null,
 }) {
   const { t, lang } = useSettings();
   const { recordWord, dailyGoal } = useProgress();
@@ -55,12 +60,15 @@ export default function PracticeSession({
   const [questions, setQuestions] = useState(buildQuestions);
   const [index, setIndex] = useState(0);
   const [results, setResults] = useState([]);
+  const [marks, setMarks] = useState([]);
   const [tally, setTally] = useState(emptyTally);
   const [current, setCurrent] = useState(null);
   const [plus, setPlus] = useState(null);
   const [roundKey, setRoundKey] = useState(0);
   const nextRef = useRef(null);
   const timer = useRef(null);
+  // Words finished so far in a multi-word question, and the biggest banner they earned.
+  const board = useRef({ items: [], banner: null });
 
   const finished = questions.length > 0 && index >= questions.length;
 
@@ -77,8 +85,7 @@ export default function PracticeSession({
     sounds.celebrate();
   }, [finished, celebrate]);
 
-  const handleDone = (outcome) => {
-    if (current) return;
+  const record = (outcome) => {
     const events = recordWord({
       gameId,
       word: outcome.answer,
@@ -88,22 +95,57 @@ export default function PracticeSession({
       perfect: outcome.solved && outcome.firstTry,
     });
     const banner = bannerFor(events, { t, dailyGoal, answer: outcome.answer });
-    setCurrent({ ...outcome, xp: events.xpGained, banner });
     setTally((s) => addResult(s, { ...outcome, xp: events.xpGained }));
     setResults((r) => [...r, outcome]);
     setPlus({ n: events.xpGained, key: Date.now() });
+    return { xp: events.xpGained, banner };
+  };
+
+  const bigCelebration = () => {
+    clearTimeout(timer.current);
+    timer.current = setTimeout(() => {
+      celebrate("large");
+      sounds.celebrate();
+    }, 250);
+  };
+
+  const handleItem = (outcome) => {
+    if (current) return;
+    const { xp, banner } = record(outcome);
+    const b = board.current;
+    b.items.push({ ...outcome, xp });
+    if (banner && (!b.banner || (banner.big && !b.banner.big))) b.banner = banner;
+    sounds.correct();
+    if (banner?.big) bigCelebration();
+  };
+
+  const handleDone = (outcome) => {
+    if (current) return;
+    if (outcome.board) {
+      const { items, banner } = board.current;
+      board.current = { items: [], banner: null };
+      setCurrent({
+        board: true,
+        solved: true,
+        total: items.length,
+        firstTry: items.filter((i) => i.firstTry).length,
+        xp: items.reduce((n, i) => n + i.xp, 0),
+        banner,
+      });
+      setMarks((m) => [...m, "right"]);
+      celebrate("medium");
+      return;
+    }
+    const { xp, banner } = record(outcome);
+    setCurrent({ ...outcome, xp, banner });
+    setMarks((m) => [...m, outcome.solved ? "right" : "shown"]);
     if (outcome.solved) {
       celebrate("medium");
       sounds.correct();
     } else {
       sounds.shown();
     }
-    if (banner?.big) {
-      timer.current = setTimeout(() => {
-        celebrate("large");
-        sounds.celebrate();
-      }, 250);
-    }
+    if (banner?.big) bigCelebration();
   };
 
   const goNext = () => {
@@ -115,6 +157,8 @@ export default function PracticeSession({
     setQuestions(buildQuestions());
     setIndex(0);
     setResults([]);
+    setMarks([]);
+    board.current = { items: [], banner: null };
     setTally(emptyTally());
     setCurrent(null);
     setRoundKey((k) => k + 1);
@@ -138,10 +182,10 @@ export default function PracticeSession({
       <GameScreen title={title} score={score} menuActions={menuActions}>
         <main className="lg-board pg-done">
           {confetti}
-          <h2 className="lg-display">{fill(p[endTitleKey], { n: questions.length })}</h2>
-          {helper && <p className="lg-caption" lang="fi">{fill(fi[endTitleKey], { n: questions.length })}</p>}
+          <h2 className="lg-display">{fill(p[endTitleKey], { n: results.length })}</h2>
+          {helper && <p className="lg-caption" lang="fi">{fill(fi[endTitleKey], { n: results.length })}</p>}
           <dl className="pg-stats">
-            <div><dt>{p.endCorrect}</dt><dd>{tally.correct} / {questions.length}</dd></div>
+            <div><dt>{p.endCorrect}</dt><dd>{tally.correct} / {results.length}</dd></div>
             <div><dt>{p.endFirstTry}</dt><dd>{tally.firstTry}</dd></div>
             <div><dt>{p.endBestRun}</dt><dd>{tally.bestRun}</dd></div>
             <div><dt>{t.pointsLabel}</dt><dd>{tally.xp}</dd></div>
@@ -156,6 +200,7 @@ export default function PracticeSession({
           <button type="button" className="lg-btn lg-btn--primary lg-btn--hero" onClick={restart} autoFocus>
             {p.playAgain}
           </button>
+          {endExtra}
           <Link to="/" className="lg-btn lg-btn--quiet">{t.allGames}</Link>
         </main>
       </GameScreen>
@@ -172,8 +217,7 @@ export default function PracticeSession({
         <p className="lg-body-lg pg-intro">{intro}</p>
         <div className="pg-dots" aria-label={progressLabel}>
           {questions.map((_, i) => {
-            const r = results[i];
-            const state = r ? (r.solved ? "right" : "shown") : i === index ? "now" : "";
+            const state = marks[i] || (i === index ? "now" : "");
             return <span key={i} className={`pg-dots__dot${state ? ` pg-dots__dot--${state}` : ""}`} />;
           })}
           <span className="lg-caption">{progressLabel}</span>
@@ -181,14 +225,25 @@ export default function PracticeSession({
         <div className="pg-card">
           {confetti}
           <React.Fragment key={`${roundKey}-${index}`}>
-            {renderQuestion({ question, done: Boolean(current), onDone: handleDone })}
+            {renderQuestion({ question, done: Boolean(current), onDone: handleDone, onItem: handleItem })}
           </React.Fragment>
         </div>
       </main>
       {current && (
         <div className="lg-tray">
           <div className="pg-result">
-            {current.solved ? (
+            {current.board ? (
+              <Feedback
+                variant="correct"
+                title={p.pairsDoneTitle}
+                fi={helper ? fi.pairsDoneTitle : undefined}
+              >
+                {current.firstTry === current.total
+                  ? p.pairsAllFirstTry
+                  : fill(p.pairsFirstTry, { n: current.firstTry, total: current.total })}{" "}
+                {fill(t.xpEarned, { n: current.xp })}
+              </Feedback>
+            ) : current.solved ? (
               <Feedback
                 variant="correct"
                 title={fill(p[k.correctTitle], { answer: current.answer })}

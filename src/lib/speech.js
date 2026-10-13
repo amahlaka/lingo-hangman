@@ -1,4 +1,5 @@
-// Thin wrapper over the browser's speech synthesis, used by the listening game.
+// Thin wrapper over the browser's speech synthesis, shared by the games that
+// read words aloud (Listen and choose, Say it right).
 
 export const RATE_NORMAL = 0.9;
 export const RATE_SLOW = 0.6;

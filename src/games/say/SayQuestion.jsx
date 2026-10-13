@@ -4,7 +4,7 @@ import { TriesMeter } from "../../components/lingo";
 import { fill } from "../../i18n";
 import { sounds } from "../../lib/sounds";
 import { isBlockingError, listenOnce } from "../../lib/speechRecognition";
-import { RATE_SLOW, speak, stopSpeaking } from "../practice/speech";
+import { RATE_SLOW, speak, stopSpeaking } from "../../lib/speech";
 import { MAX_SAY_TRIES, checkSaid } from "./sayLogic";
 
 // What the recogniser heard, with the target's words marked as heard or not.

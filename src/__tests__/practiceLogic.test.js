@@ -174,6 +174,13 @@ describe('fill the gap', () => {
     }
   });
 
+  it('never gaps a capitalised name or day in mid-sentence', () => {
+    for (let i = 0; i < 20; i++) {
+      const q = buildGapQuestion({ learning: 'See you on Monday in London', native: 'Nähdään maanantaina Lontoossa' }, pool);
+      expect(['Monday', 'London']).not.toContain(q.answer);
+    }
+  });
+
   it('never gaps a contraction', () => {
     for (let i = 0; i < 20; i++) {
       const q = buildGapQuestion({ learning: "It's nine o'clock", native: 'Kello on yhdeksän' }, pool);

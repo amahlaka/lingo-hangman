@@ -3,6 +3,7 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { SettingsProvider } from "./app/SettingsContext";
 import { ProgressProvider } from "./app/ProgressContext";
 import Home from "./app/Home";
+import Profile from "./app/Profile";
 import Preferences from "./app/Preferences";
 import ContentAdmin from "./admin/ContentAdmin";
 import { GAMES, PLAYABLE_GAME_IDS } from "./games/registry";
@@ -13,6 +14,7 @@ export function AppRoutes() {
     <Routes>
       <Route path="/" element={<Home />} />
       <Route path="/preferences" element={<Preferences />} />
+      <Route path="/profile" element={<Profile />} />
       {/* Word bank editor; not linked from the app, see the lingo-wordbase README. */}
       <Route path="/admin" element={<ContentAdmin />} />
       {GAMES.flatMap((game) =>

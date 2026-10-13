@@ -55,7 +55,18 @@ README; `npm run content:pull` downloads it). Besides word pairs it has:
   more than one sound, letter names), each a rule in English and Finnish and
   its words, with `[ ]` around the letters the rule is about (`[k]nife`).
 - `getSentences({ learningLang, nativeLang })`: every whole sentence in the
-  bank (phrases, example sentences, filled-in gap sentences) as pairs.
+  bank (phrases, example sentences, sentences of texts, filled-in gap
+  sentences) as pairs.
+- `getTexts({ kind })`: short texts (dialogues, stories, messages, emails,
+  notices, instructions, descriptions) as `sentences` in English and Finnish,
+  dialogue lines with a `speaker`, plus optional comprehension `questions`.
+  Meant for reading and listening games.
+
+Items can also carry metadata for choosing what to practise: `level` (1-3),
+`features` (what they show about English: `th-sound`, `present-perfect`…),
+`contexts` (`shopping`, `work`…), `register`, and on words `ipa` and `pos`.
+The allowed values are in `src/lib/contentSchema.js`; how to fill them in is
+in the wordbase's AUTHORING.md.
 
 Content can change after a release, so look items up by `id` and don't
 hard-code words in a game.
@@ -182,3 +193,42 @@ comparison forgivingly (homophones, digits, contractions and extra words are
 fine, and a phrase of four or more words may miss one word in four). Where the
 browser can't listen (Firefox) or the microphone is blocked, the game falls back
 to "say it out loud, then tap I said it".
+
+## Quick play and answer statistics
+
+`recordWord` also keeps answer statistics, on the device only: per game and
+per lesson (`gameId:lesson`) a tally of answers, first tries and answer time,
+and per word its time and last few results (`recent`: `2` quick first try,
+`1` solved after a miss or slowly, `0` missed). An answer counts as slow when
+it takes over 1.6 times the learner's own average for that game.
+PracticeSession times every answer and records the question's lesson
+(`lesson`, `lessonId` or `setId`) for you; a game outside it passes `ms` and
+`lesson` to `recordWord` itself, as hangman passes `ms`.
+
+`src/lib/adaptive.js` reads those numbers: `wordStanding(entry)` says whether a
+word is new, known, practising or tricky, and `challengeLessons(state)` lists
+lessons with few first-try answers or slow answers.
+
+Quick play (`/quick`, `src/games/quick/`) builds a round of 10 from them: three
+easy wins (known words), three challenges (tricky words, then new words from
+challenging lessons) and new or practising words, spread over words,
+sentences, grammar and sounds, with no two challenges side by side and an easy
+win first and last. Each question is asked by one of the other games
+(`quickTargets` lists which games can ask what) and recorded under that game,
+so a new practice game can join Quick play by adding its questions there.
+Targets carry the `categories` and `levels` of their word bank items, and
+`buildQuickRound(targets, state, { include })` keeps only targets that pass
+`include`. QuickPlay passes `preferenceFilter(targets)`, which applies the
+learner's focus areas and difficulty (`src/lib/preferences.js`) to the whole
+mix; grammar and sounds targets have no categories, so focus areas leave them in.
+
+## Learner profile
+
+`/profile` (`src/app/Profile.jsx`) shows what Lingo has worked out from the
+answer statistics: an overall level and one per skill (from the share of
+first-try answers, skills taken from each game's registry `skill`), what is
+going well and what is worth practising (skills, lessons and word bank
+topics), suggested focus areas and difficulty with buttons that save them to
+the shared preferences, the last 7 days, and per-game and per-lesson tables.
+The rules are pure functions in `src/lib/insights.js`. Days also keep
+`firstTry`, `ms` and `timed`.

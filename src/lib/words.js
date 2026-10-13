@@ -220,6 +220,14 @@ export function getSoundLessons() {
   return getItems({ type: "sound" });
 }
 
+// Multi-sentence texts ("text" items): dialogues, short stories, messages,
+// notices. `{ id, kind, title, sentences: [{ en, fi, speaker }], questions,
+// level, categories, features, contexts }`. `kind` filters to one kind.
+export function getTexts({ kind } = {}) {
+  const texts = getItems({ type: "text" });
+  return kind ? texts.filter((t) => t.kind === kind) : texts;
+}
+
 // Sets of small words that are easy to mix up (is / are / am …), as arrays of
 // words, for picking believable wrong options.
 export function getWordGroups() {
@@ -227,8 +235,8 @@ export function getWordGroups() {
 }
 
 // Every whole sentence in the word bank as pairs `{ learning, native, id }`:
-// multi-word phrases, example sentences of words and rules, and fill-the-gap
-// sentences with the gap filled in. Pairs without a translation in
+// multi-word phrases, example sentences of words and rules, sentences of
+// texts, and fill-the-gap sentences with the gap filled in. Pairs without a translation in
 // `nativeLang` are left out. `preferences`: as in filterCommonWords.
 export function getSentences({
   learningLang = DEFAULT_LEARNING_LANG,
@@ -252,6 +260,9 @@ export function getSentences({
       (item.examples || []).forEach((ex, i) =>
         add(`${item.id}#${i + 1}`, exampleText(ex, learningLang), exampleText(ex, nativeLang), item.categories, item.level)
       );
+    }
+    if (item.type === "text" && learningLang.startsWith("en")) {
+      item.sentences.forEach((line, i) => add(`${item.id}#${i + 1}`, line.en, line[nativeLang], item.categories));
     }
     if (item.type === "gap" && item.lang.split("-")[0] === learningLang.split("-")[0]) {
       add(item.id, item.sentence.replace("___", item.answers[0]), item.translation?.[nativeLang], item.categories, item.level);

@@ -10,8 +10,24 @@ import FillGapGame from "./fill-gap/FillGapGame";
 import { GrammarGame, MixedUpGame } from "./gap/GapGames";
 import SayGame from "./say/SayGame";
 import SoundsGame from "./sounds/SoundsGame";
+import QuickPlay from "./quick/QuickPlay";
 
 export const GAMES = [
+  {
+    // Shown above the game cards. It asks questions from the other games and
+    // records them under those games, so it isn't a game of its own for
+    // progress or the Explorer badge.
+    id: "quick-play",
+    featured: true,
+    name: "Quick play",
+    nameFi: "Pikapeli",
+    description: "A mix of games picked for you: a few easy wins and a few challenges.",
+    art: "mix",
+    minutes: 4,
+    skill: "Mixed",
+    path: "/quick",
+    routes: [{ path: "/quick", Component: QuickPlay }],
+  },
   {
     id: "hangman",
     name: "Word Hangman",
@@ -130,4 +146,4 @@ export const GAMES = [
   },
 ];
 
-export const PLAYABLE_GAME_IDS = GAMES.filter((g) => !g.soon).map((g) => g.id);
+export const PLAYABLE_GAME_IDS = GAMES.filter((g) => !g.soon && !g.featured).map((g) => g.id);

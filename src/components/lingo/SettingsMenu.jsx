@@ -6,7 +6,7 @@ import { useProgress } from "../../app/ProgressContext";
 import { DAILY_GOAL_OPTIONS } from "../../lib/progress";
 
 // Settings popover: language, theme, sound effects, daily goal and a link to
-// focus areas and difficulty, plus any game-specific
+// focus areas and difficulty and the learner profile, plus any game-specific
 // `actions` ([{ label, onClick }]) such as "Restart".
 export default function SettingsMenu({ actions = [] }) {
   const { lang, setLang, theme, setTheme, sound, setSound, t } = useSettings();
@@ -102,6 +102,9 @@ export default function SettingsMenu({ actions = [] }) {
           </div>
           <Link to="/preferences" className="lg-btn lg-btn--secondary" onClick={() => setOpen(false)}>
             {t.preferencesTitle}
+          </Link>
+          <Link to="/profile" className="lg-btn lg-btn--quiet" onClick={() => setOpen(false)}>
+            {t.profile.title}
           </Link>
           <p className="lg-menu__foot">
             <a href="https://github.com/amahlaka/lingo-hangman" target="_blank" rel="noopener noreferrer">

@@ -33,6 +33,10 @@ function bannerFor(events, { t, dailyGoal, answer }) {
 // onItem(outcome) for each word as it is finished, then onDone({ board: true })
 // once the whole question is done.
 //
+// Every answer is recorded with how long it took and, when the question has
+// one, its lesson (`lesson`, `lessonId` or `setId`). A question may also carry
+// its own `gameId` and `meaningInFeedback`; Quick play mixes games that way.
+//
 // Props:
 //   gameId, title, intro   game identity and its one-line instruction
 //   learningLang           language of the answers, reported with each word
@@ -45,9 +49,12 @@ function bannerFor(events, { t, dailyGoal, answer }) {
 //   keys                   practice string keys to use instead of correctTitle,
 //                          correctFirstTry, correctLater and retryTitle
 //   endExtra               optional element shown above "All games" on the end screen
+//   endNote(results)       optional element under the end screen numbers; each
+//                          result carries the `question` it answered
 export default function PracticeSession({
   gameId, title, intro, learningLang, nativeLang, buildQuestions, renderQuestion, empty,
   endTitleKey = "endTitle", recapTitleKey = "recapTitle", meaningInFeedback = true, keys, endExtra = null,
+  endNote = null,
 }) {
   const { t, lang } = useSettings();
   const { recordWord, dailyGoal } = useProgress();
@@ -69,10 +76,16 @@ export default function PracticeSession({
   const timer = useRef(null);
   // Words finished so far in a multi-word question, and the biggest banner they earned.
   const board = useRef({ items: [], banner: null });
+  // When the current question (or the board's last word) appeared, for answer times.
+  const shownAt = useRef(Date.now());
 
   const finished = questions.length > 0 && index >= questions.length;
 
   useEffect(() => () => clearTimeout(timer.current), []);
+
+  useEffect(() => {
+    shownAt.current = Date.now();
+  }, [index, roundKey]);
 
   // Put focus on the one next step as soon as it appears.
   useEffect(() => {
@@ -86,17 +99,22 @@ export default function PracticeSession({
   }, [finished, celebrate]);
 
   const record = (outcome) => {
+    const question = questions[index];
+    const now = Date.now();
     const events = recordWord({
-      gameId,
+      gameId: question?.gameId || gameId,
+      lesson: question?.lesson || question?.lessonId || question?.setId || undefined,
       word: outcome.answer,
       lang: learningLang,
       solved: outcome.solved,
       triesLeft: outcome.solved ? outcome.triesLeft : 0,
       perfect: outcome.solved && outcome.firstTry,
+      ms: now - shownAt.current,
     });
+    shownAt.current = now;
     const banner = bannerFor(events, { t, dailyGoal, answer: outcome.answer });
     setTally((s) => addResult(s, { ...outcome, xp: events.xpGained }));
-    setResults((r) => [...r, outcome]);
+    setResults((r) => [...r, { ...outcome, question }]);
     setPlus({ n: events.xpGained, key: Date.now() });
     return { xp: events.xpGained, banner };
   };
@@ -190,6 +208,7 @@ export default function PracticeSession({
             <div><dt>{p.endBestRun}</dt><dd>{tally.bestRun}</dd></div>
             <div><dt>{t.pointsLabel}</dt><dd>{tally.xp}</dd></div>
           </dl>
+          {endNote && endNote(results)}
           <WordRecap
             title={p[recapTitleKey]}
             words={results.map((r) => ({ learning: r.answer, native: r.meaning, solved: r.solved }))}
@@ -210,6 +229,7 @@ export default function PracticeSession({
   }
 
   const question = questions[index];
+  const showMeaning = question.meaningInFeedback ?? meaningInFeedback;
   const isLast = index === questions.length - 1;
   const progressLabel = fill(p.progress, { n: index + 1, total: questions.length });
 
@@ -249,7 +269,7 @@ export default function PracticeSession({
               <Feedback
                 variant="correct"
                 title={fill(p[k.correctTitle], { answer: current.answer })}
-                fi={helper && meaningInFeedback ? fill(fi.meansIn, { answer: current.answer, fi: current.meaning }) : undefined}
+                fi={helper && showMeaning ? fill(fi.meansIn, { answer: current.answer, fi: current.meaning }) : undefined}
               >
                 {current.firstTry ? p[k.correctFirstTry] : fill(p[k.correctLater], { n: current.tries })}{" "}
                 {fill(t.xpEarned, { n: current.xp })}

@@ -38,6 +38,7 @@ export function itemLabel(item) {
     case "confusable": return item.title?.en || (item.words || []).map((w) => w.text).filter(Boolean).join(" / ") || item.id;
     case "group": return item.title?.en || item.id;
     case "sound": return item.title?.en || item.id;
+    case "text": return item.title?.en || item.id;
     default: return item.id;
   }
 }
@@ -49,6 +50,7 @@ export const TYPE_NAMES = {
   confusable: "Mixed-up words",
   group: "Word group",
   sound: "Pronunciation lesson",
+  text: "Text (several sentences)",
 };
 
 // A new item of `type` with an id that isn't taken yet.
@@ -63,6 +65,7 @@ export function blankItem(type, takenIds) {
     case "confusable": return { id, type, words: [{ text: "", meaning: { fi: "" } }, { text: "", meaning: { fi: "" } }], explanation: { en: "", fi: "" } };
     case "group": return { id, type, title: { en: "", fi: "" }, words: [] };
     case "sound": return { id, type, kind: "silent", title: { en: "", fi: "" }, explanation: { en: "", fi: "" }, words: [{ text: "", say: { fi: "" }, meaning: { fi: "" } }] };
+    case "text": return { id, type, kind: "dialogue", title: { en: "", fi: "" }, sentences: [{ en: "", fi: "", speaker: "" }, { en: "", fi: "", speaker: "" }] };
     default: return { id, type };
   }
 }
@@ -120,7 +123,28 @@ export function tidyItem(item) {
     if (out.kind !== "sound") delete out.sounds;
     else if (Array.isArray(out.sounds)) out.sounds = out.sounds.map((s) => ({ ...s, label: tidyMap(s.label) }));
   }
-  if (Array.isArray(out.categories) && out.categories.length === 0) delete out.categories;
-  if (out.topic === "") delete out.topic;
+  if (out.type === "text") {
+    if (Array.isArray(out.sentences)) {
+      out.sentences = out.sentences.map(({ speaker, ...text }) => {
+        const line = tidyMap(text);
+        return typeof speaker === "string" && speaker.trim() ? { ...line, speaker } : line;
+      });
+    }
+    if (Array.isArray(out.questions)) {
+      out.questions = out.questions.map((q) => ({ ...q, question: tidyMap(q.question) }));
+      if (!out.questions.length) delete out.questions;
+    }
+  }
+  // Optional metadata (see FEATURES and friends in contentSchema.js).
+  for (const key of ["ipa", "note"]) {
+    if (out[key]) out[key] = tidyMap(out[key]);
+    dropIfEmpty(out, key);
+  }
+  for (const key of ["categories", "features", "contexts"]) {
+    if (Array.isArray(out[key]) && out[key].length === 0) delete out[key];
+  }
+  for (const key of ["topic", "pos", "register"]) {
+    if (out[key] === "") delete out[key];
+  }
   return out;
 }

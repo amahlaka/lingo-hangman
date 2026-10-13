@@ -255,7 +255,10 @@ export function buildGapQuestion(target, pool, random = Math.random, groups = ge
   const split = raw.map((r) => r.match(/^([^\p{L}\p{N}']*)(.*?)([^\p{L}\p{N}']*)$/u));
   const sentenceWords = split.map((m) => m[2]);
   const spots = shuffle(
-    sentenceWords.map((w, i) => ({ w, i })).filter(({ w }) => gapTokens(w).length === 1 && !/^\p{Lu}{2,}$/u.test(w)),
+    // Not names, days or places in mid-sentence ("Wednesday"): the capital would give them away.
+    sentenceWords
+      .map((w, i) => ({ w, i }))
+      .filter(({ w, i }) => gapTokens(w).length === 1 && !/^\p{Lu}{2,}$/u.test(w) && (i === 0 || w === "I" || !/^\p{Lu}/u.test(w))),
     random
   );
   for (const { w: answer, i } of spots) {

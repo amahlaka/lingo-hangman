@@ -35,6 +35,8 @@ jobs:
       - uses: actions/checkout@v5
         with:
           ref: ${{ inputs.ref }}
+          # The build runs npm install scripts; keep the GitHub token out of .git/config.
+          persist-credentials: false
 
       - name: Work out the release name
         id: meta

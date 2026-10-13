@@ -210,3 +210,14 @@ Targets carry the `categories` and `levels` of their word bank items, and
 `include`. QuickPlay passes `preferenceFilter(targets)`, which applies the
 learner's focus areas and difficulty (`src/lib/preferences.js`) to the whole
 mix; grammar and sounds targets have no categories, so focus areas leave them in.
+
+## Learner profile
+
+`/profile` (`src/app/Profile.jsx`) shows what Lingo has worked out from the
+answer statistics: an overall level and one per skill (from the share of
+first-try answers, skills taken from each game's registry `skill`), what is
+going well and what is worth practising (skills, lessons and word bank
+topics), suggested focus areas and difficulty with buttons that save them to
+the shared preferences, the last 7 days, and per-game and per-lesson tables.
+The rules are pure functions in `src/lib/insights.js`. Days also keep
+`firstTry`, `ms` and `timed`.

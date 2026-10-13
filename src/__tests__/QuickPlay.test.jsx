@@ -53,3 +53,23 @@ describe("Quick play", () => {
     expect(screen.getByText("Quickest for you").nextSibling).toHaveTextContent("Pick the meaning");
   });
 });
+
+describe("Profile", () => {
+  it("shows the level, skills and suggestions, and saves suggested settings", () => {
+    let state = emptyProgress();
+    for (let i = 0; i < 12; i++) state = recordWord(state, { gameId: "meaning", word: `m${i}`, lang: "en-GB", solved: true, perfect: true, ms: 2000 }).state;
+    for (let i = 0; i < 10; i++) state = recordWord(state, { gameId: "phrase", word: `p${i} x y`, lang: "en-GB", solved: i < 2, perfect: i < 2, ms: 9000 }).state;
+    renderApp("/profile", { storage: saved(state) });
+    expect(screen.getByRole("heading", { name: "Skills" })).toBeInTheDocument();
+    expect(screen.getAllByText("Vocabulary").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Strong").length).toBeGreaterThan(0);
+    expect(screen.getByRole("heading", { name: "Worth practising" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Use this difficulty" }));
+    expect(screen.getByRole("status")).toHaveTextContent("Saved.");
+  });
+
+  it("asks for a few more answers before showing a level", () => {
+    renderApp("/profile");
+    expect(screen.getByText(/Answer 20 more questions/)).toBeInTheDocument();
+  });
+});

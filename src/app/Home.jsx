@@ -55,6 +55,7 @@ function AnswerStats({ state, t, lang }) {
         )}
       </dl>
       <p className="lg-caption">{q.statsHint}</p>
+      <Link to="/profile" className="lg-btn lg-btn--secondary">{t.profile.link}</Link>
     </section>
   );
 }

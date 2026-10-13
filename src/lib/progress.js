@@ -28,7 +28,7 @@ export function emptyProgress() {
     version: 1,
     xp: 0,
     dailyGoal: DEFAULT_DAILY_GOAL,
-    // "YYYY-MM-DD" -> { words, solved, xp, goalMet }
+    // "YYYY-MM-DD" -> { words, solved, xp, goalMet, firstTry, ms, timed }
     days: {},
     // lastDay: the last day the goal was met.
     streak: { current: 0, best: 0, lastDay: null, restDays: [] },
@@ -274,11 +274,15 @@ export function recordWord(state, result, { day = dayKey(), gameIds = [] } = {})
   const levelBefore = levelInfo(state.xp).level;
 
   const prevDay = dayStats(state, day);
+  const dayTime = timedMs(ms);
   const dayEntry = {
     ...prevDay,
     words: prevDay.words + 1,
     solved: prevDay.solved + (solved ? 1 : 0),
     xp: prevDay.xp + xpGained,
+    firstTry: (prevDay.firstTry || 0) + (solved && perfect ? 1 : 0),
+    ms: (prevDay.ms || 0) + (dayTime ?? 0),
+    timed: (prevDay.timed || 0) + (dayTime === null ? 0 : 1),
   };
   // Every finished word counts towards the daily goal; practice is practice.
   const goalReached = !prevDay.goalMet && dayEntry.words >= state.dailyGoal;

@@ -1,12 +1,65 @@
 import React from "react";
+import { Link } from "react-router-dom";
+import { Shuffle } from "lucide-react";
 import { useSettings } from "./SettingsContext";
 import { useProgress } from "./ProgressContext";
 import { fill } from "../i18n";
 import { GAMES, PLAYABLE_GAME_IDS } from "../games/registry";
-import { achievementList } from "../lib/progress";
+import { achievementList, answerSummary } from "../lib/progress";
+import { wordStanding } from "../lib/adaptive";
 import { Achievements, DailyProgress, Feedback, GameCard, SettingsMenu } from "../components/lingo";
 
-// Home screen: progress, one card per game and achievements.
+// Show answer statistics once there are enough answers to say something.
+const MIN_ANSWERS_FOR_STATS = 10;
+
+const seconds = (ms) => (ms / 1000).toFixed(1);
+
+// Quick play, above the game cards.
+function QuickPlayCard({ t, lang }) {
+  const q = t.quick;
+  return (
+    <Link to="/quick" className="lg-card qp-card">
+      <span className="qp-card__icon" aria-hidden="true"><Shuffle size={28} strokeWidth={2} /></span>
+      <span className="qp-card__text">
+        <span className="lg-card__name">{q.name}</span>
+        <span className="lg-card__fi" lang={lang === "fi" ? "en" : "fi"}>{q.nameFi}</span>
+        <span className="lg-card__desc">{q.cardDesc}</span>
+      </span>
+    </Link>
+  );
+}
+
+// Average answer time, the quickest and slowest game, and how many words the
+// learner knows well. Neutral numbers only: nothing here counts misses.
+function AnswerStats({ state, t, lang }) {
+  const summary = answerSummary(state);
+  if (summary.timed < MIN_ANSWERS_FOR_STATS) return null;
+  const q = t.quick;
+  const nameOf = (id) => {
+    const game = GAMES.find((g) => g.id === id);
+    return game ? (lang === "fi" ? game.nameFi : game.name) : id;
+  };
+  const games = summary.games.filter((g) => g.n >= 3 && g.id !== "unknown");
+  const known = Object.values(state.words).filter((w) => wordStanding(w) === "known").length;
+  return (
+    <section className="lg-section">
+      <h2 className="lg-heading">{q.statsTitle}</h2>
+      <dl className="pg-stats qp-stats">
+        <div><dt>{q.avgTime}</dt><dd>{fill(q.seconds, { n: seconds(summary.meanMs) })}</dd></div>
+        <div><dt>{q.knownWords}</dt><dd>{known}</dd></div>
+        {games.length > 1 && (
+          <>
+            <div><dt>{q.quickest}</dt><dd className="qp-stats__name">{nameOf(games[games.length - 1].id)}</dd></div>
+            <div><dt>{q.longest}</dt><dd className="qp-stats__name">{nameOf(games[0].id)}</dd></div>
+          </>
+        )}
+      </dl>
+      <p className="lg-caption">{q.statsHint}</p>
+    </section>
+  );
+}
+
+// Home screen: progress, Quick play, one card per game and achievements.
 export default function Home() {
   const { t, lang } = useSettings();
   const { state, streak, today, dailyGoal, learnedWords } = useProgress();
@@ -36,10 +89,12 @@ export default function Home() {
         <DailyProgress />
         <Feedback variant={nudge.variant} icon={nudge.icon} title={nudge.title} />
 
+        <QuickPlayCard t={t} lang={lang} />
+
         <section className="lg-section">
           <h2 className="lg-heading">{t.chooseGame}</h2>
           <div className="lg-cards">
-            {GAMES.map((game) => (
+            {GAMES.filter((game) => !game.featured).map((game) => (
               <GameCard key={game.id} game={game} lang={lang} />
             ))}
           </div>
@@ -51,6 +106,8 @@ export default function Home() {
           </p>
           <p className="lg-caption">{t.learnedWordsHint}</p>
         </section>
+
+        <AnswerStats state={state} t={t} lang={lang} />
 
         <section className="lg-section">
           <h2 className="lg-heading">{t.achievementsTitle}</h2>

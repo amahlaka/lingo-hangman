@@ -17,7 +17,7 @@ import {
 
 const PHRASE_ROUND = 6;
 
-function PhraseQuestion({ puzzle, done, onDone, p, learningLang, nativeLang, nativeLabel }) {
+export function PhraseQuestion({ puzzle, done, onDone, p, learningLang, nativeLang, nativeLabel }) {
   const [placed, setPlaced] = useState([]);
   const [misses, setMisses] = useState(0);
   const [hint, setHint] = useState("");

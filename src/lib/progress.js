@@ -13,6 +13,10 @@
 // - Daily streak: days in a row with the goal met. One rest day per week is
 //   used automatically so one busy day doesn't break the streak.
 // - A word counts as learned after it is solved on 3 different days.
+//
+// It also keeps answer statistics, all on this device, so Quick play can
+// adapt: how long answers take per game and per lesson, and for each word its
+// misses, answer time and last few results (see `recent` below).
 
 export const XP_PER_LEVEL = 250;
 export const DAILY_GOAL_OPTIONS = [5, 10, 20];
@@ -28,13 +32,18 @@ export function emptyProgress() {
     days: {},
     // lastDay: the last day the goal was met.
     streak: { current: 0, best: 0, lastDay: null, restDays: [] },
-    // word key -> { solved, lost, days: [up to 3 "YYYY-MM-DD"] }
+    // word key -> { solved, lost, days: [up to 3 "YYYY-MM-DD"],
+    //              ms, timed, recent, last }
+    // ms / timed: total and count of timed answers; recent: the last few
+    // results as a string, see answerMark(); last: day last practised.
     words: {},
     totals: { words: 0, solved: 0, perfect: 0 },
     // gameId -> rounds played
     games: {},
     // achievement id -> "YYYY-MM-DD" unlocked
     achievements: {},
+    // Answer tallies (see addTally) per game id and per "gameId:lesson".
+    stats: { games: {}, lessons: {} },
   };
 }
 
@@ -136,6 +145,67 @@ export function dayStats(state, day = dayKey()) {
   return state.days[day] || { words: 0, solved: 0, xp: 0, goalMet: false };
 }
 
+// ---- Answer statistics ----
+
+// Longer answers count as this long, so a learner who leaves the tab open
+// doesn't skew their average.
+export const MAX_ANSWER_MS = 60000;
+// An answer counts as slow when it takes this many times the learner's own
+// average for that game (once the game has MIN_TIMED timed answers).
+export const SLOW_FACTOR = 1.6;
+export const MIN_TIMED = 5;
+// How many recent results each word remembers.
+export const RECENT_LENGTH = 5;
+
+const emptyTally = () => ({ n: 0, solved: 0, firstTry: 0, ms: 0, timed: 0 });
+
+function timedMs(ms) {
+  return Number.isFinite(ms) && ms > 0 ? Math.min(ms, MAX_ANSWER_MS) : null;
+}
+
+export function addTally(tally, { solved, perfect, ms }) {
+  const prev = tally || emptyTally();
+  const t = timedMs(ms);
+  return {
+    n: prev.n + 1,
+    solved: prev.solved + (solved ? 1 : 0),
+    firstTry: prev.firstTry + (solved && perfect ? 1 : 0),
+    ms: prev.ms + (t ?? 0),
+    timed: prev.timed + (t === null ? 0 : 1),
+  };
+}
+
+// Average answer time in ms, or null before anything was timed.
+export function meanMs(tally) {
+  return tally?.timed ? tally.ms / tally.timed : null;
+}
+
+export function isSlow(ms, gameTally) {
+  const t = timedMs(ms);
+  const mean = meanMs(gameTally);
+  return t !== null && mean !== null && gameTally.timed >= MIN_TIMED && t > SLOW_FACTOR * mean;
+}
+
+// One result as a character in a word's `recent` string:
+// "2" first try without hesitating, "1" solved after a miss or slowly, "0" missed.
+export function answerMark({ solved, perfect, slow }) {
+  if (!solved) return "0";
+  return perfect && !slow ? "2" : "1";
+}
+
+// Overall numbers for the home screen: average answer time and every game and
+// lesson with its average time and first-try share, slowest first.
+export function answerSummary(state) {
+  const stats = state.stats || emptyProgress().stats;
+  const rows = (map) =>
+    Object.entries(map)
+      .map(([id, t]) => ({ id, n: t.n, meanMs: meanMs(t), firstTryRate: t.n ? t.firstTry / t.n : 0 }))
+      .filter((r) => r.meanMs !== null)
+      .sort((a, b) => b.meanMs - a.meanMs);
+  const all = Object.values(stats.games).reduce((a, t) => ({ ms: a.ms + t.ms, timed: a.timed + t.timed }), { ms: 0, timed: 0 });
+  return { timed: all.timed, meanMs: meanMs(all), games: rows(stats.games), lessons: rows(stats.lessons) };
+}
+
 // ---- Achievements ----
 // `color` follows the design system: lingon for streaks, pine for word
 // milestones, cloudberry for skill feats, lake for exploring.
@@ -194,10 +264,12 @@ function unlockAchievements(state, day, ctx) {
 // Record one finished word. Returns the new state and what happened, so the
 // game can pick the right celebration.
 //
-// result: { gameId, word, lang, solved, triesLeft, perfect }
+// result: { gameId, word, lang, solved, triesLeft, perfect, ms, lesson }
+//   ms: how long the answer took (optional); lesson: the lesson or topic id
+//   inside the game, if it has them (optional).
 // ctx: { gameIds } (all registered games, for the Explorer badge)
 export function recordWord(state, result, { day = dayKey(), gameIds = [] } = {}) {
-  const { gameId = "unknown", word, lang = "en", solved, triesLeft = 0, perfect = false } = result;
+  const { gameId = "unknown", word, lang = "en", solved, triesLeft = 0, perfect = false, ms, lesson } = result;
   const xpGained = xpForWord({ solved, triesLeft, perfect });
   const levelBefore = levelInfo(state.xp).level;
 
@@ -212,15 +284,30 @@ export function recordWord(state, result, { day = dayKey(), gameIds = [] } = {})
   const goalReached = !prevDay.goalMet && dayEntry.words >= state.dailyGoal;
   if (goalReached) dayEntry.goalMet = true;
 
+  const prevStats = state.stats || emptyProgress().stats;
+  const slow = isSlow(ms, prevStats.games[gameId]);
+  const answer = { solved, perfect, ms };
+  const stats = {
+    games: { ...prevStats.games, [gameId]: addTally(prevStats.games[gameId], answer) },
+    lessons: lesson
+      ? { ...prevStats.lessons, [`${gameId}:${lesson}`]: addTally(prevStats.lessons[`${gameId}:${lesson}`], answer) }
+      : prevStats.lessons,
+  };
+
   const words = { ...state.words };
   if (word) {
     const key = wordKey(word, lang);
     const prev = words[key] || { solved: 0, lost: 0, days: [] };
     const days = solved && !prev.days.includes(day) ? [...prev.days, day].slice(-LEARNED_AFTER_DAYS) : prev.days;
+    const t = timedMs(ms);
     words[key] = {
       solved: prev.solved + (solved ? 1 : 0),
       lost: prev.lost + (solved ? 0 : 1),
       days,
+      ms: (prev.ms || 0) + (t ?? 0),
+      timed: (prev.timed || 0) + (t === null ? 0 : 1),
+      recent: ((prev.recent || "") + answerMark({ solved, perfect, slow })).slice(-RECENT_LENGTH),
+      last: day,
     };
   }
 
@@ -235,6 +322,7 @@ export function recordWord(state, result, { day = dayKey(), gameIds = [] } = {})
       perfect: state.totals.perfect + (solved && perfect ? 1 : 0),
     },
     games: { ...state.games, [gameId]: (state.games[gameId] || 0) + 1 },
+    stats,
   };
 
   let streakChange = null;
@@ -261,6 +349,7 @@ export function recordWord(state, result, { day = dayKey(), gameIds = [] } = {})
       streakChange,
       newAchievements: unlocked.unlocked,
       wordLearned: Boolean(learnedNow),
+      slow,
     },
   };
 }
@@ -284,6 +373,7 @@ export function loadProgress(storage = globalThis.localStorage) {
       ...parsed,
       streak: { ...base.streak, ...parsed.streak },
       totals: { ...base.totals, ...parsed.totals },
+      stats: { ...base.stats, ...parsed.stats },
     };
   } catch {
     return emptyProgress();

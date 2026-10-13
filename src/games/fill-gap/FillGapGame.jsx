@@ -12,7 +12,7 @@ const GAP_ROUND = 8;
 // The Finnish sentence sits above it so the right word is never a guess. Once
 // answered, the word drops into the gap and the Finnish moves under the full
 // sentence, as in Build the phrase.
-function GapQuestion({ question, done, onDone, p, learningLang, nativeLang, nativeLabel, uiLang }) {
+export function GapQuestion({ question, done, onDone, p, learningLang, nativeLang, nativeLabel, uiLang }) {
   const { target, answer, options, before, after, explanation } = question;
   // A two-way choice (a / an) is over after one miss.
   const maxMisses = Math.min(MAX_MISSES, options.length - 1);

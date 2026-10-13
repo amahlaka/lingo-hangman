@@ -12,7 +12,7 @@ import { RATE_SLOW, canSpeak, speak, stopSpeaking } from "../../lib/speech";
 // Short items only: long sentences are a different skill from catching a word.
 const MAX_LISTEN_WORDS = 4;
 
-function ListenPrompt({ text, lang, p }) {
+export function ListenPrompt({ text, lang, p }) {
   useEffect(() => {
     speak(text, { lang });
     return stopSpeaking;

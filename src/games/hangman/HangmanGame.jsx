@@ -78,6 +78,12 @@ export default function HangmanGame() {
   const lastGuess = guesses[guesses.length - 1];
   const lastMiss = lastGuess && !inWord(lastGuess) ? lastGuess : null;
 
+  // When this word appeared, for the answer time in the shared statistics.
+  const shownAt = useRef(Date.now());
+  useEffect(() => {
+    shownAt.current = Date.now();
+  }, [answer, roundNumber]);
+
   const finishRound = (solved, missCount) => {
     const events = recordWord({
       gameId: "hangman",
@@ -86,6 +92,7 @@ export default function HangmanGame() {
       solved,
       triesLeft: MAX_MISSES - missCount,
       perfect: solved && missCount === 0,
+      ms: Date.now() - shownAt.current,
     });
     setResult({ solved, events });
     setPoints((p) => p + events.xpGained);

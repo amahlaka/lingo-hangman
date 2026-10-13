@@ -179,3 +179,26 @@ comparison forgivingly (homophones, digits, contractions and extra words are
 fine, and a phrase of four or more words may miss one word in four). Where the
 browser can't listen (Firefox) or the microphone is blocked, the game falls back
 to "say it out loud, then tap I said it".
+
+## Quick play and answer statistics
+
+`recordWord` also keeps answer statistics, on the device only: per game and
+per lesson (`gameId:lesson`) a tally of answers, first tries and answer time,
+and per word its time and last few results (`recent`: `2` quick first try,
+`1` solved after a miss or slowly, `0` missed). An answer counts as slow when
+it takes over 1.6 times the learner's own average for that game.
+PracticeSession times every answer and records the question's lesson
+(`lesson`, `lessonId` or `setId`) for you; a game outside it passes `ms` and
+`lesson` to `recordWord` itself, as hangman passes `ms`.
+
+`src/lib/adaptive.js` reads those numbers: `wordStanding(entry)` says whether a
+word is new, known, practising or tricky, and `challengeLessons(state)` lists
+lessons with few first-try answers or slow answers.
+
+Quick play (`/quick`, `src/games/quick/`) builds a round of 10 from them: three
+easy wins (known words), three challenges (tricky words, then new words from
+challenging lessons) and new or practising words, spread over words,
+sentences, grammar and sounds, with no two challenges side by side and an easy
+win first and last. Each question is asked by one of the other games
+(`quickTargets` lists which games can ask what) and recorded under that game,
+so a new practice game can join Quick play by adding its questions there.

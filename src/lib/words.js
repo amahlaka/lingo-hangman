@@ -8,6 +8,7 @@
 // near the end of this file.
 
 import { getContent, onContentChange } from "./content";
+import { applyPreferences } from "./preferences";
 
 export const DEFAULT_LEARNING_LANG = "en-GB";
 export const DEFAULT_NATIVE_LANG = "fi";
@@ -67,13 +68,16 @@ function wordIn(item, lang) {
 // Built-in words matching the filters, as pairs with their categories attached.
 // `include`: if non-empty, a word needs at least one of these categories.
 // `exclude`: a word with any of these categories is left out.
+// `preferences`: also narrow to the learner's focus areas and difficulty.
 export function filterCommonWords({
   learningLang = DEFAULT_LEARNING_LANG,
   nativeLang = DEFAULT_NATIVE_LANG,
   include = [],
   exclude = [],
+  preferences = false,
 } = {}) {
-  return wordItems().filter((w) => {
+  const items = preferences ? applyPreferences(wordItems(), { textOf: (w) => w.text?.en }) : wordItems();
+  return items.filter((w) => {
     const cats = w.categories || [];
     return (
       wordIn(w, learningLang) &&
@@ -144,7 +148,7 @@ export function loadWordSet(params, { count = 5 } = {}) {
     pairs = decodeWords(encoded) || FALLBACK_WORDS;
     fromLink = true;
   } else {
-    pairs = pickCommonWords({ count, learningLang, nativeLang });
+    pairs = pickCommonWords({ count, learningLang, nativeLang, preferences: true });
   }
   return {
     pairs: shuffle(pairs),
@@ -181,10 +185,11 @@ export function getItems({ type } = {}) {
 // explanation, topic, categories, level }`, where `sentence` has one "___".
 // `topic`: only sentences practising this rule or mixed-up words set.
 // `lang`: sentence language; "en-GB" and "en" both match "en".
-// `include` / `exclude`: categories, as in filterCommonWords.
-export function getGapItems({ topic, lang = DEFAULT_LEARNING_LANG, include = [], exclude = [] } = {}) {
+// `include` / `exclude` / `preferences`: as in filterCommonWords.
+export function getGapItems({ topic, lang = DEFAULT_LEARNING_LANG, include = [], exclude = [], preferences = false } = {}) {
   const base = lang.split("-")[0];
-  return getItems({ type: "gap" }).filter((g) => {
+  const gaps = getItems({ type: "gap" });
+  return (preferences ? applyPreferences(gaps) : gaps).filter((g) => {
     const cats = g.categories || [];
     return (
       g.lang.split("-")[0] === base &&
@@ -224,31 +229,35 @@ export function getWordGroups() {
 // Every whole sentence in the word bank as pairs `{ learning, native, id }`:
 // multi-word phrases, example sentences of words and rules, and fill-the-gap
 // sentences with the gap filled in. Pairs without a translation in
-// `nativeLang` are left out.
-export function getSentences({ learningLang = DEFAULT_LEARNING_LANG, nativeLang = DEFAULT_NATIVE_LANG } = {}) {
+// `nativeLang` are left out. `preferences`: as in filterCommonWords.
+export function getSentences({
+  learningLang = DEFAULT_LEARNING_LANG,
+  nativeLang = DEFAULT_NATIVE_LANG,
+  preferences = false,
+} = {}) {
   const out = [];
   const seen = new Set();
-  const add = (id, learning, native, categories = []) => {
+  const add = (id, learning, native, categories = [], level) => {
     const key = learning?.trim().toLowerCase();
     if (!learning || !native || seen.has(key) || learning.trim().split(/\s+/).length < 2) return;
     seen.add(key);
-    out.push({ id, learning, native, categories });
+    out.push({ id, learning, native, categories, level });
   };
   const exampleText = (ex, lang) => ex[lang] || (lang.startsWith("en") ? ex.en : undefined);
   for (const item of getContent().items) {
     if (item.type === "word") {
-      add(item.id, wordIn(item, learningLang), wordIn(item, nativeLang), item.categories);
+      add(item.id, wordIn(item, learningLang), wordIn(item, nativeLang), item.categories, item.level);
     }
     if (item.type === "word" || item.type === "rule") {
       (item.examples || []).forEach((ex, i) =>
-        add(`${item.id}#${i + 1}`, exampleText(ex, learningLang), exampleText(ex, nativeLang), item.categories)
+        add(`${item.id}#${i + 1}`, exampleText(ex, learningLang), exampleText(ex, nativeLang), item.categories, item.level)
       );
     }
     if (item.type === "gap" && item.lang.split("-")[0] === learningLang.split("-")[0]) {
-      add(item.id, item.sentence.replace("___", item.answers[0]), item.translation?.[nativeLang], item.categories);
+      add(item.id, item.sentence.replace("___", item.answers[0]), item.translation?.[nativeLang], item.categories, item.level);
     }
   }
-  return out;
+  return preferences ? applyPreferences(out, { textOf: (s) => s.learning }) : out;
 }
 
 refresh(getContent());

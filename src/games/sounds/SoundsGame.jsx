@@ -139,15 +139,16 @@ function Lesson({ lesson }) {
             ))}
           </ul>
         </section>
-        <div className="lg-stack snd-actions">
-          {(speech || !BY_EAR.includes(lesson.kind)) && (
-            <Link to={`/sounds?set=${lesson.id}&practise=1`} className="lg-btn lg-btn--primary lg-btn--hero">
-              {s.practise}
-            </Link>
-          )}
-          <Link to="/sounds" className="lg-btn lg-btn--quiet">{s.allLessons}</Link>
-        </div>
       </main>
+      {/* In the tray so the next step is on screen without scrolling the word list. */}
+      <div className="lg-tray lg-tray--actions snd-actions">
+        {(speech || !BY_EAR.includes(lesson.kind)) && (
+          <Link to={`/sounds?set=${lesson.id}&practise=1`} className="lg-btn lg-btn--primary lg-btn--hero">
+            {s.practise}
+          </Link>
+        )}
+        <Link to="/sounds" className="lg-btn lg-btn--quiet">{s.allLessons}</Link>
+      </div>
     </GameScreen>
   );
 }

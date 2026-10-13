@@ -22,8 +22,10 @@ export default function HangmanGame() {
   const { celebrate, confetti } = useConfetti();
 
   const search = params.toString();
-  const wordSet = useMemo(() => loadWordSet(new URLSearchParams(search)), [search]);
-  const { pairs: words, learningLang, nativeLang, swap: swapMode } = wordSet;
+  // Bumped to draw new random words when the set did not come from a link.
+  const [draw, setDraw] = useState(0);
+  const wordSet = useMemo(() => loadWordSet(new URLSearchParams(search)), [search, draw]);
+  const { pairs: words, learningLang, nativeLang, swap: swapMode, fromLink } = wordSet;
 
   // Words still to solve, by index into `words`. A lost word moves to the end.
   const [queue, setQueue] = useState(() => words.map((_, i) => i));
@@ -164,6 +166,10 @@ export default function HangmanGame() {
   }, [roundOver, allDone, queue, isLost, swapMode]);
 
   const handleRestart = () => {
+    if (!fromLink) {
+      setDraw((d) => d + 1);
+      return;
+    }
     setQueue(shuffle(words.map((_, i) => i)));
     setRoundNumber(1);
     setTotalRounds(words.length);
@@ -251,8 +257,9 @@ export default function HangmanGame() {
         </main>
         <div className="lg-tray lg-tray--actions">
           <button type="button" className="lg-btn lg-btn--primary lg-btn--hero" onClick={handleRestart} autoFocus>
-            {t.playAgainSet}
+            {fromLink ? t.playAgainSet : t.playNewWords}
           </button>
+          <Link to="/hangman/words" className="lg-btn lg-btn--quiet">{t.useYourOwnWords}</Link>
           <Link to="/" className="lg-btn lg-btn--quiet">{t.allGames}</Link>
         </div>
       </GameScreen>

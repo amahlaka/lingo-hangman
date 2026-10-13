@@ -15,7 +15,7 @@ export function practicePool(params) {
   const nativeLang = params.get("nativeLang") || DEFAULT_NATIVE_LANG;
   const encoded = params.get("words");
   const fromLink = encoded ? decodeWords(encoded) : null;
-  const pairs = fromLink || filterCommonWords({ learningLang, nativeLang });
+  const pairs = fromLink || filterCommonWords({ learningLang, nativeLang, preferences: true });
   return { pairs: usableWords(pairs), learningLang, nativeLang, fromLink: Boolean(fromLink) };
 }
 

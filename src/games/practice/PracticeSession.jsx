@@ -198,7 +198,8 @@ export default function PracticeSession({
   };
 
   const goNext = () => {
-    if (rule.mode === "step" && !ruleStep) {
+    // A question that only moved its reading into the bar has no rule to show.
+    if (rule.mode === "step" && !ruleStep && stepSlot?.childElementCount) {
       setRuleStep(true);
       stepSlot?.scrollIntoView?.({ block: "start" });
       return;

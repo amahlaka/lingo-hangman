@@ -305,6 +305,11 @@ const i18n = {
       silentMark: "silent",
       noSpeech: "This browser can't play sound. You can still read the rules and practise silent and tricky letters, but sound-alike words and letter names need sound.",
     },
+    // Tooltips for words in rule texts; shown in the language of the word.
+    terms: {
+      vowel: { title: "Vowels", letters: "a, e, i, o, u", note: "Sometimes y too, as in gym." },
+      consonant: { title: "Consonants", letters: "b, c, d, f, g, h, j, k, l, m, n, p, q, r, s, t, v, w, x, y, z", note: "Every letter that is not a vowel." },
+    },
   },
   fi: {
     appTagline: "Lyhyitä englannin sanapelejä. Virheet kuuluvat asiaan.",
@@ -609,6 +614,10 @@ const i18n = {
       letterChoices: "Kirjaimet",
       silentMark: "äänetön",
       noSpeech: "Tämä selain ei voi toistaa ääntä. Voit silti lukea säännöt ja harjoitella äänettömiä ja hankalia kirjaimia, mutta samalta kuulostaviin sanoihin ja kirjainten nimiin tarvitaan ääni.",
+    },
+    terms: {
+      vowel: { title: "Englannin vokaalit", letters: "a, e, i, o, u", note: "Joskus myös y, kuten sanassa gym." },
+      consonant: { title: "Englannin konsonantit", letters: "b, c, d, f, g, h, j, k, l, m, n, p, q, r, s, t, v, w, x, y, z", note: "Kaikki kirjaimet, jotka eivät ole vokaaleja." },
     },
   }
 };

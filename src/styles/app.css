@@ -307,6 +307,21 @@ a { color: var(--lake); }
 .gp-why__part + .gp-why__part { margin-top: var(--space-3); }
 .gp-why__text { margin: 0; font: 400 16px/24px var(--font-sans); color: var(--ink); }
 .gp-why__fi { margin: var(--space-1) 0 0; font: 400 15px/22px var(--font-sans); color: var(--ink-muted); }
+.lg-example { background: none; color: var(--lingon); font-weight: 700; }
+/* The rule after answering: a faded preview in the bottom bar that opens
+   upwards, or its own view after "Next" (see games/practice/RuleBox.jsx). */
+.pg-tray-slot:empty { display: none; }
+.pg-tray-slot { width: 100%; }
+.pg-tray-rule__body { max-height: 7.5rem; overflow: hidden; transition: max-height .3s ease-out; }
+.pg-tray-rule__body .gp-why { margin-top: 0; }
+.pg-tray-rule--clipped .pg-tray-rule__body { -webkit-mask-image: linear-gradient(to bottom, #000 55%, transparent); mask-image: linear-gradient(to bottom, #000 55%, transparent); }
+.pg-tray-rule--open .pg-tray-rule__body { max-height: min(60dvh, 32rem); overflow-y: auto; }
+.pg-tray-rule__toggle { display: flex; margin: var(--space-1) auto 0; }
+.pg-rule-step[hidden] { display: none; }
+.pg-rule-step .gp-why { margin-top: 0; }
+.pg-peek { display: flex; flex-direction: column; align-items: center; gap: var(--space-1); text-align: center; }
+.pg-peek .lg-caption { margin: 0; }
+@media (prefers-reduced-motion: reduce) { .pg-tray-rule__body { transition: none; } }
 .gp-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
 /* Say it (speaking practice) */

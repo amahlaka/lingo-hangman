@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from "react";
 import { Volume2 } from "lucide-react";
 import { useSettings } from "../../app/SettingsContext";
+import { ExampleText } from "../../components/lingo";
 import i18n, { fill } from "../../i18n";
 import { sounds } from "../../lib/sounds";
 import { RATE_SLOW, canSpeak, speak, stopSpeaking } from "../../lib/speech";
 import { BY_EAR, markedIndexes, maxMissesFor } from "./soundsLogic";
+import { RuleBox, RulePeek } from "../practice/RuleBox";
 
 const LEARNING_LANG = "en-GB";
 
@@ -45,11 +47,11 @@ export function ListenButtons({ text, s, autoPlay = false }) {
 // in the Finnish one.
 function Both({ text, lang, className = "" }) {
   if (!text) return null;
-  if (lang === "fi") return <p className={`${className}__text`} lang="fi">{text.fi || text.en}</p>;
+  if (lang === "fi") return <p className={`${className}__text`} lang="fi"><ExampleText text={text.fi || text.en} /></p>;
   return (
     <>
-      <p className={`${className}__text`}>{text.en}</p>
-      {text.fi && <p className={`${className}__fi`} lang="fi">{text.fi}</p>}
+      <p className={`${className}__text`}><ExampleText text={text.en} /></p>
+      {text.fi && <p className={`${className}__fi`} lang="fi"><ExampleText text={text.fi} /></p>}
     </>
   );
 }
@@ -69,11 +71,10 @@ function AfterAnswer({ question, showRule, lang, s }) {
       )}
       {!onOptions && word.fi && <p className="snd-meaning" lang="fi">{word.fi}</p>}
       {(word.note || showRule) && (
-        <section className="gp-why snd-why" aria-label={s.rule}>
-          <h3 className="lg-caption gp-why__title">{s.rule}</h3>
+        <RuleBox label={s.rule} className="snd-why">
           {word.note && <div className="gp-why__part"><Both text={word.note} lang={lang} className="gp-why" /></div>}
           {showRule && <div className="gp-why__part"><Both text={question.explanation} lang={lang} className="gp-why" /></div>}
-        </section>
+        </RuleBox>
       )}
     </div>
   );
@@ -94,6 +95,9 @@ export default function SoundQuestion({ question, done, onDone, showRule = false
   const [missed, setMissed] = useState([]);
   const [picked, setPicked] = useState(null);
   const [wobble, setWobble] = useState(null);
+  const [peeked, setPeeked] = useState(false);
+  // Only the lesson's rule can be peeked at; the word's own note gives the answer away.
+  const canPeek = showRule && Boolean(question.explanation);
 
   const isRight = (key) => (kind === "silent" ? silentAt.includes(key) : key === question.answer);
 
@@ -212,6 +216,12 @@ export default function SoundQuestion({ question, done, onDone, showRule = false
       )}
 
       {!done && missed.length > 0 && <p className="pg-hint" role="status">{t.practice.tryAnother}</p>}
+      {!done && peeked && (
+        <RuleBox label={s.rule} className="snd-why">
+          <div className="gp-why__part"><Both text={question.explanation} lang={lang} className="gp-why" /></div>
+        </RuleBox>
+      )}
+      {!done && !peeked && canPeek && <RulePeek onPeek={() => setPeeked(true)} />}
       {done && <AfterAnswer question={question} showRule={showRule} lang={lang} s={s} />}
     </div>
   );

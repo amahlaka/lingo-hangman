@@ -48,13 +48,17 @@ function ListInput({ value, onChange, ...rest }) {
 }
 
 // { en: "...", fi: "..." } with one input per language in `langs`.
-function TextMap({ label, value = {}, langs, onChange, multiline = false, labels: extraLabels = {} }) {
+// Explanations colour their English examples; see ExampleText.
+const EXAMPLE_HINT = "Put English examples between asterisks: Sanotaan vain *n*, joten *know* kuulostaa samalta kuin *no*.";
+
+function TextMap({ label, value = {}, langs, onChange, multiline = false, labels: extraLabels = {}, hint = null }) {
   const labels = { en: "English", fi: "Finnish", ...extraLabels };
   const shown = Array.from(new Set([...langs, ...Object.keys(value)]));
   const Input = multiline ? "textarea" : "input";
   return (
     <fieldset className="wb-fieldset">
       <legend>{label}</legend>
+      {hint && <p className="lg-caption">{hint}</p>}
       <div className="wb-grid">
         {shown.map((lang) => (
           <label key={lang} className="lg-field wb-field">
@@ -353,14 +357,14 @@ export default function ItemForm({ item, onChange, languages, topics, categories
             </Field>
           </div>
           <TextMap label="Translation" value={item.translation} langs={["fi"]} onChange={(translation) => set({ translation })} />
-          <TextMap label="Explanation shown after answering (optional)" value={item.explanation} langs={["fi"]} multiline onChange={(explanation) => set({ explanation })} />
+          <TextMap label="Explanation shown after answering (optional)" hint={EXAMPLE_HINT} value={item.explanation} langs={["fi"]} multiline onChange={(explanation) => set({ explanation })} />
         </>
       )}
 
       {item.type === "rule" && (
         <>
           <TextMap label="Title" value={item.title} langs={EN_FI} onChange={(title) => set({ title })} />
-          <TextMap label="Explanation" value={item.explanation} langs={EN_FI} multiline onChange={(explanation) => set({ explanation })} />
+          <TextMap label="Explanation" hint={EXAMPLE_HINT} value={item.explanation} langs={EN_FI} multiline onChange={(explanation) => set({ explanation })} />
           <Examples item={item} set={set} />
         </>
       )}

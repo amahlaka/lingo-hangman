@@ -2,6 +2,7 @@ import React, { useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useSettings } from "../../app/SettingsContext";
 import { getGapItems, getSentences, languageLabel } from "../../lib/words";
+import { ExampleText } from "../../components/lingo";
 import { sounds } from "../../lib/sounds";
 import PracticeSession from "../practice/PracticeSession";
 import { MAX_MISSES, buildGapRound, isGapCandidate, practicePool, usableWords } from "../practice/practiceLogic";
@@ -72,7 +73,7 @@ export function GapQuestion({ question, done, onDone, p, learningLang, nativeLan
         <div className="pg-meaning lg-reveal">
           <span className="lg-caption">{nativeLabel}</span>
           <p className="pg-meaning__text" lang={nativeLang} data-testid="meaning-reveal">{target.native}</p>
-          {why && <p className="lg-caption fg-why" data-testid="gap-explanation">{why}</p>}
+          {why && <p className="lg-caption fg-why" data-testid="gap-explanation"><ExampleText text={why} /></p>}
         </div>
       )}
 

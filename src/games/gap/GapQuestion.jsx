@@ -1,7 +1,9 @@
 import React, { useState } from "react";
 import { useSettings } from "../../app/SettingsContext";
+import { ExampleText } from "../../components/lingo";
 import { sounds } from "../../lib/sounds";
 import { maxMissesFor, splitGap } from "./gapLogic";
+import { RuleBox, RulePeek } from "../practice/RuleBox";
 
 const capitalize = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 
@@ -25,24 +27,23 @@ function Sentence({ question, done, solved, p }) {
 
 // Why the answer is what it is: the item's own note, then the set's rule.
 // English UI shows English with the Finnish underneath; Finnish UI shows Finnish.
-function Explanation({ question, lang, p }) {
-  const parts = [question.why, question.rule].filter(Boolean);
+// Before answering only the set's rule is shown (the note gives the answer away).
+function Explanation({ parts, lang, p }) {
   return (
-    <section className="gp-why lg-reveal" aria-label={p.why}>
-      <h3 className="lg-caption gp-why__title">{p.why}</h3>
+    <RuleBox label={p.why}>
       {parts.map((part, i) =>
         lang === "en" ? (
           <div key={i} className="gp-why__part">
-            <p className="gp-why__text">{part.en}</p>
-            <p className="gp-why__fi" lang="fi">{part.fi}</p>
+            <p className="gp-why__text"><ExampleText text={part.en} /></p>
+            <p className="gp-why__fi" lang="fi"><ExampleText text={part.fi} /></p>
           </div>
         ) : (
           <div key={i} className="gp-why__part">
-            <p className="gp-why__text" lang="fi">{part.fi}</p>
+            <p className="gp-why__text" lang="fi"><ExampleText text={part.fi} /></p>
           </div>
         )
       )}
-    </section>
+    </RuleBox>
   );
 }
 
@@ -57,6 +58,7 @@ export default function GapQuestion({ question, done, onDone }) {
   const [missed, setMissed] = useState([]);
   const [picked, setPicked] = useState(null);
   const [wobble, setWobble] = useState(null);
+  const [peeked, setPeeked] = useState(false);
 
   const finish = (solved, misses) =>
     onDone({
@@ -127,7 +129,9 @@ export default function GapQuestion({ question, done, onDone }) {
         })}
       </div>
       {!done && missed.length > 0 && <p className="pg-hint" role="status">{p.tryAnother}</p>}
-      {done && <Explanation question={question} lang={lang} p={p} />}
+      {done && <Explanation parts={[question.why, question.rule].filter(Boolean)} lang={lang} p={p} />}
+      {!done && peeked && <Explanation parts={[question.rule]} lang={lang} p={p} />}
+      {!done && !peeked && question.rule && <RulePeek onPeek={() => setPeeked(true)} />}
     </div>
   );
 }

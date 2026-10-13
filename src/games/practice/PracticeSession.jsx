@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { useSettings } from "../../app/SettingsContext";
 import { useProgress } from "../../app/ProgressContext";
@@ -6,7 +6,32 @@ import i18n, { fill } from "../../i18n";
 import { ACHIEVEMENTS } from "../../lib/progress";
 import { DailyProgress, Feedback, GameScreen, ScorePill, WordRecap, useConfetti } from "../../components/lingo";
 import { sounds } from "../../lib/sounds";
-import { addResult, emptyTally } from "./practiceLogic";
+import { RULE_PEEK_COST, addResult, emptyTally } from "./practiceLogic";
+import { RuleContext } from "./RuleBox";
+
+// Below this screen height the bottom bar has no room for the rule, so it gets
+// its own view after "Next" instead.
+const SHORT_SCREEN = 560;
+
+// Once a question is answered, decide where its explanation goes (see RuleBox).
+// It is first drawn in place; if it ends up under the bottom bar it moves.
+function useRulePlacement(current, trayRef) {
+  const [mode, setMode] = useState("inline");
+  const inlineRef = useRef(null);
+  useLayoutEffect(() => {
+    if (!current) {
+      setMode("inline");
+      return;
+    }
+    const box = inlineRef.current;
+    if (!box || mode !== "inline") return;
+    const view = window.innerHeight;
+    const trayTop = trayRef.current ? trayRef.current.getBoundingClientRect().top : view;
+    if (box.getBoundingClientRect().bottom <= Math.min(trayTop, view)) return;
+    setMode(view < SHORT_SCREEN ? "step" : "tray");
+  }, [current]);
+  return { mode, inlineRef };
+}
 
 // The large celebration banner for what this answer unlocked, as in hangman.
 function bannerFor(events, { t, dailyGoal, answer }) {
@@ -73,6 +98,12 @@ export default function PracticeSession({
   const [plus, setPlus] = useState(null);
   const [roundKey, setRoundKey] = useState(0);
   const nextRef = useRef(null);
+  const trayRef = useRef(null);
+  const [traySlot, setTraySlot] = useState(null);
+  const [stepSlot, setStepSlot] = useState(null);
+  // In "step" placement, true while the rule's own view is showing.
+  const [ruleStep, setRuleStep] = useState(false);
+  const rule = useRulePlacement(current, trayRef);
   const timer = useRef(null);
   // Words finished so far in a multi-word question, and the biggest banner they earned.
   const board = useRef({ items: [], banner: null });
@@ -167,6 +198,12 @@ export default function PracticeSession({
   };
 
   const goNext = () => {
+    if (rule.mode === "step" && !ruleStep) {
+      setRuleStep(true);
+      stepSlot?.scrollIntoView?.({ block: "start" });
+      return;
+    }
+    setRuleStep(false);
     setCurrent(null);
     setIndex((i) => i + 1);
   };
@@ -179,8 +216,24 @@ export default function PracticeSession({
     board.current = { items: [], banner: null };
     setTally(emptyTally());
     setCurrent(null);
+    setRuleStep(false);
     setRoundKey((k) => k + 1);
   };
+
+  // Peeking at the rule before answering costs some of this round's points.
+  const peek = current
+    ? null
+    : {
+        cost: RULE_PEEK_COST,
+        canAfford: tally.xp >= RULE_PEEK_COST,
+        pay: () => {
+          if (tally.xp < RULE_PEEK_COST) return false;
+          setTally((s) => ({ ...s, xp: s.xp - RULE_PEEK_COST }));
+          setPlus({ n: -RULE_PEEK_COST, key: Date.now() });
+          return true;
+        },
+      };
+  const ruleContext = { mode: rule.mode, inlineRef: rule.inlineRef, traySlot, stepSlot, peek };
 
   const score = <ScorePill label={t.pointsLabel} value={tally.xp} plus={plus?.n} plusKey={plus?.key} />;
   const menuActions = [{ label: t.restart, onClick: restart }];
@@ -244,17 +297,20 @@ export default function PracticeSession({
           })}
           <span className="lg-caption">{progressLabel}</span>
         </div>
-        <div className="pg-card">
-          {confetti}
-          <React.Fragment key={`${roundKey}-${index}`}>
-            {renderQuestion({ question, done: Boolean(current), onDone: handleDone, onItem: handleItem })}
-          </React.Fragment>
-        </div>
+        <RuleContext.Provider value={ruleContext}>
+          <div className="pg-card" hidden={ruleStep}>
+            {confetti}
+            <React.Fragment key={`${roundKey}-${index}`}>
+              {renderQuestion({ question, done: Boolean(current), onDone: handleDone, onItem: handleItem })}
+            </React.Fragment>
+          </div>
+          <div ref={setStepSlot} className="pg-card pg-rule-step" hidden={!ruleStep} />
+        </RuleContext.Provider>
       </main>
       {current && (
-        <div className="lg-tray">
+        <div className="lg-tray" ref={trayRef}>
           <div className="pg-result">
-            {current.board ? (
+            {ruleStep ? null : current.board ? (
               <Feedback
                 variant="correct"
                 title={p.pairsDoneTitle}
@@ -283,7 +339,8 @@ export default function PracticeSession({
                 {p.retryBody} {fill(t.xpEarned, { n: current.xp })}
               </Feedback>
             )}
-            {current.banner && <Feedback variant="streak" icon={current.banner.icon} title={current.banner.title} />}
+            {!ruleStep && current.banner && <Feedback variant="streak" icon={current.banner.icon} title={current.banner.title} />}
+            <div ref={setTraySlot} className="pg-tray-slot" />
             <button type="button" ref={nextRef} className="lg-btn lg-btn--primary lg-btn--hero" onClick={goNext}>
               {isLast ? p.seeResults : p.next}
             </button>

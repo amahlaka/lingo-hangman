@@ -145,9 +145,11 @@ export default function QuickPlay() {
   const targets = useMemo(
     () =>
       quickTargets({
-        pairs: filterCommonWords({ learningLang, nativeLang }),
-        sentences: getSentences({ learningLang, nativeLang }),
-        gapItems: getGapItems({ lang: learningLang }),
+        // `preferences: true` keeps to the learner's focus areas and difficulty
+        // (src/lib/preferences.js, PR #37); getters without it ignore the flag.
+        pairs: filterCommonWords({ learningLang, nativeLang, preferences: true }),
+        sentences: getSentences({ learningLang, nativeLang, preferences: true }),
+        gapItems: getGapItems({ lang: learningLang, preferences: true }),
         topics: { rule: getTopics("rule"), confusable: getTopics("confusable") },
         lessons: getSoundLessons(),
         groups: getWordGroups(),

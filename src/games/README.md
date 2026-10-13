@@ -99,6 +99,9 @@ Import building blocks from `src/components/lingo`:
   `score` element, settings menu (`menuActions` for e.g. Restart). Put the
   board in a `<main className="lg-board">` and, if the game has a keyboard or
   answer buttons, a `<div className="lg-tray">` after it (sticks to the bottom).
+  The Next button, and Play again on the end screen, always go in an
+  `lg-tray` (end screen: `lg-tray lg-tray--actions`) so players never have to
+  scroll to find the next step. `PracticeSession` already does this for you.
 - `Feedback` – result banners: `variant="correct" | "retry" | "info" | "streak"`,
   `title`, body as children, optional Finnish `fi` helper line.
 - `useConfetti()` – `const { celebrate, confetti } = useConfetti()`; render

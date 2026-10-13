@@ -12,7 +12,9 @@ html, body {
   font-family: var(--font-sans);
   font-size: 16px;
   line-height: 24px;
-  overflow-x: hidden;
+  /* clip, not hidden: hidden turns body into a scroll container, which stops
+     the sticky .lg-tray from pinning to the bottom of the screen. */
+  overflow-x: clip;
 }
 
 #root {
@@ -96,6 +98,10 @@ a { color: var(--lake); }
   border-radius: var(--radius-lg) var(--radius-lg) 0 0;
   box-shadow: var(--shadow-raised);
 }
+
+/* End-of-session buttons (Play again, All games) in a tray so they are on
+   screen without scrolling past the recap. */
+.lg-tray--actions { display: flex; flex-direction: column; align-items: center; gap: var(--space-2); }
 
 @media (min-width: 768px) {
   .lg-screen { padding-left: var(--space-8); padding-right: var(--space-8); }

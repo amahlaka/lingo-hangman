@@ -1,10 +1,12 @@
 import React, { useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import { Settings } from "lucide-react";
 import { useSettings } from "../../app/SettingsContext";
 import { useProgress } from "../../app/ProgressContext";
 import { DAILY_GOAL_OPTIONS } from "../../lib/progress";
 
-// Settings popover: language, theme, sound effects and daily goal, plus any game-specific
+// Settings popover: language, theme, sound effects, daily goal and a link to
+// focus areas and difficulty, plus any game-specific
 // `actions` ([{ label, onClick }]) such as "Restart".
 export default function SettingsMenu({ actions = [] }) {
   const { lang, setLang, theme, setTheme, sound, setSound, t } = useSettings();
@@ -98,6 +100,9 @@ export default function SettingsMenu({ actions = [] }) {
               {DAILY_GOAL_OPTIONS.map((g) => choice(dailyGoal, g, setDailyGoal, String(g)))}
             </div>
           </div>
+          <Link to="/preferences" className="lg-btn lg-btn--secondary" onClick={() => setOpen(false)}>
+            {t.preferencesTitle}
+          </Link>
           <p className="lg-menu__foot">
             <a href="https://github.com/amahlaka/lingo-hangman" target="_blank" rel="noopener noreferrer">
               GitHub

@@ -31,7 +31,7 @@ export default function HangmanCustomWords() {
   const makeLink = () => setLink(`${window.location.origin}/play?${queryFor(validPairs)}`);
 
   const addCommonWords = () => {
-    const picked = pickCommonWords({ learningLang, nativeLang });
+    const picked = pickCommonWords({ learningLang, nativeLang, preferences: true });
     setPairs((ps) => [...ps.filter((p) => p.learning.trim() || p.native.trim()), ...picked.map(({ learning, native }) => ({ learning, native }))]);
   };
 

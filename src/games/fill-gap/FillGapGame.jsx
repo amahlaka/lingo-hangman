@@ -114,11 +114,11 @@ export default function FillGapGame() {
     const pool = practicePool(new URLSearchParams(search));
     const { learningLang: l, nativeLang: n } = pool;
     if (pool.fromLink) return { ...pool, sentences: pool.pairs.filter(isGapCandidate), items: [] };
-    const gaps = getGapItems({ lang: l });
-    const onTopic = new Set(gaps.filter((g) => g.topic).map((g) => g.id));
+    const onTopic = new Set(getGapItems({ lang: l }).filter((g) => g.topic).map((g) => g.id));
+    const gaps = getGapItems({ lang: l, preferences: true });
     return {
       ...pool,
-      sentences: usableWords(getSentences({ learningLang: l, nativeLang: n })).filter(
+      sentences: usableWords(getSentences({ learningLang: l, nativeLang: n, preferences: true })).filter(
         (s) => isGapCandidate(s) && !onTopic.has(s.id)
       ),
       items: gaps.filter((g) => !g.topic),

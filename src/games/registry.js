@@ -6,6 +6,7 @@ import MeaningGame from "./meaning/MeaningGame";
 import PhraseGame from "./phrase/PhraseGame";
 import ListeningGame from "./listening/ListeningGame";
 import { GrammarGame, MixedUpGame } from "./gap/GapGames";
+import SayGame from "./say/SayGame";
 
 export const GAMES = [
   {
@@ -55,6 +56,17 @@ export const GAMES = [
     skill: "Listening",
     path: "/listening",
     routes: [{ path: "/listening", Component: ListeningGame }],
+  },
+  {
+    id: "say",
+    name: "Say it",
+    nameFi: "Sano se",
+    description: "Hear an English word, then say it into your microphone.",
+    art: "/θriː/",
+    minutes: 4,
+    skill: "Speaking",
+    path: "/say",
+    routes: [{ path: "/say", Component: SayGame }],
   },
   {
     id: "grammar",

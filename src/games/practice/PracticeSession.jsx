@@ -38,9 +38,11 @@ function bannerFor(events, { t, dailyGoal, answer }) {
 //   empty                  message shown when there are too few words
 //   endTitleKey, recapTitleKey  practice strings for the end screen ("words" by default)
 //   meaningInFeedback      false when the question already shows the meaning
+//   keys                   practice string keys to use instead of correctTitle,
+//                          correctFirstTry, correctLater and retryTitle
 export default function PracticeSession({
   gameId, title, intro, learningLang, nativeLang, buildQuestions, renderQuestion, empty,
-  endTitleKey = "endTitle", recapTitleKey = "recapTitle", meaningInFeedback = true,
+  endTitleKey = "endTitle", recapTitleKey = "recapTitle", meaningInFeedback = true, keys,
 }) {
   const { t, lang } = useSettings();
   const { recordWord, dailyGoal } = useProgress();
@@ -48,6 +50,7 @@ export default function PracticeSession({
   const p = t.practice;
   const fi = i18n.fi.practice;
   const helper = lang === "en";
+  const k = { correctTitle: "correctTitle", correctFirstTry: "correctFirstTry", correctLater: "correctLater", retryTitle: "retryTitle", ...keys };
 
   const [questions, setQuestions] = useState(buildQuestions);
   const [index, setIndex] = useState(0);
@@ -188,16 +191,16 @@ export default function PracticeSession({
             {current.solved ? (
               <Feedback
                 variant="correct"
-                title={fill(p.correctTitle, { answer: current.answer })}
+                title={fill(p[k.correctTitle], { answer: current.answer })}
                 fi={helper && meaningInFeedback ? fill(fi.meansIn, { answer: current.answer, fi: current.meaning }) : undefined}
               >
-                {current.firstTry ? p.correctFirstTry : fill(p.correctLater, { n: current.tries })}{" "}
+                {current.firstTry ? p[k.correctFirstTry] : fill(p[k.correctLater], { n: current.tries })}{" "}
                 {fill(t.xpEarned, { n: current.xp })}
               </Feedback>
             ) : (
               <Feedback
                 variant="retry"
-                title={fill(p.retryTitle, { answer: current.answer })}
+                title={fill(p[k.retryTitle], { answer: current.answer })}
                 fi={helper ? fi.retryBody : undefined}
               >
                 {p.retryBody} {fill(t.xpEarned, { n: current.xp })}

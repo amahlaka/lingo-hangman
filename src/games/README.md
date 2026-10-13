@@ -17,7 +17,7 @@ import WordPairsGame from "./word-pairs/WordPairsGame";
   description: "Match each English word with its Finnish meaning.",
   art: "cat · kissa",            // typographic card art: real letters, no emoji
   minutes: 3,
-  skill: "Vocabulary",           // Vocabulary, Spelling, Sentences, Listening or Grammar
+  skill: "Vocabulary",           // Vocabulary, Spelling, Sentences, Listening, Speaking or Grammar
   path: "/word-pairs",           // where the card links to
   routes: [{ path: "/word-pairs", Component: WordPairsGame }],
 }
@@ -134,3 +134,16 @@ The sentences live in the lingo-wordbase repository (`packs/grammar.json` and
 `packs/mixed-up-words.json`), so adding sentences or a whole new topic needs no
 app change. `?set=<topic id>` practises one topic, e.g.
 `/mixed-up?set=borrow-lend`.
+
+## Say it (speaking)
+
+`src/games/say/` is a question-by-question game where the learner says the word
+into the microphone. `src/lib/speechRecognition.js` wraps the browser's Web
+Speech API: `canRecognise()`, `onDeviceStatus(lang)` / `installOnDevice(lang)`
+for recognition on the device, and `listenOnce({ lang, onDevice })`, which
+resolves to the recogniser's alternatives. Lingo never records or stores audio;
+it only compares the text the browser returns. `sayLogic.js` does that
+comparison forgivingly (homophones, digits, contractions and extra words are
+fine, and a phrase of four or more words may miss one word in four). Where the
+browser can't listen (Firefox) or the microphone is blocked, the game falls back
+to "say it out loud, then tap I said it".

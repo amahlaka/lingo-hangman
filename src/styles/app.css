@@ -278,6 +278,32 @@ a { color: var(--lake); }
 .gp-why__fi { margin: var(--space-1) 0 0; font: 400 15px/22px var(--font-sans); color: var(--ink-muted); }
 .gp-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
+/* Say it (speaking practice) */
+.sy-listen { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--space-2); margin-top: var(--space-2); }
+.sy-listen .lg-btn { gap: var(--space-2); }
+.sy-mic-area { display: flex; justify-content: center; padding: var(--space-2) 0; }
+.sy-mic { display: flex; flex-direction: column; align-items: center; gap: var(--space-4); padding: var(--space-2); border: 0; background: transparent; color: var(--ink); font: 600 17px/24px var(--font-sans); cursor: pointer; border-radius: var(--radius-md); }
+.sy-mic:disabled { cursor: default; }
+.sy-mic:focus-visible { outline: 3px solid var(--lingon); outline-offset: 2px; }
+.sy-mic__circle { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 96px; height: 96px; border-radius: var(--radius-pill); background: var(--lake); color: var(--on-lake); box-shadow: var(--shadow-raised); transition: background-color .15s, transform .15s; }
+.sy-mic:hover:not(:disabled) .sy-mic__circle { background: var(--lake-strong); }
+.sy-mic:active:not(:disabled) .sy-mic__circle { transform: scale(.96); }
+.sy-mic:disabled .sy-mic__circle { opacity: .55; }
+.sy-mic--on .sy-mic__circle { background: var(--lake-strong); }
+.sy-mic--on .sy-mic__circle::before, .sy-mic--on .sy-mic__circle::after { content: ""; position: absolute; inset: 0; border-radius: inherit; border: 3px solid var(--lake); animation: sy-ring 1.4s ease-out infinite; }
+.sy-mic--on .sy-mic__circle::after { animation-delay: .7s; }
+@keyframes sy-ring { from { transform: scale(1); opacity: .7; } to { transform: scale(1.3); opacity: 0; } }
+.sy-heard { display: flex; flex-direction: column; align-items: center; gap: var(--space-2); text-align: center; }
+.sy-heard__said { margin: 0; font: 400 18px/26px var(--font-sans); color: var(--ink); overflow-wrap: anywhere; }
+.sy-heard__said q { font-weight: 600; }
+.sy-heard__words { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--space-2); margin: 0; }
+.sy-word { padding: var(--space-1) var(--space-3); border-radius: var(--radius-sm); font: 600 17px/24px var(--font-sans); }
+.sy-word--ok { background: var(--pine-soft); border-bottom: 3px solid var(--pine); color: var(--ink); }
+.sy-word--again { background: transparent; border: 2px dashed var(--cloudberry); color: var(--ink-muted); }
+.sy-after-miss { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: var(--space-3); }
+.sy-privacy, .sy-self-note { margin: 0; text-align: center; }
+.sy-self { display: flex; flex-direction: column; align-items: center; gap: var(--space-2); }
+
 @media (max-width: 360px) {
   .pg-prompt__word { font-size: 32px; line-height: 38px; }
   .pg-choices { grid-template-columns: 1fr; }

@@ -325,6 +325,8 @@ a { color: var(--lake); }
 .gp-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
 /* Say it (speaking practice) */
+.sy-ipa { margin: var(--space-1) 0 0; font: 400 18px/26px var(--font-sans); color: var(--ink-muted); overflow-wrap: anywhere; }
+.sy-say { margin-top: var(--space-2); }
 .sy-listen { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--space-2); margin-top: var(--space-2); }
 .sy-listen .lg-btn { gap: var(--space-2); }
 .sy-mic-area { display: flex; justify-content: center; padding: var(--space-2) 0; }

@@ -338,6 +338,8 @@ function checkMetadata(item, problems) {
       }
     }
   }
+  // How to say it, written the way the learner's language reads ({ "fi": "wooter" }).
+  checkTextMap(item.say, "say", problems, { required: false });
   if (item.pos !== undefined && !PARTS_OF_SPEECH.includes(item.pos)) problems.push(`pos must be one of ${PARTS_OF_SPEECH.join(", ")}`);
   checkList(item.features, "features", FEATURES, problems);
   checkList(item.contexts, "contexts", CONTEXTS, problems);

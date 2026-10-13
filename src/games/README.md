@@ -192,7 +192,9 @@ it only compares the text the browser returns. `sayLogic.js` does that
 comparison forgivingly (homophones, digits, contractions and extra words are
 fine, and a phrase of four or more words may miss one word in four). Where the
 browser can't listen (Firefox) or the microphone is blocked, the game falls back
-to "say it out loud, then tap I said it".
+to "say it out loud, then tap I said it". Under the word it always shows the
+word bank item's `ipa`; its `say` (the English read the Finnish way, "wooter")
+is a paid hint (`SAY_HINT_COST`, `PaidHints`) and shows for free once answered.
 
 ## Word types
 

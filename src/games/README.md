@@ -207,4 +207,6 @@ win first and last. Each question is asked by one of the other games
 so a new practice game can join Quick play by adding its questions there.
 Targets carry the `categories` and `levels` of their word bank items, and
 `buildQuickRound(targets, state, { include })` keeps only targets that pass
-`include`, for learner settings such as focus areas and difficulty.
+`include`. QuickPlay passes `preferenceFilter(targets)`, which applies the
+learner's focus areas and difficulty (`src/lib/preferences.js`) to the whole
+mix; grammar and sounds targets have no categories, so focus areas leave them in.

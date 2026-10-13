@@ -20,7 +20,7 @@ import { PhraseQuestion } from "../phrase/PhraseGame";
 import { GapQuestion as FillGapQuestion } from "../fill-gap/FillGapGame";
 import GapQuestion from "../gap/GapQuestion";
 import SoundQuestion from "../sounds/SoundQuestion";
-import { buildQuickRound, quickSummary, quickTargets } from "./quickLogic";
+import { buildQuickRound, preferenceFilter, quickSummary, quickTargets } from "./quickLogic";
 
 const learningLang = DEFAULT_LEARNING_LANG;
 const nativeLang = DEFAULT_NATIVE_LANG;
@@ -145,8 +145,8 @@ export default function QuickPlay() {
   const targets = useMemo(
     () =>
       quickTargets({
-        // `preferences: true` keeps to the learner's focus areas and difficulty
-        // (src/lib/preferences.js, PR #37); getters without it ignore the flag.
+        // Words, sentences and gap sentences follow the learner's focus areas and
+        // difficulty here; preferenceFilter() then narrows the whole mix.
         pairs: filterCommonWords({ learningLang, nativeLang, preferences: true }),
         sentences: getSentences({ learningLang, nativeLang, preferences: true }),
         gapItems: getGapItems({ lang: learningLang, preferences: true }),
@@ -172,7 +172,7 @@ export default function QuickPlay() {
       nativeLang={nativeLang}
       endTitleKey="endTitleQuick"
       recapTitleKey="recapQuick"
-      buildQuestions={() => buildQuickRound(targets, stateRef.current)}
+      buildQuestions={() => buildQuickRound(targets, stateRef.current, { include: preferenceFilter(targets) })}
       renderQuestion={({ question, done, onDone }) => (
         <QuickQuestion question={question} done={done} onDone={onDone} t={t} lang={lang} />
       )}

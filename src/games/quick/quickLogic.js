@@ -6,6 +6,7 @@
 // Pure helpers, no React.
 
 import { wordKey } from "../../lib/progress";
+import { applyPreferences, getPreferences } from "../../lib/preferences";
 import { challengeLessons, challengeScore, wordStanding } from "../../lib/adaptive";
 import {
   buildChoiceQuestion,
@@ -106,6 +107,23 @@ export function quickTargets({
   }
 
   return [...byKey.values()].filter((t) => t.kinds.length);
+}
+
+// An include() filter for pickQuickTargets from the learner's focus areas and
+// difficulty (src/lib/preferences.js). Focus areas are word bank categories,
+// so grammar and sounds targets without categories keep their place in the
+// mix. Like the games, a preference that leaves too few targets is skipped.
+export function preferenceFilter(targets, prefs = getPreferences()) {
+  const textOf = (t) => t.key.slice(t.key.indexOf(":") + 1);
+  const items = targets.map((t) => ({ target: t, categories: t.categories, level: t.levels.length ? Math.min(...t.levels) : undefined }));
+  let pool = items;
+  if (prefs.focus.length > 0) {
+    const focused = pool.filter((i) => !i.categories.length || i.categories.some((c) => prefs.focus.includes(c)));
+    if (focused.filter((i) => i.categories.length).length >= QUICK_ROUND) pool = focused;
+  }
+  pool = applyPreferences(pool, { prefs: { ...prefs, focus: [] }, min: QUICK_ROUND, textOf: (i) => textOf(i.target) });
+  const keys = new Set(pool.map((i) => i.target.key));
+  return (t) => keys.has(t.key);
 }
 
 // Take from each group in turn, so a few picks still cover words, sentences,

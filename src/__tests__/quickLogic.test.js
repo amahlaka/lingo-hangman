@@ -5,6 +5,7 @@ import {
   orderRound,
   pickQuickTargets,
   quickSummary,
+  preferenceFilter,
   quickTargets,
   separateGames,
 } from "../games/quick/quickLogic";
@@ -182,6 +183,26 @@ describe("quick play round", () => {
     expect(targets.filter(inTop).length).toBeGreaterThanOrEqual(10);
     expect(pickQuickTargets(targets, emptyProgress(), { include: inTop }).every((p) => inTop(p.target))).toBe(true);
     expect(pickQuickTargets(targets, emptyProgress(), { include: () => false })).toHaveLength(10);
+  });
+
+  it("follows the learner's focus areas and difficulty", () => {
+    const targets = quickTargets({
+      pairs: filterCommonWords({ learningLang: "en-GB", nativeLang: "fi" }),
+      sentences: getSentences(),
+      gapItems: getGapItems(),
+      topics: { rule: getTopics("rule"), confusable: getTopics("confusable") },
+      lessons: getSoundLessons(),
+    });
+    const counts = {};
+    targets.forEach((t) => t.categories.forEach((c) => (counts[c] = (counts[c] || 0) + 1)));
+    const [top] = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
+    const include = preferenceFilter(targets, { focus: [top], difficulty: "any" });
+    const kept = targets.filter(include);
+    expect(kept.every((t) => !t.categories.length || t.categories.includes(top))).toBe(true);
+    expect(kept.some((t) => t.group === "sounds")).toBe(true);
+    const easy = targets.filter(preferenceFilter(targets, { focus: [], difficulty: "easy" }));
+    expect(easy.length).toBeLessThan(targets.length);
+    expect(targets.filter(preferenceFilter(targets, { focus: [], difficulty: "any" }))).toHaveLength(targets.length);
   });
 
   it("summarises easy wins and challenges", () => {

@@ -21,6 +21,7 @@ import {
 } from "../practice/practiceLogic";
 import { gapQuestions } from "../gap/gapLogic";
 import { BY_EAR, lessonQuestions } from "../sounds/soundsLogic";
+import { isDictationSentence, isTypeWord, typeQuestion } from "../type/typeLogic";
 
 export const QUICK_ROUND = 10;
 export const QUICK_QUOTA = { easy: 3, challenge: 3 };
@@ -73,6 +74,7 @@ export function quickTargets({
       if (withSound && wordCount(pair.learning) <= MAX_LISTEN_WORDS) {
         add(pair.learning, group, { game: "listening", make: (r) => buildChoiceQuestion(pair, pool, r) }, pair);
       }
+      if (isTypeWord(pair)) add(pair.learning, group, { game: "type-it", make: () => typeQuestion(pair, pool, "word") }, pair);
     }
   }
 
@@ -86,6 +88,13 @@ export function quickTargets({
     if (item) add(s.learning, "sentence", { game: "fill-the-gap", make: (r) => gapItemQuestion(item, nativeLang, r) }, item);
     else if (isGapCandidate(s)) {
       add(s.learning, "sentence", { game: "fill-the-gap", make: (r) => buildGapQuestion(s, pool, r, groups) }, s);
+    }
+  }
+
+  // Sentences to write down from hearing them, as in Type it.
+  if (withSound) {
+    for (const s of usableWords(sentences).filter(isDictationSentence)) {
+      add(s.learning, "sentence", { game: "type-it", make: () => typeQuestion(s, pool, "dictation") }, s);
     }
   }
 

@@ -131,3 +131,85 @@ describe('Listen and choose', () => {
     expect(screen.getByRole('button', { name: `${heard}, ${fi}` })).toBeInTheDocument();
   });
 });
+
+describe('Word Pairs', () => {
+  const tiles = (side) => screen.getAllByTestId(`${side}-tile`);
+  const nativeTileFor = (learning) =>
+    tiles('native').find((b) => b.textContent.includes(words.find((w) => w.learning === learning).native));
+
+  it('matches a pair, shows the meaning under the English word and records it', () => {
+    const { storage } = renderApp(link('/word-pairs'));
+    const first = tiles('learning')[0];
+    const en = first.textContent;
+    fireEvent.click(first);
+    expect(first).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.click(nativeTileFor(en));
+    const fi = words.find((w) => w.learning === en).native;
+    expect(first).toHaveAccessibleName(`${en}, ${fi}`);
+    expect(within(first).getByText(fi)).toHaveAttribute('lang', 'fi');
+    expect(first).toBeDisabled();
+    expect(JSON.stringify(storage.data)).toContain(en);
+  });
+
+  it('says gently when two words are not a pair', () => {
+    renderApp(link('/word-pairs'));
+    const first = tiles('learning')[0];
+    const wrong = tiles('native').find((b) => b !== nativeTileFor(first.textContent));
+    fireEvent.click(first);
+    fireEvent.click(wrong);
+    expect(screen.getByText('Not a pair. Try another one.')).toBeInTheDocument();
+    expect(first).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  it('finishes the board and reaches the end screen', () => {
+    renderApp(link('/word-pairs'));
+    tiles('learning').forEach((tile) => {
+      const en = tile.textContent;
+      fireEvent.click(tile);
+      fireEvent.click(nativeTileFor(en));
+    });
+    expect(screen.getByText('All pairs found.')).toBeInTheDocument();
+    expect(screen.getByText(/Every pair on the first try\./)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'See results' }));
+    expect(screen.getByText('You practised 5 words.')).toBeInTheDocument();
+  });
+});
+
+describe('Fill the Gap', () => {
+  const sentences = [
+    { learning: 'Where is the toilet?', native: 'Missä on WC?' },
+    { learning: 'How are you?', native: 'Mitä kuuluu?' },
+  ];
+  const sentenceFor = (fi) => sentences.find((s) => s.native === fi);
+  // The word that belongs in the gap, read from what's around it.
+  const gapWord = () => {
+    const s = sentenceFor(prompt());
+    const shown = screen.getByTestId('gap-sentence').textContent.replace(/ /g, '').replace(/\s+/g, ' ').trim();
+    const words = s.learning.replace(/[?.!]$/, '').split(' ');
+    return words.find((w, i) => {
+      const without = [...words.slice(0, i), ...words.slice(i + 1)].join(' ');
+      return shown.replace(/[?.!]$/, '').replace(/\s+/g, ' ').trim() === without;
+    });
+  };
+
+  it('fills the gap with the right word and shows the Finnish under the sentence', () => {
+    renderApp(link('/fill-the-gap', sentences));
+    const fi = prompt();
+    fireEvent.click(screen.getByRole('button', { name: gapWord() }));
+    expect(screen.getByText(`Yes, "${sentenceFor(fi).learning}" is right.`)).toBeInTheDocument();
+    expect(screen.getByTestId('gap-sentence')).toHaveTextContent(sentenceFor(fi).learning);
+    expect(screen.getByTestId('meaning-reveal')).toHaveTextContent(fi);
+  });
+
+  it('lets the learner try again, then shows the word', () => {
+    renderApp(link('/fill-the-gap', sentences));
+    const fi = prompt();
+    const answer = gapWord();
+    const wrong = within(screen.getByRole('group')).getAllByRole('button').filter((b) => b.textContent !== answer);
+    fireEvent.click(wrong[0]);
+    expect(screen.getByText('Not quite. Try another one.')).toBeInTheDocument();
+    fireEvent.click(wrong[1]);
+    expect(screen.getByText(`Not this time. The answer was "${sentenceFor(fi).learning}".`)).toBeInTheDocument();
+    expect(screen.getByTestId('gap-sentence')).toHaveTextContent(sentenceFor(fi).learning);
+  });
+});

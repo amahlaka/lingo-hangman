@@ -126,7 +126,19 @@ Next button and the end screen. Render one question in `renderQuestion` and
 call `onDone({ solved, firstTry, tries, triesLeft, answer, meaning })`.
 `practiceLogic.js` has `practicePool(params)` (a shared link or every built-in
 word), distractor picking and the phrase helpers. Pick the meaning, Build the
-phrase and Listen and choose are built this way.
+phrase, Listen and choose, Fill the Gap and the gap games below are built this way.
+
+A question that holds several words, like a Word Pairs board, gets `onItem` as
+well: call `onItem(outcome)` for each word as it is finished (it records the
+word and plays the sound), then `onDone({ board: true })` when the whole
+question is done. The session shows one "All pairs found" banner for it.
+
+Fill the Gap mixes the word bank's everyday gap sentences (`getGapItems` items
+without a `topic`; topic sentences belong to the gap games below) with every
+other sentence in it (`getSentences`), gapped automatically. For an
+automatic gap that is a small grammar word (is/are, a/the, in/at …) the other
+options come from the same word group (`getWordGroups`), so adding a group or
+words to one in the word bank widens it.
 
 ## Gap games
 

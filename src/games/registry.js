@@ -1,6 +1,6 @@
 // Every game in Lingo. The home screen shows one card per entry and App
 // creates its routes. See ./README.md for how to add a game.
-import HangmanSetup from "./hangman/HangmanSetup";
+import HangmanCustomWords from "./hangman/HangmanCustomWords";
 import HangmanGame from "./hangman/HangmanGame";
 import MeaningGame from "./meaning/MeaningGame";
 import PhraseGame from "./phrase/PhraseGame";
@@ -22,7 +22,9 @@ export const GAMES = [
     skill: "Vocabulary",
     path: "/hangman",
     routes: [
-      { path: "/hangman", Component: HangmanSetup },
+      // Straight into a game with words from the word bank.
+      { path: "/hangman", Component: HangmanGame },
+      { path: "/hangman/words", Component: HangmanCustomWords },
       // `/play?words=...` is the shareable link format; keep it working.
       { path: "/play", Component: HangmanGame },
     ],

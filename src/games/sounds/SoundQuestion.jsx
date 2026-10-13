@@ -4,7 +4,7 @@ import { useSettings } from "../../app/SettingsContext";
 import i18n, { fill } from "../../i18n";
 import { sounds } from "../../lib/sounds";
 import { RATE_SLOW, canSpeak, speak, stopSpeaking } from "../../lib/speech";
-import { markedIndexes, maxMissesFor } from "./soundsLogic";
+import { BY_EAR, markedIndexes, maxMissesFor } from "./soundsLogic";
 
 const LEARNING_LANG = "en-GB";
 
@@ -58,14 +58,16 @@ function Both({ text, lang, className = "" }) {
 // Finnish way, what it means, and a note or the lesson's rule.
 function AfterAnswer({ question, showRule, lang, s }) {
   const { word } = question;
+  // Heard-word questions already show the reading and meaning on each option.
+  const onOptions = BY_EAR.includes(question.kind);
   return (
     <div className="snd-after lg-reveal">
-      {word.say && (
+      {!onOptions && word.say && (
         <p className="snd-say">
           <span className="lg-caption">{s.sayLike}</span> <strong lang="fi">{word.say}</strong>
         </p>
       )}
-      {word.fi && <p className="snd-meaning" lang="fi">{word.fi}</p>}
+      {!onOptions && word.fi && <p className="snd-meaning" lang="fi">{word.fi}</p>}
       {(word.note || showRule) && (
         <section className="gp-why snd-why" aria-label={s.rule}>
           <h3 className="lg-caption gp-why__title">{s.rule}</h3>
@@ -136,6 +138,7 @@ export default function SoundQuestion({ question, done, onDone, showRule = false
   const ask =
     kind === "silent" ? [s.askSilent, fi.askSilent]
     : kind === "sound" ? [fill(s.askSound, { letters: word.parts?.marked }), fill(fi.askSound, { letters: word.parts?.marked })]
+    : kind === "pairs" ? [s.askPair, fi.askPair]
     : [s.askLetter, fi.askLetter];
 
   return (
@@ -146,7 +149,7 @@ export default function SoundQuestion({ question, done, onDone, showRule = false
           {helper && question.title.fi && <span lang="fi"> · {question.title.fi}</span>}
         </span>
         {kind === "sound" && <MarkedWord word={word} className="pg-prompt__word snd-word-big" />}
-        {kind === "letters" && done && <span className="pg-prompt__word snd-word-big" lang="en">{word.text}</span>}
+        {BY_EAR.includes(kind) && done && <span className="pg-prompt__word snd-word-big" lang="en">{word.text}</span>}
         <ListenButtons text={word.speak} s={s} autoPlay />
         <p className="lg-body-lg snd-ask">{ask[0]}</p>
         {helper && <p className="lg-caption" lang="fi">{ask[1]}</p>}
@@ -174,7 +177,7 @@ export default function SoundQuestion({ question, done, onDone, showRule = false
       )}
 
       {kind !== "silent" && (
-        <div className="pg-choices snd-choices" role="group" aria-label={kind === "sound" ? s.soundChoices : s.letterChoices}>
+        <div className="pg-choices snd-choices" role="group" aria-label={kind === "sound" ? s.soundChoices : kind === "pairs" ? s.pairChoices : s.letterChoices}>
           {question.options.map((option, i) => {
             const state = stateOf(option.id);
             const label = lang === "fi" && option.label.fi ? option.label.fi : option.label.en;
@@ -182,7 +185,7 @@ export default function SoundQuestion({ question, done, onDone, showRule = false
               <button
                 key={option.id}
                 type="button"
-                lang={kind === "letters" ? "en" : undefined}
+                lang={BY_EAR.includes(kind) ? "en" : undefined}
                 className={`pg-choice${choiceClass(option.id)}${kind === "letters" ? " snd-letter" : ""}`}
                 onClick={() => choose(option.id)}
                 disabled={done || state === "miss"}
@@ -196,8 +199,10 @@ export default function SoundQuestion({ question, done, onDone, showRule = false
                   {kind === "sound" && helper && option.label.fi && (
                     <span className="pg-choice__native" lang="fi">{option.label.fi}</span>
                   )}
-                  {kind === "letters" && done && option.say && (
-                    <span className="pg-choice__native lg-reveal" lang="fi" style={{ "--i": i }}>{option.say}</span>
+                  {BY_EAR.includes(kind) && done && (option.say || option.fi) && (
+                    <span className="pg-choice__native lg-reveal" lang="fi" style={{ "--i": i }}>
+                      {[option.say, option.fi].filter(Boolean).join(" · ")}
+                    </span>
                   )}
                 </span>
               </button>

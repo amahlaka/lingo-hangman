@@ -9,7 +9,7 @@ import { DEFAULT_LEARNING_LANG, DEFAULT_NATIVE_LANG, getSoundLessons } from "../
 import { RATE_SLOW, canSpeak, speak } from "../../lib/speech";
 import PracticeSession from "../practice/PracticeSession";
 import SoundQuestion, { MarkedWord } from "./SoundQuestion";
-import { KINDS, buildSoundRound, lessonProgress, lessonWords } from "./soundsLogic";
+import { BY_EAR, KINDS, buildSoundRound, lessonProgress, lessonWords } from "./soundsLogic";
 
 const MIX = "mix";
 
@@ -30,7 +30,8 @@ function NoSpeechNote({ s, lang }) {
   return <Feedback variant="info" title={s.noSpeech} fi={lang === "en" ? i18n.fi.sounds.noSpeech : undefined} />;
 }
 
-// Every lesson, grouped into silent letters, tricky letters and letter names.
+// Every lesson, grouped into silent letters, tricky letters, sound-alike
+// words and letter names.
 function LessonList({ lessons }) {
   const { t, lang } = useSettings();
   const { state } = useProgress();
@@ -139,7 +140,7 @@ function Lesson({ lesson }) {
           </ul>
         </section>
         <div className="lg-stack snd-actions">
-          {(speech || lesson.kind !== "letters") && (
+          {(speech || !BY_EAR.includes(lesson.kind)) && (
             <Link to={`/sounds?set=${lesson.id}&practise=1`} className="lg-btn lg-btn--primary lg-btn--hero">
               {s.practise}
             </Link>

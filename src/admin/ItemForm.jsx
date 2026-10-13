@@ -118,6 +118,7 @@ function Examples({ item, set }) {
 const SOUND_KIND_HINTS = {
   silent: "Silent letters: learners tap the letter they don't hear.",
   sound: "Tricky letters: learners pick which sound the marked letters make.",
+  pairs: "Sound-alike words: learners hear a word and pick it or its pair.",
   letters: "Letter names: learners hear a letter and pick it.",
 };
 
@@ -138,6 +139,7 @@ function SoundLesson({ item, set }) {
         >
           <option value="silent">Silent letters</option>
           <option value="sound">Tricky letters (more than one sound)</option>
+          <option value="pairs">Sound-alike words (ship / sheep)</option>
           <option value="letters">Letter names</option>
         </select>
       </Field>
@@ -180,6 +182,11 @@ function SoundLesson({ item, set }) {
             </Field>
             {kind !== "letters" && (
               <Field label="Meaning in Finnish"><TextInput value={w.meaning?.fi} onChange={(fi) => change({ ...w, meaning: { ...w.meaning, fi } })} /></Field>
+            )}
+            {kind === "pairs" && (
+              <Field label="Sounds like" hint="Another word in this lesson.">
+                <TextInput value={w.pair} onChange={(pair) => change({ ...w, pair })} spellCheck={false} />
+              </Field>
             )}
             {kind === "sound" && (
               <Field label="Sound">

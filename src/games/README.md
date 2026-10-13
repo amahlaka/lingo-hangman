@@ -162,6 +162,7 @@ usable, or explain, when the browser has no voices.
 `src/games/sounds/` teaches pronunciation from the word bank's `sound` items
 (`packs/pronunciation.json` in lingo-wordbase). `/sounds` lists the lessons,
 `?set=<id>` shows one lesson's rule and words to listen to, `&practise=1`
-practises them and `?set=mix` mixes every lesson. The three question kinds
-(tap the silent letter, pick the sound, pick the letter you heard) are in
+practises them and `?set=mix` mixes every lesson. The four question kinds
+(tap the silent letter, pick the sound, pick which of two sound-alike words
+you heard, pick the letter you heard) are in
 `soundsLogic.js` and `SoundQuestion.jsx`.

@@ -112,6 +112,7 @@ export function tidyItem(item) {
         const word = { ...w, say: tidyMap(w.say), meaning: tidyMap(w.meaning), note: tidyMap(w.note) };
         for (const key of ["say", "meaning", "note"]) dropIfEmpty(word, key);
         if (out.kind !== "sound") delete word.sound;
+        if (out.kind !== "pairs") delete word.pair;
         if (typeof word.speak === "string" && !word.speak.trim()) delete word.speak;
         return word;
       });

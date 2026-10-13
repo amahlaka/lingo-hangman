@@ -8,8 +8,9 @@ export const ITEM_TYPES = ["word", "gap", "rule", "confusable", "group", "sound"
 // Pronunciation lessons ("sound" items) come in three kinds:
 //   silent   words with a letter you don't say: "[k]nife"
 //   sound    letters with more than one sound; each word names its `sound`
+//   pairs    words that sound alike (ship / sheep); each word names its `pair`
 //   letters  English letter names: "A" is said "ei"
-export const SOUND_KINDS = ["silent", "sound", "letters"];
+export const SOUND_KINDS = ["silent", "sound", "pairs", "letters"];
 
 // Square brackets mark the letters a pronunciation word is about: "[k]nife".
 const MARK_PATTERN = /^([^[\]]*)\[([^[\]]+)\]([^[\]]*)$/;
@@ -157,10 +158,16 @@ const CHECKS = {
       return;
     }
     const seen = new Set();
+    const texts = new Set(item.words.filter((w) => isObject(w) && isText(w.text)).map((w) => norm(w.text)));
     item.words.forEach((w, i) => {
       const name = `words[${i + 1}]`;
       if (!isObject(w) || !isText(w.text)) return problems.push(`${name}.text is empty`);
-      if (item.kind === "letters") {
+      if (item.kind === "pairs") {
+        if (/[[\]]/.test(w.text)) problems.push(`${name}: sound-alike words don't use [ ]`);
+        if (!isText(w.pair) || norm(w.pair) === norm(w.text) || !texts.has(norm(w.pair))) {
+          problems.push(`${name}: pair must be another word in this lesson`);
+        }
+      } else if (item.kind === "letters") {
         if (/[[\]]/.test(w.text)) problems.push(`${name}: letter names don't use [ ]`);
       } else if (!parseMarked(w.text)) {
         problems.push(`${name}: put [ ] around the ${item.kind === "silent" ? "silent letters" : "letters that make the sound"}, once, like "[k]nife"`);

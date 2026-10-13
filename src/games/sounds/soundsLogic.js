@@ -8,12 +8,15 @@ import { wordKey } from "../../lib/progress";
 import { MAX_MISSES, ROUND_LENGTH, shuffle } from "../practice/practiceLogic";
 
 // Order of the sections on the lesson list.
-export const KINDS = ["silent", "sound", "letters"];
+export const KINDS = ["silent", "sound", "pairs", "letters"];
+
+// Lessons whose questions can only be asked out loud.
+export const BY_EAR = ["pairs", "letters"];
 
 // One lesson word, ready to show and say:
 // { text: "knife", parts: { before, marked, after } | null, say, fi, note, speak, sound }
 export function lessonWord(lesson, word) {
-  const parts = lesson.kind === "letters" ? null : parseMarked(word.text);
+  const parts = lesson.kind === "silent" || lesson.kind === "sound" ? parseMarked(word.text) : null;
   const text = parts ? parts.plain : word.text;
   return {
     text,
@@ -23,6 +26,7 @@ export function lessonWord(lesson, word) {
     note: word.note || null,
     speak: word.speak || text,
     sound: word.sound || null,
+    pair: word.pair || null,
   };
 }
 
@@ -46,6 +50,7 @@ export function maxMissesFor(optionCount) {
 // Every word of a lesson as a question.
 //   silent:  tap the letter you don't hear (`letters` are the word's letters)
 //   sound:   pick the sound the marked letters make (`options` are the lesson's sounds)
+//   pairs:   hear a word and pick it or the word it sounds like (`options` are the two)
 //   letters: hear a letter name and pick the letter (`options` are letters of the lesson)
 export function lessonQuestions(lesson, random = Math.random) {
   const words = lessonWords(lesson);
@@ -62,16 +67,21 @@ export function lessonQuestions(lesson, random = Math.random) {
     if (lesson.kind === "sound") {
       return { ...base, options: lesson.sounds.map((s) => ({ id: s.id, label: s.label })), answer: word.sound };
     }
-    const others = shuffle(words.filter((w) => w !== word), random).slice(0, 3);
-    return { ...base, options: shuffle([word, ...others], random).map((w) => ({ id: w.text, label: { en: w.text }, say: w.say })), answer: word.text };
+    const others =
+      lesson.kind === "pairs"
+        ? words.filter((w) => w.text.toLowerCase() === word.pair?.toLowerCase()).slice(0, 1)
+        : shuffle(words.filter((w) => w !== word), random).slice(0, 3);
+    const options = shuffle([word, ...others], random).map((w) => ({ id: w.text, label: { en: w.text }, say: w.say, fi: w.fi }));
+    return { ...base, options, answer: word.text };
   });
 }
 
 // One round. `setId` practises one lesson; otherwise questions are spread over
 // as many lessons as possible, so a mix isn't ten silent-k words.
-// `withSound: false` leaves out letter names, which can't be asked without audio.
+// `withSound: false` leaves out letter names and sound-alike words, which
+// can't be asked without audio.
 export function buildSoundRound(lessons, { setId = null, count = ROUND_LENGTH, withSound = true, random = Math.random } = {}) {
-  let pool = lessons.filter((l) => withSound || l.kind !== "letters");
+  let pool = lessons.filter((l) => withSound || !BY_EAR.includes(l.kind));
   if (setId) pool = pool.filter((l) => l.id === setId);
   const queues = shuffle(pool.map((l) => shuffle(lessonQuestions(l, random), random)), random);
   const round = [];

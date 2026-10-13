@@ -193,11 +193,13 @@ export default function PracticeSession({
             nativeLang={nativeLang}
           />
           <DailyProgress />
+        </main>
+        <div className="lg-tray lg-tray--actions">
           <button type="button" className="lg-btn lg-btn--primary lg-btn--hero" onClick={restart} autoFocus>
             {p.playAgain}
           </button>
           <Link to="/" className="lg-btn lg-btn--quiet">{t.allGames}</Link>
-        </main>
+        </div>
       </GameScreen>
     );
   }

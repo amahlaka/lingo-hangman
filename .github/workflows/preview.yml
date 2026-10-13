@@ -80,6 +80,20 @@ jobs:
           cache: npm
 
       - run: npm ci
+
+      # A word base branch with the same name as this branch (a content change
+      # that goes with this app change) is previewed together with it.
+      - name: Get the word base
+        env:
+          BRANCH: ${{ github.event.pull_request.head.ref || inputs.ref }}
+        run: |
+          ref=master
+          if [[ "$BRANCH" =~ ^[A-Za-z0-9._/-]+$ ]] && git ls-remote --exit-code --heads https://github.com/amahlaka/lingo-wordbase "refs/heads/$BRANCH" > /dev/null; then
+            ref="$BRANCH"
+          fi
+          echo "Word base: $ref"
+          WORDBASE_REF="$ref" npm run content:pull
+
       - run: npm run build
 
       - name: Upload to the preview server

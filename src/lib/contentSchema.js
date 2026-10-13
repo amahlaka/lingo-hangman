@@ -3,7 +3,25 @@
 // while editing) and `npm run content:check`. No imports, so Node runs it as is.
 // The lingo-wordbase README describes the format for people editing it.
 
-export const ITEM_TYPES = ["word", "gap", "rule", "confusable", "group"];
+export const ITEM_TYPES = ["word", "gap", "rule", "confusable", "group", "sound"];
+
+// Pronunciation lessons ("sound" items) come in three kinds:
+//   silent   words with a letter you don't say: "[k]nife"
+//   sound    letters with more than one sound; each word names its `sound`
+//   letters  English letter names: "A" is said "ei"
+export const SOUND_KINDS = ["silent", "sound", "letters"];
+
+// Square brackets mark the letters a pronunciation word is about: "[k]nife".
+const MARK_PATTERN = /^([^[\]]*)\[([^[\]]+)\]([^[\]]*)$/;
+
+// "[k]nife" -> { before: "", marked: "k", after: "nife", plain: "knife" }.
+// null when the text doesn't have exactly one bracketed part.
+export function parseMarked(text) {
+  const m = typeof text === "string" ? MARK_PATTERN.exec(text) : null;
+  if (!m) return null;
+  const [, before, marked, after] = m;
+  return { before, marked, after, plain: before + marked + after };
+}
 
 // Marks the missing word in a fill-the-gap sentence.
 export const GAP = "___";
@@ -112,6 +130,52 @@ const CHECKS = {
         seen.add(norm(w));
       }
     }
+  },
+
+  sound(item, problems) {
+    checkTextMap(item.title, "title", problems, { mustHave: ["en"] });
+    checkTextMap(item.explanation, "explanation", problems, { mustHave: ["en"] });
+    if (!SOUND_KINDS.includes(item.kind)) {
+      problems.push(`kind must be one of ${SOUND_KINDS.join(", ")}`);
+      return;
+    }
+    const soundIds = new Set();
+    if (item.kind === "sound") {
+      if (!Array.isArray(item.sounds) || item.sounds.length < 2) problems.push("sounds needs at least two sounds to choose from");
+      else {
+        item.sounds.forEach((s, i) => {
+          const name = `sounds[${i + 1}]`;
+          if (!isObject(s) || !isText(s.id)) return problems.push(`${name}.id is empty`);
+          if (soundIds.has(s.id)) problems.push(`${name}: "${s.id}" is listed twice`);
+          soundIds.add(s.id);
+          checkTextMap(s.label, `${name}.label`, problems, { mustHave: ["en"] });
+        });
+      }
+    }
+    if (!Array.isArray(item.words) || item.words.length < 3) {
+      problems.push("words needs at least three words");
+      return;
+    }
+    const seen = new Set();
+    item.words.forEach((w, i) => {
+      const name = `words[${i + 1}]`;
+      if (!isObject(w) || !isText(w.text)) return problems.push(`${name}.text is empty`);
+      if (item.kind === "letters") {
+        if (/[[\]]/.test(w.text)) problems.push(`${name}: letter names don't use [ ]`);
+      } else if (!parseMarked(w.text)) {
+        problems.push(`${name}: put [ ] around the ${item.kind === "silent" ? "silent letters" : "letters that make the sound"}, once, like "[k]nife"`);
+      }
+      if (item.kind === "sound" && !soundIds.has(w.sound)) {
+        problems.push(`${name}: sound must be one of the ids in sounds`);
+      }
+      const plain = norm(parseMarked(w.text)?.plain ?? w.text);
+      if (seen.has(plain)) problems.push(`"${w.text}" is in words twice`);
+      seen.add(plain);
+      checkTextMap(w.say, `${name}.say`, problems, { required: false });
+      checkTextMap(w.meaning, `${name}.meaning`, problems, { required: false });
+      checkTextMap(w.note, `${name}.note`, problems, { required: false });
+      if (w.speak !== undefined && !isText(w.speak)) problems.push(`${name}.speak is empty`);
+    });
   },
 };
 

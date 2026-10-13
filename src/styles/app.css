@@ -284,6 +284,54 @@ a { color: var(--lake); }
   .gp-sentence { font-size: 22px; line-height: 34px; }
 }
 
+/* Sounds of English. Prefix snd-. */
+.snd-lessons { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: var(--space-3); }
+.snd-lesson { display: flex; flex-direction: column; gap: 2px; min-height: var(--space-12); padding: var(--space-3) var(--space-4); border: 2px solid transparent; border-radius: var(--radius-md); background: var(--surface-raised); box-shadow: var(--shadow-raised); color: var(--ink); text-decoration: none; transition: border-color .15s, background-color .15s; }
+.snd-lesson:hover { border-color: var(--lake); background: var(--lake-soft); }
+.snd-lesson:focus-visible { outline: 3px solid var(--lingon); outline-offset: 2px; }
+.snd-lesson__title { font: 600 18px/24px var(--font-display); }
+.snd-lesson__fi { font: 400 15px/20px var(--font-sans); color: var(--ink-muted); }
+.snd-lesson__progress { margin-top: var(--space-1); }
+.snd-lesson--done { border-left: 4px solid var(--pine); }
+.snd-lesson__check { color: var(--pine); font-weight: 700; }
+.snd-rule { margin-top: 0; }
+.snd-words { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-2); }
+.snd-words__row { display: flex; align-items: center; gap: var(--space-2); }
+.snd-words__word { flex: 1 1 auto; display: flex; align-items: center; gap: var(--space-3); min-height: 56px; padding: var(--space-2) var(--space-4); border: 2px solid var(--line); border-radius: var(--radius-md); background: var(--surface-raised); color: var(--ink); font: inherit; text-align: left; cursor: pointer; transition: border-color .15s, background-color .15s; }
+.snd-words__word:hover:not(:disabled) { border-color: var(--lake); background: var(--lake-soft); }
+.snd-words__word:disabled { cursor: default; }
+.snd-words__word svg { flex: none; color: var(--lake); }
+.snd-words__word:active svg { animation: lg-pop .32s cubic-bezier(.3, 1.6, .5, 1); }
+.snd-words__text { display: flex; flex-direction: column; min-width: 0; }
+.snd-words__en { font: 600 22px/28px var(--font-display); overflow-wrap: anywhere; }
+.snd-words__fi { font: 400 15px/20px var(--font-sans); color: var(--ink-muted); }
+.snd-words__say { font-weight: 700; color: var(--ink); }
+.snd-mark { color: var(--lake); background: var(--lake-soft); border-radius: 4px; padding: 0 2px; }
+.snd-mark--silent { color: var(--ink-muted); background: none; text-decoration: line-through; text-decoration-color: var(--cloudberry); text-decoration-thickness: 3px; }
+.snd-actions { align-items: center; }
+.snd-prompt { gap: var(--space-2); }
+.snd-listen { display: flex; }
+.snd-ask { margin: var(--space-2) 0 0; font-weight: 700; }
+.snd-tiles { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--space-2); }
+.snd-tile { width: 52px; min-height: 60px; border-radius: var(--radius-sm); border: 2px solid var(--border); background: var(--surface-raised); color: var(--ink); font: 700 28px/1 var(--font-display); cursor: pointer; transition: border-color .15s, background-color .15s, opacity .2s; }
+.snd-tile:hover:not(:disabled) { border-color: var(--lake); background: var(--lake-soft); }
+.snd-tile:disabled { cursor: default; }
+.snd-tile--miss { border-style: dashed; border-color: var(--cloudberry); color: var(--ink-muted); text-decoration: line-through; text-decoration-color: var(--cloudberry); }
+.snd-tile--right { border-color: var(--pine); background: var(--pine-soft); }
+.snd-tile--shown { border-color: var(--cloudberry); background: var(--cloudberry-soft); }
+.snd-tile--silent { color: var(--ink-muted); text-decoration: line-through; text-decoration-thickness: 3px; }
+.snd-word-big .snd-mark { padding: 0; box-shadow: 0 0 0 3px var(--lake-soft); }
+.snd-letter .pg-choice__text { font: 700 28px/32px var(--font-display); }
+.snd-after { display: flex; flex-direction: column; align-items: center; gap: var(--space-1); text-align: center; }
+.snd-say { margin: 0; font-size: 18px; line-height: 26px; }
+.snd-say strong { font: 700 22px/28px var(--font-display); }
+.snd-meaning { margin: 0; font: 400 16px/22px var(--font-sans); color: var(--ink-muted); }
+.snd-why { width: 100%; box-sizing: border-box; }
+
+@media (max-width: 360px) {
+  .snd-tile { width: 44px; min-height: 52px; font-size: 24px; }
+}
+
 /* Word bank admin (/admin). Prefix wb-, not ad-: ad blockers hide .ad-* elements. */
 .wb-page { max-width: 1100px; }
 .wb-grid { display: flex; flex-wrap: wrap; gap: var(--space-3); align-items: flex-end; }

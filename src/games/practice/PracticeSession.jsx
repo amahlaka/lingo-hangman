@@ -38,9 +38,10 @@ function bannerFor(events, { t, dailyGoal, answer }) {
 //   empty                  message shown when there are too few words
 //   endTitleKey, recapTitleKey  practice strings for the end screen ("words" by default)
 //   meaningInFeedback      false when the question already shows the meaning
+//   endExtra               optional element shown above "All games" on the end screen
 export default function PracticeSession({
   gameId, title, intro, learningLang, nativeLang, buildQuestions, renderQuestion, empty,
-  endTitleKey = "endTitle", recapTitleKey = "recapTitle", meaningInFeedback = true,
+  endTitleKey = "endTitle", recapTitleKey = "recapTitle", meaningInFeedback = true, endExtra = null,
 }) {
   const { t, lang } = useSettings();
   const { recordWord, dailyGoal } = useProgress();
@@ -153,6 +154,7 @@ export default function PracticeSession({
           <button type="button" className="lg-btn lg-btn--primary lg-btn--hero" onClick={restart} autoFocus>
             {p.playAgain}
           </button>
+          {endExtra}
           <Link to="/" className="lg-btn lg-btn--quiet">{t.allGames}</Link>
         </main>
       </GameScreen>

@@ -64,6 +64,8 @@ jobs:
       - uses: actions/checkout@v5
         with:
           ref: ${{ steps.target.outputs.ref }}
+          # The build runs npm install scripts; keep the GitHub token out of .git/config.
+          persist-credentials: false
 
       - name: Work out the preview address
         id: meta

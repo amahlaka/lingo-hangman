@@ -291,14 +291,3 @@ export function buildQuickRound(targets, state, options = {}) {
   const random = options.random || Math.random;
   return buildQuickQuestions(pickQuickTargets(targets, state, { ...options, random }), state, random);
 }
-
-// How the round went, by role, for the end screen.
-export function quickSummary(results) {
-  const by = (role) => results.filter((r) => r.question?.quick?.role === role);
-  const easy = by("easy");
-  const challenge = by("challenge");
-  return {
-    easy: { total: easy.length, solved: easy.filter((r) => r.solved).length },
-    challenge: { total: challenge.length, solved: challenge.filter((r) => r.solved).length },
-  };
-}

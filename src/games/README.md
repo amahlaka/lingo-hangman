@@ -213,7 +213,8 @@ Quick play (`/quick`, `src/games/quick/`) builds a round of 10 from them: three
 easy wins (known words), three challenges (tricky words, then new words from
 challenging lessons) and new or practising words, spread over words,
 sentences, grammar and sounds, with no two challenges side by side and an easy
-win first and last. Each question is asked by one of the other games
+win first and last. The roles stay behind the scenes: learners don't see which
+questions are easy wins or challenges. Each question is asked by one of the other games
 (`quickTargets` lists which games can ask what) and recorded under that game,
 so a new practice game can join Quick play by adding its questions there.
 Targets carry the `categories` and `levels` of their word bank items, and

@@ -368,7 +368,7 @@ a { color: var(--lake); }
 .snd-words__say { font-weight: 700; color: var(--ink); }
 .snd-mark { color: var(--lake); background: var(--lake-soft); border-radius: 4px; padding: 0 2px; }
 .snd-mark--silent { color: var(--ink-muted); background: none; text-decoration: line-through; text-decoration-color: var(--cloudberry); text-decoration-thickness: 3px; }
-.snd-actions { align-items: center; }
+.snd-actions { display: flex; flex-direction: column; align-items: center; gap: var(--space-2); }
 .snd-prompt { gap: var(--space-2); }
 .snd-listen { display: flex; }
 .snd-ask { margin: var(--space-2) 0 0; font-weight: 700; }

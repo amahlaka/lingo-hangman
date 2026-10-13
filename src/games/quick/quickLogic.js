@@ -8,6 +8,7 @@
 import { wordKey } from "../../lib/progress";
 import { applyPreferences, getPreferences } from "../../lib/preferences";
 import { challengeLessons, challengeScore, wordStanding } from "../../lib/adaptive";
+import { sentenceLesson } from "../../lib/wordTypes";
 import {
   buildChoiceQuestion,
   buildGapQuestion,
@@ -80,7 +81,10 @@ export function quickTargets({
   const onTopic = new Set(gapItems.filter((g) => g.topic).map((g) => g.id));
   const everyday = new Map(gapItems.filter((g) => !g.topic).map((g) => [g.id, g]));
   for (const s of usableWords([...pool.filter((p) => wordCount(p.learning) > 1), ...sentences])) {
-    if (isPhraseCandidate(s)) add(s.learning, "sentence", { game: "phrase", make: (r) => buildPhrasePuzzle(s, r) }, s);
+    if (isPhraseCandidate(s)) {
+      // Recorded under its sentence-structure rule, like a Build the phrase round.
+      add(s.learning, "sentence", { game: "phrase", lesson: sentenceLesson(s), make: (r) => buildPhrasePuzzle(s, r) }, s);
+    }
     if (onTopic.has(s.id)) continue;
     const item = everyday.get(s.id);
     if (item) add(s.learning, "sentence", { game: "fill-the-gap", make: (r) => gapItemQuestion(item, nativeLang, r) }, item);

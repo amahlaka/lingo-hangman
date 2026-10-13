@@ -9,6 +9,8 @@ import { fill } from "../../i18n";
 //   tray     a faded preview in the bottom bar that opens upwards
 //   step     its own view after "Next", on short screens
 // Outside a PracticeSession the box always stays in place.
+// The context also carries the round's points while a question is open:
+// `peek` for RulePeek and `points: { xp, pay(cost) }` for other paid hints.
 export const RuleContext = createContext(null);
 
 // The faded preview in the bottom bar. Opening it lets the bar grow upwards.
@@ -72,6 +74,37 @@ export function RulePeek({ onPeek }) {
         {fill(p.rulePeek, { n: cost })}
       </button>
       {!canAfford && <p className="lg-caption">{fill(p.rulePeekLater, { n: cost })}</p>}
+    </div>
+  );
+}
+
+// Hints bought with this round's points before answering, as one row of quiet
+// buttons: [{ id, label, cost, onBuy }]. Only shown inside a PracticeSession.
+export function PaidHints({ hints }) {
+  const ctx = useContext(RuleContext);
+  const { t } = useSettings();
+  const p = t.practice;
+  if (!ctx?.points || !hints.length) return null;
+  const { xp, pay } = ctx.points;
+  const cheapest = Math.min(...hints.map((h) => h.cost));
+  return (
+    <div className="pg-peek">
+      <div className="pg-peek__row">
+        {hints.map((h) => (
+          <button
+            key={h.id}
+            type="button"
+            className="lg-btn lg-btn--quiet"
+            disabled={xp < h.cost}
+            onClick={() => {
+              if (pay(h.cost)) h.onBuy();
+            }}
+          >
+            {h.label}
+          </button>
+        ))}
+      </div>
+      {xp < cheapest && <p className="lg-caption">{fill(p.hintsLater, { n: cheapest })}</p>}
     </div>
   );
 }

@@ -2,7 +2,7 @@ import React, { useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useSettings } from "../../app/SettingsContext";
 import { getGapItems, getSentences, languageLabel } from "../../lib/words";
-import { ExampleText } from "../../components/lingo";
+import { ExampleText, useLooseWordType } from "../../components/lingo";
 import { sounds } from "../../lib/sounds";
 import PracticeSession from "../practice/PracticeSession";
 import { MAX_MISSES, buildGapRound, isGapCandidate, practicePool, usableWords } from "../practice/practiceLogic";
@@ -14,6 +14,7 @@ const GAP_ROUND = 8;
 // answered, the word drops into the gap and the Finnish moves under the full
 // sentence, as in Build the phrase.
 export function GapQuestion({ question, done, onDone, p, learningLang, nativeLang, nativeLabel, uiLang }) {
+  const typeOf = useLooseWordType();
   const { target, answer, options, before, after, explanation } = question;
   // A two-way choice (a / an) is over after one miss.
   const maxMisses = Math.min(MAX_MISSES, options.length - 1);
@@ -79,6 +80,7 @@ export function GapQuestion({ question, done, onDone, p, learningLang, nativeLan
 
       <div className="pg-choices fg-choices" role="group" aria-label={p.gapIntro}>
         {options.map((option) => {
+          const type = typeOf(option, learningLang);
           const state =
             option === answer && picked ? "right" : option === answer && done ? "shown" : missed.includes(option) ? "miss" : "";
           return (
@@ -86,13 +88,16 @@ export function GapQuestion({ question, done, onDone, p, learningLang, nativeLan
               key={option}
               type="button"
               lang={learningLang}
-              className={`pg-choice${state ? ` pg-choice--${state}` : ""}${state === "miss" && wobble === option ? " lg-wobble" : ""}`}
+              className={`pg-choice${state ? ` pg-choice--${state}` : ""}${state === "miss" && wobble === option ? " lg-wobble" : ""}${type.className}`}
               onClick={() => choose(option)}
               disabled={done || state === "miss"}
               aria-label={state === "miss" ? `${option}, not this one` : undefined}
             >
               <span className="pg-choice__mark" aria-hidden="true">{state === "right" || state === "shown" ? "✓" : ""}</span>
-              <span className="pg-choice__text">{option}</span>
+              <span className="pg-choice__words">
+                <span className="pg-choice__text">{option}</span>
+                {type.tag}
+              </span>
             </button>
           );
         })}

@@ -1,5 +1,6 @@
 import { getGapItems, getTopics } from '../lib/words';
 import { GAP, buildGapRound, fillGap, gapQuestions, maxMissesFor, splitGap } from '../games/gap/gapLogic';
+import { SENTENCE_RULES } from '../lib/wordTypes';
 
 const bank = (type) => ({ topics: getTopics(type), gaps: getGapItems() });
 
@@ -9,7 +10,8 @@ describe.each([['rule'], ['confusable']])('word bank %s topics', (type) => {
 
   it('each have enough sentences for a round on their own', () => {
     expect(content.topics.length).toBeGreaterThan(0);
-    content.topics.forEach((t) => {
+    // Sentence-structure rules belong to Build the phrase and have no gap sentences.
+    content.topics.filter((t) => !SENTENCE_RULES.includes(t.id)).forEach((t) => {
       expect([t.id, questions.filter((q) => q.setId === t.id).length >= 4]).toEqual([t.id, true]);
       expect([t.id, Boolean(t.explanation?.en && t.explanation?.fi)]).toEqual([t.id, true]);
     });

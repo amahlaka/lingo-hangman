@@ -2,6 +2,7 @@ import React, { useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useSettings } from "../../app/SettingsContext";
 import { languageLabel } from "../../lib/words";
+import { useLooseWordType } from "../../components/lingo";
 import { sounds } from "../../lib/sounds";
 import PracticeSession from "../practice/PracticeSession";
 import { MAX_MISSES, buildPairBoards, isPairCandidate, practicePool } from "../practice/practiceLogic";
@@ -50,14 +51,16 @@ function PairsBoard({ board, done, onItem, onDone, p, learningLang, nativeLang, 
     setHint(p.pairsMiss);
   };
 
+  const typeOf = useLooseWordType();
   const tile = (side, { id, pair }, i) => {
     const isMatched = matched.includes(id);
     const isSelected = selected?.side === side && selected.id === id;
     const learning = side === "learning";
     const text = learning ? pair.learning : pair.native;
     const shaking = wobble?.includes(`${side}-${id}`);
+    const type = learning ? typeOf(pair.learning, learningLang) : { className: "", tag: null };
     const cls = [
-      "wp-tile",
+      "wp-tile" + type.className,
       isSelected && "wp-tile--selected",
       isMatched && (learning ? "wp-tile--matched lg-pop" : "wp-tile--used"),
       shaking && "lg-wobble",
@@ -81,6 +84,7 @@ function PairsBoard({ board, done, onItem, onDone, p, learningLang, nativeLang, 
         <span className="wp-tile__mark" aria-hidden="true">{isMatched ? "✓" : ""}</span>
         <span className="wp-tile__words">
           <span className="wp-tile__text">{text}</span>
+          {type.tag}
           {isMatched && learning && (
             <span className="wp-tile__native lg-reveal" lang={nativeLang}>{pair.native}</span>
           )}

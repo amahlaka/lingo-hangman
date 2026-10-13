@@ -43,6 +43,29 @@ export const CONTEXTS = [
 
 export const REGISTERS = ["neutral", "formal", "informal"];
 
+// Word types of the words in a sentence (`wordTypes` on word items and rule
+// examples): one entry per word, in order, for the word-type hints in the
+// games (src/lib/wordTypes.js). An entry is a word class, optionally followed
+// by the sentence role of the main word of the subject or object:
+// "noun:subject", "pronoun:object", "verb".
+export const WORD_CLASSES = [
+  "noun", "pronoun", "verb", "auxiliary", "adjective", "adverb", "article", "preposition",
+  "conjunction", "number", "question", "particle", "interjection",
+];
+export const SENTENCE_ROLES = ["subject", "object"];
+
+const EDGE_PUNCT = /^[^\p{L}\p{N}']+|[^\p{L}\p{N}']+$/gu;
+
+// The words of a sentence as the games count them: split at spaces, with
+// punctuation at either end dropped ("Rovio," -> "Rovio", "&" -> nothing).
+export function sentenceWords(text) {
+  return String(text || "")
+    .trim()
+    .split(/\s+/)
+    .map((raw) => raw.replace(EDGE_PUNCT, ""))
+    .filter(Boolean);
+}
+
 // Multi-sentence `text` items.
 export const TEXT_KINDS = ["dialogue", "story", "message", "email", "notice", "instructions", "description"];
 
@@ -105,11 +128,33 @@ function checkWordList(value, name, problems, { min = 1, allowNone = false } = {
   return true;
 }
 
-// Example sentences: [{ "en": "...", "fi": "..." }].
+// `wordTypes`: one valid entry per word of every English text in `texts`.
+function checkWordTypes(value, texts, name, problems) {
+  if (value === undefined) return;
+  const pattern = new RegExp(`^(${WORD_CLASSES.join("|")})(:(${SENTENCE_ROLES.join("|")}))?$`);
+  if (!Array.isArray(value) || !value.every((v) => typeof v === "string" && pattern.test(v))) {
+    problems.push(`${name} must be a list of word classes (${WORD_CLASSES.join(", ")}), each optionally with :subject or :object`);
+    return;
+  }
+  for (const text of texts.filter(isText)) {
+    const n = sentenceWords(text).length;
+    if (n !== value.length) problems.push(`${name} has ${value.length} entries but "${text}" has ${n} words`);
+  }
+}
+
+// Example sentences: [{ "en": "...", "fi": "...", "wordTypes": [...] }].
 function checkExamples(examples, problems) {
   if (examples === undefined) return;
   if (!Array.isArray(examples)) problems.push("examples must be a list");
-  else examples.forEach((ex, i) => checkTextMap(ex, `examples[${i + 1}]`, problems, { mustHave: ["en"] }));
+  else {
+    examples.forEach((ex, i) => {
+      const name = `examples[${i + 1}]`;
+      if (!isObject(ex)) return checkTextMap(ex, name, problems);
+      const { wordTypes, ...texts } = ex;
+      checkTextMap(texts, name, problems, { mustHave: ["en"] });
+      checkWordTypes(wordTypes, [texts.en, texts["en-GB"]], `${name}.wordTypes`, problems);
+    });
+  }
 }
 
 const CHECKS = {
@@ -125,6 +170,7 @@ const CHECKS = {
     }
     checkExamples(item.examples, problems);
     checkTextMap(item.note, "note", problems, { required: false });
+    if (isObject(item.text)) checkWordTypes(item.wordTypes, [item.text.en, item.text["en-GB"]], "wordTypes", problems);
   },
 
   gap(item, problems, ctx) {

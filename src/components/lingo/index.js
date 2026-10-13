@@ -13,3 +13,4 @@ export { default as SettingsMenu } from "./SettingsMenu";
 export { Flame, Shield, GoalRing } from "./Icons";
 export { default as CategoryChips } from "./CategoryChips";
 export { default as ExampleText, plainText } from "./ExampleText";
+export { TypeKey, TypeLabel, typeClass, useAutoTypeHelp, useLooseWordType, useTypePrefs } from "./WordTypes";

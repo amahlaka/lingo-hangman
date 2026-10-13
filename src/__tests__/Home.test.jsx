@@ -6,13 +6,16 @@ describe("Home", () => {
     renderApp("/");
     expect(screen.getByText("Word Pairs")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("link", { name: /Word Hangman/ }));
-    expect(screen.getByRole("button", { name: "Start game" })).toBeInTheDocument();
+    // No setup screen: hangman starts right away with words from the word bank.
+    expect(screen.getByTestId("native-word")).toBeInTheDocument();
   });
 
-  it("starts a hangman game from the setup screen in one tap", () => {
-    renderApp("/hangman");
+  it("plays your own words from the custom words page", () => {
+    renderApp("/hangman/words");
+    fireEvent.change(screen.getByLabelText("Learning language word"), { target: { value: "cat" } });
+    fireEvent.change(screen.getByLabelText("Native translation"), { target: { value: "kissa" } });
     fireEvent.click(screen.getByRole("button", { name: "Start game" }));
-    expect(screen.getByTestId("native-word")).toBeInTheDocument();
+    expect(screen.getByTestId("native-word")).toHaveTextContent("kissa");
   });
 
   it("switches the interface to Finnish", () => {

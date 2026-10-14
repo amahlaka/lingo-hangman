@@ -1,16 +1,23 @@
-import React, { useCallback, useEffect, useState } from "react";
-
-const COLORS = ["--lake", "--lingon", "--cloudberry", "--pine"];
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import { useOptionalProgress } from "../../app/ProgressContext";
+import { CONFETTI } from "../../lib/cosmetics";
 
 function prefersReducedMotion() {
   return typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 }
 
-function makePieces(size) {
+// One piece's class: the original set mixes strips with every third piece a
+// dot; bought sets give every piece their own shape (see cosmetics.js).
+function pieceClass(shape, k) {
+  if (shape === "mix") return k % 3 === 0 ? "lg-dot" : undefined;
+  return `lg-piece--${shape}`;
+}
+
+export function makePieces(size, set = CONFETTI.classic) {
   const large = size === "large";
   const count = large ? 120 : 40;
   return Array.from({ length: count }, (_, k) => {
-    const style = { "--c": `var(${COLORS[k % 4]})` };
+    const style = { "--c": set.colors[k % set.colors.length] };
     if (large) {
       // A shower from the top of the screen.
       style.left = `${Math.random() * 100}%`;
@@ -27,7 +34,7 @@ function makePieces(size) {
       style["--d"] = `${Math.random() * 0.15}s`;
     }
     style["--r"] = `${Math.random() * 720 - 360}deg`;
-    return { id: k, dot: k % 3 === 0, style };
+    return { id: k, className: pieceClass(set.shape, k), style };
   });
 }
 
@@ -35,13 +42,18 @@ function makePieces(size) {
 // of 40 pieces from the middle of the container) or `celebrate("large")` for a
 // streak, goal or finished set (120 pieces over the whole screen). Render
 // `confetti` inside a positioned element. Never blocks input; skipped with
-// prefers-reduced-motion.
+// prefers-reduced-motion. The pieces follow the confetti set the learner
+// uses from the shop; `celebrate(size, setId)` throws a given set instead.
 export function useConfetti() {
   const [burst, setBurst] = useState(null);
+  const chosen = useOptionalProgress()?.cosmetics.confetti || "classic";
+  const chosenRef = useRef(chosen);
+  chosenRef.current = chosen;
 
-  const celebrate = useCallback((size = "medium") => {
+  const celebrate = useCallback((size = "medium", setId) => {
     if (prefersReducedMotion()) return;
-    setBurst({ key: Date.now() + Math.random(), size, pieces: makePieces(size) });
+    const set = CONFETTI[setId || chosenRef.current] || CONFETTI.classic;
+    setBurst({ key: Date.now() + Math.random(), size, pieces: makePieces(size, set) });
   }, []);
 
   useEffect(() => {
@@ -57,7 +69,7 @@ export function useConfetti() {
       aria-hidden="true"
     >
       {burst.pieces.map((p) => (
-        <i key={p.id} className={p.dot ? "lg-dot" : undefined} style={p.style} />
+        <i key={p.id} className={p.className} style={p.style} />
       ))}
     </div>
   ) : null;

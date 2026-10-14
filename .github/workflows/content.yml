@@ -92,14 +92,9 @@ jobs:
           python-version: "3.12"
 
       # Kokoro v1.0 (Apache-2.0) as ONNX, from the kokoro-onnx project's release.
+      # Downloaded each time rather than cached: this job has the word base
+      # checked out, and nothing from it may reach a cache shared with master.
       - if: steps.plan.outputs.count != '0'
-        id: model-cache
-        uses: actions/cache@v4
-        with:
-          path: ~/kokoro
-          key: kokoro-onnx-v1.0
-
-      - if: steps.plan.outputs.count != '0' && steps.model-cache.outputs.cache-hit != 'true'
         run: |
           mkdir -p ~/kokoro && cd ~/kokoro
           base=https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0
@@ -114,7 +109,7 @@ jobs:
         env:
           SHARD: ${{ matrix.shard }}
         run: |
-          sudo apt-get install -y --no-install-recommends ffmpeg >/dev/null
+          command -v ffmpeg >/dev/null || { sudo apt-get update -qq && sudo apt-get install -y -qq --no-install-recommends ffmpeg >/dev/null; }
           python -m pip install --quiet kokoro-onnx==0.6.1 soundfile==0.14.0
           python scripts/speech-audio.py audio-build/todo.json --model ~/kokoro --shard "$SHARD/4"
 

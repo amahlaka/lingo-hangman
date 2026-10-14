@@ -45,8 +45,12 @@ function HeardLine({ result, done, p }) {
 
 // One word to say. In "mic" mode the browser listens and checks it; in "self"
 // mode (no speech recognition, or no microphone) the learner checks themselves.
+// `listenLang` is the language the recogniser listens in (the mic debug panel
+// can change it), `fallback` whether a failed on-device attempt is retried
+// online, and `onEvent` gets the recogniser's events for the debug panel.
 export default function SayQuestion({
   word, learningLang, nativeLang, done, onDone, p, mode, selfNote, privacy, prepareOnDevice, onBlocked, onOnDeviceFailed,
+  listenLang = learningLang, fallback = true, onEvent,
 }) {
   const [misses, setMisses] = useState(0);
   const [state, setState] = useState("idle"); // idle | preparing | listening
@@ -94,15 +98,15 @@ export default function SayQuestion({
     }
     setResult(null);
     setState("listening");
-    let s = listenOnce({ lang: learningLang, onDevice });
+    let s = listenOnce({ lang: listenLang, onDevice, onEvent });
     session.current = s;
     let { alternatives, error } = await s.done;
     if (!alive.current || session.current !== s) return;
     // The browser said it could listen on the device but then couldn't: carry
     // on with its online service, for this tap and the rest of the round.
-    if (onDevice && !alternatives.length && isOnDeviceFailure(error)) {
+    if (fallback && onDevice && !alternatives.length && isOnDeviceFailure(error)) {
       onOnDeviceFailed?.(error);
-      s = listenOnce({ lang: learningLang, onDevice: false });
+      s = listenOnce({ lang: listenLang, onDevice: false, onEvent });
       session.current = s;
       ({ alternatives, error } = await s.done);
       if (!alive.current || session.current !== s) return;

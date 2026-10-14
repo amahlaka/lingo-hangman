@@ -4,6 +4,7 @@ import { encodeWords } from '../lib/words';
 import bundled from '../lib/bundledContent';
 import { setContent } from '../lib/content';
 import { validateItem } from '../lib/contentSchema';
+import { setMicDebug } from '../lib/micDebug';
 
 const words = [
   { learning: 'dog', native: 'koira' },
@@ -131,6 +132,58 @@ describe('Say it', () => {
     expect(screen.getByText(`Nicely said: "${said}".`)).toBeInTheDocument();
     expect(screen.getByText(/online service/)).toBeInTheDocument();
     warn.mockRestore();
+  });
+
+  describe('mic debug mode', () => {
+    afterEach(() => setMicDebug({ on: false, detection: 'auto', lang: 'auto' }));
+
+    it('is off by default and turned on in practice settings', () => {
+      renderApp(link);
+      expect(screen.queryByRole('region', { name: 'Microphone debug' })).toBeNull();
+      renderApp('/preferences');
+      fireEvent.click(screen.getByRole('button', { name: /Microphone debug mode/ }));
+      renderApp(link);
+      expect(screen.getAllByRole('region', { name: 'Microphone debug' }).length).toBeGreaterThan(0);
+    });
+
+    it('listens in the chosen language and logs what the recogniser hears', async () => {
+      const script = [];
+      const made = fakeRecognition(script);
+      window.SpeechRecognition.available = async () => 'available';
+      setMicDebug({ on: true });
+      renderApp(link);
+      await act(async () => {});
+      expect(screen.getByText('on device')).toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: 'fi-FI' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Online' }));
+      await act(async () => {});
+      script.push({ said: ['koira'] });
+      await tapMic();
+      expect(made[0].lang).toBe('fi-FI');
+      expect(made[0].processLocally).toBeUndefined();
+      const log = screen.getByTestId('mic-debug-log').textContent;
+      expect(log).toContain('start lang=fi-FI onDevice=false');
+      expect(log).toContain('result "koira"');
+    });
+
+    it('does not fall back to online when on-device is forced', async () => {
+      const script = [{ error: 'language-not-supported' }];
+      const made = fakeRecognition(script);
+      setMicDebug({ on: true, detection: 'local' });
+      renderApp(link);
+      await act(async () => {});
+      await tapMic();
+      expect(made).toHaveLength(1);
+      expect(made[0].processLocally).toBe(true);
+      expect(screen.getByTestId('mic-debug-log').textContent).toContain('error error=language-not-supported');
+    });
+
+    it('can force the self check', () => {
+      fakeRecognition([]);
+      setMicDebug({ on: true, detection: 'self' });
+      renderApp(link);
+      expect(screen.getByRole('button', { name: 'I said it' })).toBeInTheDocument();
+    });
   });
 
   describe('pronunciation', () => {

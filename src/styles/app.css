@@ -362,6 +362,28 @@ a { color: var(--lake); }
 .sy-after-miss { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: var(--space-3); }
 .sy-privacy, .sy-self-note { margin: 0; text-align: center; }
 .sy-self { display: flex; flex-direction: column; align-items: center; gap: var(--space-2); }
+/* Mic debug panel (Practice settings → Microphone debug mode) */
+.md-panel { display: flex; flex-direction: column; gap: var(--space-4); margin-top: var(--space-4); padding: var(--space-4); border: 2px dashed var(--border); border-radius: var(--radius-lg); background: var(--surface-sunken); color: var(--ink); font-size: 15px; line-height: 22px; min-width: 0; }
+.md-title { margin: 0; }
+.md-block { display: flex; flex-direction: column; gap: var(--space-2); min-width: 0; }
+.md-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2); }
+.md-btn { min-height: 36px; padding: var(--space-1) var(--space-3); font-size: 15px; }
+.md-chip { font-size: 14px; }
+.md-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; line-height: 18px; overflow-wrap: anywhere; }
+.md-meter { position: relative; height: 16px; border-radius: var(--radius-pill); background: linear-gradient(90deg, var(--pine) 0 70%, var(--cloudberry) 70% 90%, var(--lingon) 90%); box-shadow: inset 0 0 0 1px var(--border); overflow: hidden; }
+.md-meter__cover { position: absolute; inset: 0 0 0 auto; background: var(--surface-raised); box-shadow: inset 0 1px 0 var(--border), inset 0 -1px 0 var(--border), inset -1px 0 0 var(--border); transition: width 60ms linear; }
+.md-meter__peak { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--ink); }
+.md-check { display: flex; align-items: center; gap: var(--space-2); font-size: 14px; }
+.md-error { color: var(--lingon); }
+.md-lights { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.md-light { padding: 2px var(--space-2); border-radius: var(--radius-sm); border: 1px solid var(--border); color: var(--ink-muted); font-size: 13px; }
+.md-light--on { background: var(--pine); border-color: var(--pine); color: var(--on-pine); }
+.md-facts { display: grid; grid-template-columns: minmax(0, auto) minmax(0, 1fr); gap: 2px var(--space-3); margin: 0; }
+.md-facts dt { color: var(--ink-muted); }
+.md-facts dd { margin: 0; display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-start; gap: var(--space-2); }
+.md-list { margin: 0; padding-left: var(--space-6); }
+.md-log { margin: 0; padding: var(--space-2); list-style: none; max-height: 220px; overflow-y: auto; border-radius: var(--radius-sm); background: var(--surface-raised); }
+.md-log__t { color: var(--ink-muted); }
 
 /* Type it (typing practice). Prefix ty-. */
 .ty-support { margin: var(--space-1) 0 0; font-size: 16px; line-height: 24px; overflow-wrap: anywhere; }

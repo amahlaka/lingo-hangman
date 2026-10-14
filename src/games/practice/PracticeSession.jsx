@@ -76,10 +76,12 @@ function bannerFor(events, { t, dailyGoal, answer }) {
 //   endExtra               optional element shown above "All games" on the end screen
 //   endNote(results)       optional element under the end screen numbers; each
 //                          result carries the `question` it answered
+//   boardExtra             optional element under the question card (Say it's
+//                          mic debug panel)
 export default function PracticeSession({
   gameId, title, intro, learningLang, nativeLang, buildQuestions, renderQuestion, empty,
   endTitleKey = "endTitle", recapTitleKey = "recapTitle", meaningInFeedback = true, keys, endExtra = null,
-  endNote = null,
+  endNote = null, boardExtra = null,
 }) {
   const { t, lang } = useSettings();
   const { recordWord, dailyGoal } = useProgress();
@@ -306,6 +308,7 @@ export default function PracticeSession({
           </div>
           <div ref={setStepSlot} className="pg-card pg-rule-step" hidden={!ruleStep} />
         </RuleContext.Provider>
+        {boardExtra}
       </main>
       {current && (
         <div className="lg-tray" ref={trayRef}>

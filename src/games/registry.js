@@ -4,11 +4,13 @@ import HangmanCustomWords from "./hangman/HangmanCustomWords";
 import HangmanGame from "./hangman/HangmanGame";
 import MeaningGame from "./meaning/MeaningGame";
 import PhraseGame from "./phrase/PhraseGame";
+import SentenceRules from "./phrase/SentenceRules";
 import ListeningGame from "./listening/ListeningGame";
 import WordPairsGame from "./word-pairs/WordPairsGame";
 import FillGapGame from "./fill-gap/FillGapGame";
 import { GrammarGame, MixedUpGame } from "./gap/GapGames";
 import SayGame from "./say/SayGame";
+import TypeGame from "./type/TypeGame";
 import SoundsGame from "./sounds/SoundsGame";
 import QuickPlay from "./quick/QuickPlay";
 
@@ -65,7 +67,11 @@ export const GAMES = [
     minutes: 4,
     skill: "Sentences",
     path: "/phrase",
-    routes: [{ path: "/phrase", Component: PhraseGame }],
+    routes: [
+      { path: "/phrase", Component: PhraseGame },
+      // How English sentences are built (subject, verb, object …).
+      { path: "/phrase/rules", Component: SentenceRules },
+    ],
   },
   {
     id: "listening",
@@ -88,6 +94,17 @@ export const GAMES = [
     skill: "Speaking",
     path: "/say",
     routes: [{ path: "/say", Component: SayGame }],
+  },
+  {
+    id: "type-it",
+    name: "Type it",
+    nameFi: "Kirjoita se",
+    description: "Type the English for a Finnish word, and write down sentences you hear.",
+    art: "k_tchen",
+    minutes: 4,
+    skill: "Spelling",
+    path: "/type-it",
+    routes: [{ path: "/type-it", Component: TypeGame }],
   },
   {
     id: "grammar",

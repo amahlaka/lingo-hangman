@@ -198,7 +198,8 @@ export default function PracticeSession({
   };
 
   const goNext = () => {
-    if (rule.mode === "step" && !ruleStep) {
+    // A question that only moved its reading into the bar has no rule to show.
+    if (rule.mode === "step" && !ruleStep && stepSlot?.childElementCount) {
       setRuleStep(true);
       stepSlot?.scrollIntoView?.({ block: "start" });
       return;
@@ -220,20 +221,19 @@ export default function PracticeSession({
     setRoundKey((k) => k + 1);
   };
 
-  // Peeking at the rule before answering costs some of this round's points.
+  // Help before answering (seeing the rule, word-type hints) costs some of
+  // this round's points. `pay(cost)` returns false when there aren't enough.
+  const pay = (cost) => {
+    if (tally.xp < cost) return false;
+    setTally((s) => ({ ...s, xp: s.xp - cost }));
+    setPlus({ n: -cost, key: Date.now() });
+    return true;
+  };
+  const points = current ? null : { xp: tally.xp, pay };
   const peek = current
     ? null
-    : {
-        cost: RULE_PEEK_COST,
-        canAfford: tally.xp >= RULE_PEEK_COST,
-        pay: () => {
-          if (tally.xp < RULE_PEEK_COST) return false;
-          setTally((s) => ({ ...s, xp: s.xp - RULE_PEEK_COST }));
-          setPlus({ n: -RULE_PEEK_COST, key: Date.now() });
-          return true;
-        },
-      };
-  const ruleContext = { mode: rule.mode, inlineRef: rule.inlineRef, traySlot, stepSlot, peek };
+    : { cost: RULE_PEEK_COST, canAfford: tally.xp >= RULE_PEEK_COST, pay: () => pay(RULE_PEEK_COST) };
+  const ruleContext = { mode: rule.mode, inlineRef: rule.inlineRef, traySlot, stepSlot, peek, points };
 
   const score = <ScorePill label={t.pointsLabel} value={tally.xp} plus={plus?.n} plusKey={plus?.key} />;
   const menuActions = [{ label: t.restart, onClick: restart }];

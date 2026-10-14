@@ -101,3 +101,10 @@ export function listenOnce({ lang = "en-GB", onDevice = false, onSound } = {}) {
 export function isBlockingError(error) {
   return ["not-allowed", "service-not-allowed", "audio-capture", "network", "language-not-supported", "unsupported", "start-failed"].includes(error);
 }
+
+// Errors from an on-device attempt that the browser's online service may not
+// have: the language pack or on-device service isn't really usable after all.
+// Microphone errors are left out, as online recognition needs the mic too.
+export function isOnDeviceFailure(error) {
+  return ["language-not-supported", "service-not-allowed", "network", "start-failed", "unknown"].includes(error);
+}

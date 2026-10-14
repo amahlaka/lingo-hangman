@@ -8,6 +8,7 @@
 import { wordKey } from "../../lib/progress";
 import { applyPreferences, getPreferences } from "../../lib/preferences";
 import { challengeLessons, challengeScore, wordStanding } from "../../lib/adaptive";
+import { sentenceLesson } from "../../lib/wordTypes";
 import {
   buildChoiceQuestion,
   buildGapQuestion,
@@ -21,6 +22,7 @@ import {
 } from "../practice/practiceLogic";
 import { gapQuestions } from "../gap/gapLogic";
 import { BY_EAR, lessonQuestions } from "../sounds/soundsLogic";
+import { isDictationSentence, isTypeWord, typeQuestion } from "../type/typeLogic";
 
 export const QUICK_ROUND = 10;
 export const QUICK_QUOTA = { easy: 3, challenge: 3 };
@@ -73,6 +75,7 @@ export function quickTargets({
       if (withSound && wordCount(pair.learning) <= MAX_LISTEN_WORDS) {
         add(pair.learning, group, { game: "listening", make: (r) => buildChoiceQuestion(pair, pool, r) }, pair);
       }
+      if (isTypeWord(pair)) add(pair.learning, group, { game: "type-it", make: () => typeQuestion(pair, pool, "word") }, pair);
     }
   }
 
@@ -80,12 +83,22 @@ export function quickTargets({
   const onTopic = new Set(gapItems.filter((g) => g.topic).map((g) => g.id));
   const everyday = new Map(gapItems.filter((g) => !g.topic).map((g) => [g.id, g]));
   for (const s of usableWords([...pool.filter((p) => wordCount(p.learning) > 1), ...sentences])) {
-    if (isPhraseCandidate(s)) add(s.learning, "sentence", { game: "phrase", make: (r) => buildPhrasePuzzle(s, r) }, s);
+    if (isPhraseCandidate(s)) {
+      // Recorded under its sentence-structure rule, like a Build the phrase round.
+      add(s.learning, "sentence", { game: "phrase", lesson: sentenceLesson(s), make: (r) => buildPhrasePuzzle(s, r) }, s);
+    }
     if (onTopic.has(s.id)) continue;
     const item = everyday.get(s.id);
     if (item) add(s.learning, "sentence", { game: "fill-the-gap", make: (r) => gapItemQuestion(item, nativeLang, r) }, item);
     else if (isGapCandidate(s)) {
       add(s.learning, "sentence", { game: "fill-the-gap", make: (r) => buildGapQuestion(s, pool, r, groups) }, s);
+    }
+  }
+
+  // Sentences to write down from hearing them, as in Type it.
+  if (withSound) {
+    for (const s of usableWords(sentences).filter(isDictationSentence)) {
+      add(s.learning, "sentence", { game: "type-it", make: () => typeQuestion(s, pool, "dictation") }, s);
     }
   }
 

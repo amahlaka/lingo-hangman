@@ -6,6 +6,9 @@
 // Speaking takes longer than tapping, so a round is a little shorter.
 export const SAY_ROUND_LENGTH = 8;
 // Heard attempts per word before it is left for later. Silence doesn't count.
+// Points the "how to say it" reading costs, like the other one-off hints.
+export const SAY_HINT_COST = 5;
+
 export const MAX_SAY_TRIES = 3;
 // Single words and short phrases; long sentences are a different exercise.
 export const MAX_SAY_WORDS = 4;
@@ -16,7 +19,7 @@ const NUMBER_WORDS = [
   "nineteen", "twenty",
 ];
 
-const CONTRACTIONS = {
+export const CONTRACTIONS = {
   "i'm": "i am", "you're": "you are", "we're": "we are", "they're": "they are",
   "he's": "he is", "she's": "she is", "it's": "it is", "that's": "that is",
   "what's": "what is", "where's": "where is", "there's": "there is", "let's": "let us",

@@ -2,10 +2,12 @@ import React, { useEffect, useRef, useState } from "react";
 import { Mic, Volume2 } from "lucide-react";
 import { TriesMeter } from "../../components/lingo";
 import { fill } from "../../i18n";
+import { getItem } from "../../lib/words";
 import { sounds } from "../../lib/sounds";
-import { isBlockingError, listenOnce } from "../../lib/speechRecognition";
+import { isBlockingError, isOnDeviceFailure, listenOnce } from "../../lib/speechRecognition";
 import { RATE_SLOW, speak, stopSpeaking } from "../../lib/speech";
-import { MAX_SAY_TRIES, checkSaid } from "./sayLogic";
+import { PaidHints } from "../practice/RuleBox";
+import { MAX_SAY_TRIES, SAY_HINT_COST, checkSaid } from "./sayLogic";
 
 // What the recogniser heard, with the target's words marked as heard or not.
 function HeardLine({ result, done, p }) {
@@ -44,11 +46,12 @@ function HeardLine({ result, done, p }) {
 // One word to say. In "mic" mode the browser listens and checks it; in "self"
 // mode (no speech recognition, or no microphone) the learner checks themselves.
 export default function SayQuestion({
-  word, learningLang, nativeLang, done, onDone, p, mode, selfNote, privacy, prepareOnDevice, onBlocked,
+  word, learningLang, nativeLang, done, onDone, p, mode, selfNote, privacy, prepareOnDevice, onBlocked, onOnDeviceFailed,
 }) {
   const [misses, setMisses] = useState(0);
   const [state, setState] = useState("idle"); // idle | preparing | listening
   const [result, setResult] = useState(null);
+  const [showSay, setShowSay] = useState(false);
   const session = useRef(null);
   const alive = useRef(true);
   const text = word.learning;
@@ -91,10 +94,19 @@ export default function SayQuestion({
     }
     setResult(null);
     setState("listening");
-    const s = listenOnce({ lang: learningLang, onDevice });
+    let s = listenOnce({ lang: learningLang, onDevice });
     session.current = s;
-    const { alternatives, error } = await s.done;
+    let { alternatives, error } = await s.done;
     if (!alive.current || session.current !== s) return;
+    // The browser said it could listen on the device but then couldn't: carry
+    // on with its online service, for this tap and the rest of the round.
+    if (onDevice && !alternatives.length && isOnDeviceFailure(error)) {
+      onOnDeviceFailed?.(error);
+      s = listenOnce({ lang: learningLang, onDevice: false });
+      session.current = s;
+      ({ alternatives, error } = await s.done);
+      if (!alive.current || session.current !== s) return;
+    }
     session.current = null;
     setState("idle");
     if (!alternatives.length) {
@@ -114,6 +126,11 @@ export default function SayQuestion({
     else sounds.miss();
   };
 
+  // The word bank's IPA, always shown, and its reading in the learner's own
+  // language ("wooter"), shown once paid for or answered.
+  const item = getItem(word.id);
+  const ipa = item?.ipa?.[learningLang] || item?.ipa?.["en-GB"];
+  const reading = item?.say?.[nativeLang];
   const isPhrase = text.trim().includes(" ");
   const listening = state === "listening";
   const left = MAX_SAY_TRIES - misses;
@@ -124,7 +141,13 @@ export default function SayQuestion({
         <p className={`pg-prompt__word${isPhrase ? " pg-prompt__word--phrase" : ""}`} lang={learningLang} data-testid="prompt-word">
           {text}
         </p>
+        {ipa && <p className="sy-ipa" data-testid="prompt-ipa">{ipa}</p>}
         <p className="lg-caption" lang={nativeLang}>{word.native}</p>
+        {reading && (showSay || done) && (
+          <p className="snd-say sy-say">
+            <span className="lg-caption">{p.sayLike}</span> <strong lang={nativeLang}>{reading}</strong>
+          </p>
+        )}
         <div className="sy-listen">
           <button type="button" className="lg-btn lg-btn--secondary" onClick={() => speak(text, { lang: learningLang })}>
             <Volume2 size={20} strokeWidth={2} aria-hidden="true" />
@@ -179,6 +202,9 @@ export default function SayQuestion({
             </div>
           )}
         </>
+      )}
+      {!done && reading && !showSay && (
+        <PaidHints hints={[{ id: "say", label: fill(p.hintSay, { n: SAY_HINT_COST }), cost: SAY_HINT_COST, onBuy: () => setShowSay(true) }]} />
       )}
     </div>
   );

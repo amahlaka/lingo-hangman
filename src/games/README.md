@@ -192,7 +192,50 @@ it only compares the text the browser returns. `sayLogic.js` does that
 comparison forgivingly (homophones, digits, contractions and extra words are
 fine, and a phrase of four or more words may miss one word in four). Where the
 browser can't listen (Firefox) or the microphone is blocked, the game falls back
-to "say it out loud, then tap I said it".
+to "say it out loud, then tap I said it". Under the word it always shows the
+word bank item's `ipa`; its `say` (the English read the Finnish way, "wooter")
+is a paid hint (`SAY_HINT_COST`, `PaidHints`) and shows for free once answered.
+
+## Word types
+
+`src/lib/wordTypes.js` and `src/components/lingo/WordTypes.jsx` give every game
+the same word-type hints. Word bank sentences carry `wordTypes`, one entry per
+word (`"noun:subject"`, `"auxiliary"`, `"verb"`…; the list is `WORD_CLASSES` in
+`src/lib/contentSchema.js`); single words have `pos`.
+
+- `sentenceTypes(pair, words)` gives a sentence's types, `wordClassOf(word)` the
+  class of a loose word (from `pos`, tagged sentences and a list of small words).
+- `TypeLabel` names a type: the word class, or with `place` the place in the
+  sentence (subject, object, or the class). `typeClass(type, colors)` colours an
+  element by type; `TypeKey` is the colour key.
+- `useTypePrefs()` reads the practice settings: `colors` (colour words by type)
+  and `autoHelp`. `useLooseWordType()` is the one-liner for games with loose
+  English words (Fill the Gap, Grammar check, Word Pairs colour theirs with it).
+- `useAutoTypeHelp(pair, lang)` says when a sentence gets its hints for free:
+  an easy one (level 1-2) when sentences of its level have been hard lately, or
+  this sentence has been (`hardLevels`, `autoHints`).
+- Paid hints go through `PaidHints` (`src/games/practice/RuleBox.jsx`), which
+  spends this round's points; costs are `SLOT_HINT_COST` and `OPTION_HINT_COST`.
+
+Build the phrase uses all of it: labelled places (8 points), word types on the
+chips (5), colours, and the sentence-structure rule each sentence practises
+(`sentencePattern`, the word bank's `sentence-…` rule items), shown after
+answering and on the sentence rules page (`/phrase/rules`). Answers are
+recorded under that rule, so the profile shows which structures are hard.
+
+## Type it (spelling)
+
+`src/games/type/` is a question-by-question game where the learner types the
+English: a word or short phrase from its Finnish meaning, or (when the browser
+can speak) a sentence they hear, with the Finnish as support. `typeLogic.js`
+checks the typing: capitals, punctuation, contractions ("I'm" / "I am") and
+British or American spelling don't count against the learner, but spelling
+does; a letter or two off says "So close". Words also accept any other
+English word in the pool with the same Finnish meaning. Hints are bought with
+the round's points through `PaidHints` (`TYPE_HINT_COSTS`): first letters of
+every word, the next letter (words) or next word (sentences), and hearing the
+word. Hints never give away the last letter or word. Quick play asks the same
+questions under `type-it`.
 
 ## Quick play and answer statistics
 

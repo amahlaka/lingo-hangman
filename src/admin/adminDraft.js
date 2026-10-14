@@ -98,7 +98,10 @@ export function tidyItem(item) {
   dropIfEmpty(out, "translation");
   if (out.type === "gap") dropIfEmpty(out, "explanation");
   if (Array.isArray(out.examples)) {
-    out.examples = out.examples.map(tidyMap).filter((ex) => Object.keys(ex).length);
+    // An example's `wordTypes` (a list) stays as it is.
+    out.examples = out.examples
+      .map((ex) => ({ ...tidyMap(ex), ...(Array.isArray(ex?.wordTypes) ? { wordTypes: ex.wordTypes } : {}) }))
+      .filter((ex) => Object.keys(ex).length);
     if (!out.examples.length) delete out.examples;
   }
   if (Array.isArray(out.words) && out.type === "confusable") {

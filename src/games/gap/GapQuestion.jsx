@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useSettings } from "../../app/SettingsContext";
-import { ExampleText } from "../../components/lingo";
+import { ExampleText, useLooseWordType } from "../../components/lingo";
 import { sounds } from "../../lib/sounds";
 import { maxMissesFor, splitGap } from "./gapLogic";
 import { RuleBox, RulePeek } from "../practice/RuleBox";
@@ -59,6 +59,7 @@ export default function GapQuestion({ question, done, onDone }) {
   const [picked, setPicked] = useState(null);
   const [wobble, setWobble] = useState(null);
   const [peeked, setPeeked] = useState(false);
+  const typeOf = useLooseWordType();
 
   const finish = (solved, misses) =>
     onDone({
@@ -106,6 +107,7 @@ export default function GapQuestion({ question, done, onDone }) {
       <div className="pg-choices gp-choices" role="group" aria-label={p.gapChoices}>
         {question.options.map((option) => {
           const state = stateOf(option);
+          const type = typeOf(option);
           return (
             <button
               key={option || "none"}
@@ -113,7 +115,7 @@ export default function GapQuestion({ question, done, onDone }) {
               lang={option ? "en" : undefined}
               className={`pg-choice${state ? ` pg-choice--${state}` : ""}${state === "right" ? " lg-pop" : ""}${
                 state === "miss" && wobble === option ? " lg-wobble" : ""
-              }`}
+              }${type.className}`}
               onClick={() => choose(option)}
               disabled={done || state === "miss"}
               aria-label={state === "miss" ? `${label(option)}, ${p.notThisOne}` : undefined}
@@ -123,6 +125,7 @@ export default function GapQuestion({ question, done, onDone }) {
               </span>
               <span className="pg-choice__words">
                 <span className="pg-choice__text">{label(option)}</span>
+                {type.tag}
               </span>
             </button>
           );

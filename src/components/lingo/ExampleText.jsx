@@ -1,9 +1,11 @@
 import React from "react";
+import Term, { splitTerms } from "./Term";
 
 // Explanation text from the word base, where English examples are written
 // between asterisks: "Kun sana alkaa kirjaimilla *kn*, *k* jätetään sanomatta."
 // The marked parts are shown in colour and bold, in English. An unpaired
-// asterisk is shown as it is.
+// asterisk is shown as it is. Words like "vowel" and "konsonantti" outside the
+// examples are underlined and show which letters they mean (see Term).
 export function splitExamples(text) {
   const parts = text.split("*");
   if (parts.length % 2 === 0) return [{ text }];
@@ -21,7 +23,15 @@ export default function ExampleText({ text }) {
     part.example ? (
       <mark key={i} className="lg-example" lang="en">{part.text}</mark>
     ) : (
-      <React.Fragment key={i}>{part.text}</React.Fragment>
+      <React.Fragment key={i}>
+        {splitTerms(part.text).map((bit, j) =>
+          bit.kind ? (
+            <Term key={j} kind={bit.kind} lang={bit.lang}>{bit.text}</Term>
+          ) : (
+            <React.Fragment key={j}>{bit.text}</React.Fragment>
+          )
+        )}
+      </React.Fragment>
     )
   );
 }

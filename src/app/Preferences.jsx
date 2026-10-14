@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useSettings } from "./SettingsContext";
-import { GameScreen } from "../components/lingo";
+import { GameScreen, typeClass } from "../components/lingo";
 import { ALL_CATEGORIES, categoryLabels } from "../lib/words";
 import { DIFFICULTIES, getPreferences, onPreferencesChange, resetPreferences, setPreferences } from "../lib/preferences";
 
-// Focus areas and difficulty for every game (src/lib/preferences.js). Both are
-// optional; games fall back to all words when too few match.
+// Focus areas, difficulty and word-type settings for every game
+// (src/lib/preferences.js). All optional; games fall back to all words when
+// too few match.
 export default function Preferences() {
   const { t, lang } = useSettings();
   const [prefs, setPrefs] = useState(getPreferences);
@@ -38,6 +39,38 @@ export default function Preferences() {
               </button>
             ))}
           </div>
+        </section>
+
+        <section className="lg-section">
+          <h2 className="lg-heading">{t.wordTypesTitle}</h2>
+          {[
+            ["typeColors", t.typeColorsLabel, t.typeColorsHint],
+            ["typeHelp", t.typeHelpLabel, t.typeHelpHint],
+          ].map(([key, label, hint]) => (
+            <div key={key} className="lg-pref">
+              <button
+                type="button"
+                className={`lg-chip ${prefs[key] ? "lg-chip--on" : ""}`}
+                aria-pressed={prefs[key]}
+                onClick={() => setPreferences({ [key]: !prefs[key] })}
+              >
+                <span className="lg-chip__mark" aria-hidden="true">{prefs[key] ? "✓" : ""}</span>
+                {label}
+              </button>
+              <p className="lg-caption">{hint}</p>
+            </div>
+          ))}
+          {prefs.typeColors && (
+            <div className="lg-pref__sample">
+              {[["verb", "verb"], ["noun", "noun"], ["adjective", "adjective"], ["adverb", "adverb"], ["pronoun", "pronoun"], ["question", "question"], ["small", "article"]].map(
+                ([family, cls]) => (
+                  <span key={family} className={`pg-chip pg-chip--typed${typeClass(cls, true)}`}>
+                    <span className="pg-chip__word">{t.typeFamilies[family]}</span>
+                  </span>
+                )
+              )}
+            </div>
+          )}
         </section>
 
         <section className="lg-section">

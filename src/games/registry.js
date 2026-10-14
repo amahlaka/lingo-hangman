@@ -4,6 +4,7 @@ import HangmanCustomWords from "./hangman/HangmanCustomWords";
 import HangmanGame from "./hangman/HangmanGame";
 import MeaningGame from "./meaning/MeaningGame";
 import PhraseGame from "./phrase/PhraseGame";
+import SentenceRules from "./phrase/SentenceRules";
 import ListeningGame from "./listening/ListeningGame";
 import WordPairsGame from "./word-pairs/WordPairsGame";
 import FillGapGame from "./fill-gap/FillGapGame";
@@ -65,7 +66,11 @@ export const GAMES = [
     minutes: 4,
     skill: "Sentences",
     path: "/phrase",
-    routes: [{ path: "/phrase", Component: PhraseGame }],
+    routes: [
+      { path: "/phrase", Component: PhraseGame },
+      // How English sentences are built (subject, verb, object …).
+      { path: "/phrase/rules", Component: SentenceRules },
+    ],
   },
   {
     id: "listening",

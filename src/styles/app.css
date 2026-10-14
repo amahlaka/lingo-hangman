@@ -325,6 +325,8 @@ a { color: var(--lake); }
 .gp-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
 /* Say it (speaking practice) */
+.sy-ipa { margin: var(--space-1) 0 0; font: 400 18px/26px var(--font-sans); color: var(--ink-muted); overflow-wrap: anywhere; }
+.sy-say { margin-top: var(--space-2); }
 .sy-listen { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--space-2); margin-top: var(--space-2); }
 .sy-listen .lg-btn { gap: var(--space-2); }
 .sy-mic-area { display: flex; justify-content: center; padding: var(--space-2) 0; }
@@ -474,3 +476,67 @@ a { color: var(--lake); }
 .pf-table th[scope="row"], .pf-table th:first-child { text-align: left; }
 .pf-table thead th { font-size: 13px; line-height: 18px; color: var(--ink-muted); font-weight: 700; }
 .pf-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* Word types (src/lib/wordTypes.js, components/lingo/WordTypes.jsx): a tint and
+   a strong bottom edge per colour family. The words keep the ink colour; the
+   labels use the edge colour, which keeps at least 4.5:1 on its tint. */
+:root {
+  --wt-noun: var(--lake); --wt-noun-soft: var(--lake-soft);
+  --wt-verb: var(--pine); --wt-verb-soft: var(--pine-soft);
+  --wt-adjective: #9a5c00; --wt-adjective-soft: var(--cloudberry-soft);
+  --wt-adverb: #6b4fa0; --wt-adverb-soft: #ece6f6;
+  --wt-pronoun: var(--lingon); --wt-pronoun-soft: var(--lingon-soft);
+  --wt-question: #17716f; --wt-question-soft: #d6efed;
+  --wt-small: var(--ink-muted); --wt-small-soft: var(--surface-sunken);
+}
+:root.dark {
+  --wt-adjective: var(--cloudberry);
+  --wt-adverb: #b9a3e6; --wt-adverb-soft: #2e2445;
+  --wt-question: #6fd0ca; --wt-question-soft: #123a3a;
+}
+.lg-wt { --wt: var(--wt-small); --wt-soft: var(--wt-small-soft); }
+.lg-wt--noun { --wt: var(--wt-noun); --wt-soft: var(--wt-noun-soft); }
+.lg-wt--verb { --wt: var(--wt-verb); --wt-soft: var(--wt-verb-soft); }
+.lg-wt--adjective { --wt: var(--wt-adjective); --wt-soft: var(--wt-adjective-soft); }
+.lg-wt--adverb { --wt: var(--wt-adverb); --wt-soft: var(--wt-adverb-soft); }
+.lg-wt--pronoun { --wt: var(--wt-pronoun); --wt-soft: var(--wt-pronoun-soft); }
+.lg-wt--question { --wt: var(--wt-question); --wt-soft: var(--wt-question-soft); }
+.pg-chip.lg-wt, .pg-slot__box.lg-wt { background: var(--wt-soft); border-color: var(--wt); border-bottom-width: 4px; }
+.pg-chip.lg-wt:hover:not(:disabled) { background: var(--wt-soft); border-color: var(--lake); border-bottom-color: var(--wt); }
+/* Choices and tiles keep their own answer colours; the type shows as an edge. */
+.pg-choice.lg-wt, .wp-tile.lg-wt { border-left: 6px solid var(--wt); }
+.lg-wt-label { display: block; font: 700 12px/16px var(--font-sans); letter-spacing: .02em; color: var(--ink-muted); white-space: nowrap; }
+.lg-wt-label--noun { color: var(--wt-noun); }
+.lg-wt-label--verb { color: var(--wt-verb); }
+.lg-wt-label--adjective { color: var(--wt-adjective); }
+.lg-wt-label--adverb { color: var(--wt-adverb); }
+.lg-wt-label--pronoun { color: var(--wt-pronoun); }
+.lg-wt-label--question { color: var(--wt-question); }
+.lg-wt-key { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--space-1) var(--space-2); margin: 0; padding: 0; list-style: none; }
+.lg-wt-key__item { padding: 2px var(--space-2); border-radius: var(--radius-pill); border-bottom: 3px solid var(--wt); background: var(--wt-soft); color: var(--ink); font: 700 13px/18px var(--font-sans); }
+
+/* Build the phrase with its hints */
+.pg-chip--typed { display: inline-flex; flex-direction: column; align-items: center; justify-content: center; padding-top: var(--space-1); padding-bottom: var(--space-1); }
+.pg-chip__word { line-height: 24px; }
+.pg-phrase--slots { align-items: flex-start; }
+.pg-slot { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 56px; }
+.pg-slot__box { display: block; min-width: 56px; height: var(--space-12); box-sizing: border-box; border-radius: var(--radius-sm); border: 2px dashed var(--border); }
+.pg-slot__box.lg-wt { border-style: dashed; }
+.pg-auto-hint { margin: 0; text-align: center; }
+.pg-peek__row { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--space-1) var(--space-2); }
+.lg-link-btn { padding: 0; border: 0; background: none; color: var(--lake); font: inherit; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.lg-link-btn:focus-visible { outline: 3px solid var(--lingon); outline-offset: 2px; border-radius: 2px; }
+
+/* Sentence rules page */
+.sr-page { gap: var(--space-6); }
+.sr-rule { display: flex; flex-direction: column; gap: var(--space-2); }
+.sr-rule .lg-caption { margin: 0; }
+.sr-figure { margin: 0; display: flex; flex-direction: column; gap: var(--space-1); }
+.sr-example { min-height: 0; }
+.sr-example .pg-chip { display: inline-flex; align-items: center; cursor: default; }
+
+/* Practice settings */
+.lg-pref { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-1); margin-bottom: var(--space-3); }
+.lg-pref .lg-caption { margin: 0; }
+.lg-pref__sample { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.lg-pref__sample .pg-chip { cursor: default; font-size: 15px; min-height: 40px; }

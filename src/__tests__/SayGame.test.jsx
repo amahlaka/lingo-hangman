@@ -1,6 +1,9 @@
 import { act, fireEvent, screen } from '@testing-library/react';
 import { renderApp } from '../test-utils';
 import { encodeWords } from '../lib/words';
+import bundled from '../lib/bundledContent';
+import { setContent } from '../lib/content';
+import { validateItem } from '../lib/contentSchema';
 
 const words = [
   { learning: 'dog', native: 'koira' },
@@ -110,5 +113,68 @@ describe('Say it', () => {
     script.push({ said: [prompt()] });
     await tapMic();
     expect(made[0].processLocally).toBe(true);
+  });
+
+  it('falls back to online recognition when on-device recognition fails', async () => {
+    const script = [{ error: 'language-not-supported' }];
+    const made = fakeRecognition(script);
+    window.SpeechRecognition.available = async () => 'available';
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    renderApp(link);
+    await act(async () => {});
+    const said = prompt();
+    script.push({ said: [said] });
+    await tapMic();
+    await act(async () => {});
+    expect(made).toHaveLength(2);
+    expect(made[1].processLocally).toBeUndefined();
+    expect(screen.getByText(`Nicely said: "${said}".`)).toBeInTheDocument();
+    expect(screen.getByText(/online service/)).toBeInTheDocument();
+    warn.mockRestore();
+  });
+
+  describe('pronunciation', () => {
+    const item = (id, en, fi, ipa, say) => ({ id, type: 'word', text: { en, fi }, pos: 'noun', ipa: { 'en-GB': ipa }, say: { fi: say } });
+    const pack = {
+      id: 'say-test',
+      items: [
+        item('say-water', 'water', 'vesi', '/ˈwɔːtə/', 'wooter'),
+        item('say-house', 'house', 'talo', '/haʊs/', 'haus'),
+        item('say-three', 'three', 'kolme', '/θriː/', 'thrii'),
+        item('say-church', 'church', 'kirkko', '/tʃɜːtʃ/', 'tšöötš'),
+      ],
+    };
+    const reading = Object.fromEntries(pack.items.map((i) => [i.text.en, i]));
+    beforeEach(() => setContent({ index: { ...bundled.index, packs: ['say-test'] }, languages: bundled.languages, packs: [pack] }));
+    afterEach(() => setContent(bundled));
+
+    it('checks the reading like other text', () => {
+      expect(validateItem(pack.items[0])).toEqual([]);
+      expect(validateItem({ ...pack.items[0], say: { fi: '' } })[0]).toMatch(/say.fi is empty/);
+    });
+
+    it('always shows the IPA and sells the Finnish reading for points', async () => {
+      const script = [];
+      fakeRecognition(script);
+      renderApp('/say?learningLang=en-GB&nativeLang=fi');
+      const first = reading[prompt()];
+      expect(screen.getByTestId('prompt-ipa').textContent).toBe(first.ipa['en-GB']);
+      expect(screen.queryByText(first.say.fi)).toBeNull();
+      expect(screen.getByRole('button', { name: /Show how to say it/ })).toBeDisabled();
+
+      script.push({ said: [first.text.en] });
+      await tapMic();
+      // Answering shows the reading, free.
+      expect(screen.getByText(first.say.fi)).toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+
+      const second = reading[prompt()];
+      expect(screen.getByTestId('prompt-ipa').textContent).toBe(second.ipa['en-GB']);
+      expect(screen.queryByText(second.say.fi)).toBeNull();
+      fireEvent.click(screen.getByRole('button', { name: /Show how to say it/ }));
+      expect(screen.getByText(second.say.fi)).toBeInTheDocument();
+      expect(screen.getByText('Read the Finnish way:')).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /Show how to say it/ })).toBeNull();
+    });
   });
 });

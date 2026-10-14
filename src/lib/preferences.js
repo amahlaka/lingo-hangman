@@ -1,14 +1,17 @@
 // The learner's practice preferences, shared by every game:
 // - `focus`: word bank categories to practise ([] = everything).
 // - `difficulty`: "any", "easy", "normal" or "hard".
-// Both are optional. Games pass their word bank items through
+// - `typeColors`: colour words by their word type (src/lib/wordTypes.js).
+// - `typeHelp`: show word types by themselves on easy sentences the learner
+//   has found hard lately.
+// All are optional. Games pass their word bank items through
 // applyPreferences(); when too few items match, a preference is ignored for
 // that pool so no game runs out of questions.
 
 const STORAGE_KEY = "lingoPreferences";
 
 export const DIFFICULTIES = ["any", "easy", "normal", "hard"];
-const DEFAULTS = { focus: [], difficulty: "any" };
+const DEFAULTS = { focus: [], difficulty: "any", typeColors: false, typeHelp: true };
 
 // A pool smaller than this ignores the preference that shrank it.
 export const MIN_POOL = 6;
@@ -25,6 +28,8 @@ function read() {
     return {
       focus: Array.isArray(stored?.focus) ? stored.focus.filter((c) => typeof c === "string") : [],
       difficulty: DIFFICULTIES.includes(stored?.difficulty) ? stored.difficulty : "any",
+      typeColors: typeof stored?.typeColors === "boolean" ? stored.typeColors : DEFAULTS.typeColors,
+      typeHelp: typeof stored?.typeHelp === "boolean" ? stored.typeHelp : DEFAULTS.typeHelp,
     };
   } catch {
     return { ...DEFAULTS };
@@ -45,8 +50,9 @@ export function setPreferences(next) {
   listeners.forEach((fn) => fn(current));
 }
 
+// Clears the focus areas and difficulty; the word-type settings stay.
 export function resetPreferences() {
-  setPreferences({ ...DEFAULTS });
+  setPreferences({ focus: DEFAULTS.focus, difficulty: DEFAULTS.difficulty });
 }
 
 // Calls `fn(preferences)` on every change; returns an unsubscribe function.

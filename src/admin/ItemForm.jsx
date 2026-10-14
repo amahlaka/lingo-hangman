@@ -1,6 +1,6 @@
 import React from "react";
 import { Plus, X } from "lucide-react";
-import { CONTEXTS, FEATURES, PARTS_OF_SPEECH, REGISTERS, TEXT_KINDS } from "../lib/contentSchema";
+import { CONTEXTS, FEATURES, PARTS_OF_SPEECH, REGISTERS, TEXT_KINDS, WORD_CLASSES } from "../lib/contentSchema";
 
 // Form for one word bank item. Edits go straight to onChange(newItem); empty
 // optional fields are dropped when the files are written (see tidyItem).
@@ -241,6 +241,14 @@ function Metadata({ item, set }) {
         <Field label="Contexts" hint={`Comma separated. One of: ${CONTEXTS.join(", ")}`}>
           <ListInput value={item.contexts} onChange={(contexts) => set({ contexts })} spellCheck={false} />
         </Field>
+        {item.type === "word" && (
+          <Field
+            label="Word types"
+            hint={`For sentences: one per English word, comma separated, like article, noun:subject, verb. One of: ${WORD_CLASSES.join(", ")}; add :subject or :object to the main word of each.`}
+          >
+            <ListInput value={item.wordTypes} onChange={(wordTypes) => set({ wordTypes })} spellCheck={false} />
+          </Field>
+        )}
       </div>
     </fieldset>
   );

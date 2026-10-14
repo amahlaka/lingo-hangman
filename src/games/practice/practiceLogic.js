@@ -3,6 +3,7 @@
 // as returned by src/lib/words.js. No React here so the rules are easy to test.
 
 import { DEFAULT_LEARNING_LANG, DEFAULT_NATIVE_LANG, decodeWords, filterCommonWords, getWordGroups } from "../../lib/words";
+import { sentenceWords } from "../../lib/contentSchema";
 
 export const ROUND_LENGTH = 10;
 // After this many misses on one question the answer is shown, so nobody gets stuck.
@@ -90,17 +91,11 @@ export function buildRound(pool, length = ROUND_LENGTH, random = Math.random) {
 
 // --- Build the phrase ----------------------------------------------------
 
-const EDGE_PUNCT = /^[^\p{L}\p{N}']+|[^\p{L}\p{N}']+$/gu;
-
 // Words the learner arranges. Punctuation is dropped and capitals are lowered
-// (except "I", "I'm" …) so neither gives away the first or last word.
+// (except "I", "I'm" …) so neither gives away the first or last word. The
+// words line up with a word bank item's `wordTypes`.
 export function phraseTokens(text) {
-  return text
-    .trim()
-    .split(/\s+/)
-    .map((raw) => raw.replace(EDGE_PUNCT, ""))
-    .filter(Boolean)
-    .map((tok) => (/^I('|$)/.test(tok) ? tok : tok.toLowerCase()));
+  return sentenceWords(text).map((tok) => (/^I('|$)/.test(tok) ? tok : tok.toLowerCase()));
 }
 
 // The punctuation at the end of the sentence, shown after the built phrase.

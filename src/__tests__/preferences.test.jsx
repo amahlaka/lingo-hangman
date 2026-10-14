@@ -48,16 +48,16 @@ describe("practice preferences", () => {
     renderApp("/preferences");
     fireEvent.click(screen.getByRole("button", { name: "Hard" }));
     fireEvent.click(screen.getByRole("button", { name: "Food" }));
-    expect(getPreferences()).toEqual({ focus: ["food"], difficulty: "hard" });
+    expect(getPreferences()).toMatchObject({ focus: ["food"], difficulty: "hard" });
     expect(JSON.parse(localStorage.getItem("lingoPreferences")).focus).toEqual(["food"]);
     fireEvent.click(screen.getByRole("button", { name: "Clear choices" }));
-    expect(getPreferences()).toEqual({ focus: [], difficulty: "any" });
+    expect(getPreferences()).toMatchObject({ focus: [], difficulty: "any" });
   });
 
   it("is linked from the settings menu", () => {
     renderApp("/hangman");
     fireEvent.click(screen.getByRole("button", { name: "Settings" }));
-    fireEvent.click(screen.getByRole("link", { name: "Focus and difficulty" }));
+    fireEvent.click(screen.getByRole("link", { name: "Practice settings" }));
     expect(screen.getByRole("heading", { name: "Focus areas" })).toBeInTheDocument();
   });
 });

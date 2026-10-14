@@ -70,16 +70,14 @@ jobs:
           ref: master
           persist-credentials: false
 
-      - uses: actions/checkout@v5
-        with:
-          repository: ${{ env.WORDBASE_REPO }}
-          ref: ${{ needs.check.outputs.sha }}
-          path: content
-          persist-credentials: false
-
       - uses: actions/setup-node@v5
         with:
           node-version: 24
+
+      # The word base as files only (a tarball, no git), read as data.
+      - env:
+          WORDBASE_REF: ${{ needs.check.outputs.sha }}
+        run: node scripts/pull-content.mjs
 
       - id: plan
         run: |

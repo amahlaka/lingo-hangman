@@ -1,12 +1,13 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
-import { Sparkles } from "lucide-react";
+import { Gem } from "lucide-react";
 import { useSettings } from "./SettingsContext";
 import { useProgress } from "./ProgressContext";
 import { fill } from "../i18n";
 import { Feedback, GameScreen, ScorePill, useConfetti } from "../components/lingo";
 import { FigurePreview } from "../games/hangman/HangmanDrawing";
 import { CONFETTI, SHOP_ITEMS, SHOP_KINDS, accentVars, ownsItem } from "../lib/cosmetics";
+import { GEMS, STREAK_MILESTONE_GEMS } from "../lib/progress";
 
 // A small still scatter of a confetti set.
 const SCATTER = [
@@ -44,11 +45,34 @@ function ItemPreview({ item, dark }) {
   );
 }
 
-// /shop: spend points on accent colours, confetti and things for the hangman
+// How gems are earned, from the rules in progress.js.
+function EarnList({ g }) {
+  const milestones = Object.entries(STREAK_MILESTONE_GEMS);
+  const rows = [
+    [g.earn.goal, `+${GEMS.goal}`],
+    [fill(g.earn.streak, { max: GEMS.streakDayMax }), `+1–${GEMS.streakDayMax}`],
+    [fill(g.earn.milestone, { days: milestones.map(([d]) => d).join(", ") }), `+${milestones[0][1]}–${milestones[milestones.length - 1][1]}`],
+    [g.earn.achievement, `+${GEMS.achievement}`],
+    [g.earn.level, `+${GEMS.levelUp}`],
+    [g.earn.learned, `+${GEMS.wordLearned}`],
+  ];
+  return (
+    <section className="lg-section sh-earn" aria-labelledby="sh-earn">
+      <h2 id="sh-earn" className="lg-heading">{g.earnTitle}</h2>
+      <ul className="sh-earn__list">
+        {rows.map(([what, n]) => (
+          <li key={what}><span>{what}</span><span className="sh-earn__n"><Gem size={14} strokeWidth={2.5} aria-hidden="true" className="lg-gem" /> {n}</span></li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+// /shop: spend gems on accent colours, confetti and things for the hangman
 // figure. See src/lib/cosmetics.js for how the balance works.
 export default function Shop() {
   const { t, dark } = useSettings();
-  const { state, points, cosmetics, buyItem, equipItem } = useProgress();
+  const { state, gems, cosmetics, buyItem, equipItem } = useProgress();
   const { celebrate, confetti } = useConfetti();
   const [news, setNews] = useState(null);
   const [spent, setSpent] = useState(null);
@@ -69,13 +93,14 @@ export default function Shop() {
   };
 
   return (
-    <GameScreen title={s.title} score={<ScorePill label={t.pointsLabel} value={points} plus={spent?.n} plusKey={spent?.key} />}>
+    <GameScreen title={s.title} score={<ScorePill label={t.gems.label} value={gems} plus={spent?.n} plusKey={spent?.key} />}>
       <main className="lg-board lg-page sh-page">
         {confetti}
         <div className="lg-stack">
           <p className="lg-body-lg">{s.intro}</p>
           <p className="sh-balance">
-            <span className="sh-balance__n">{points}</span> {s.balance}
+            <Gem size={32} strokeWidth={2} aria-hidden="true" className="lg-gem" />
+            <span className="sh-balance__n">{gems}</span> {s.balance}
           </p>
           <p className="lg-caption">{s.howToEarn}</p>
         </div>
@@ -90,7 +115,7 @@ export default function Shop() {
               {SHOP_ITEMS.filter((item) => item.kind === kind).map((item) => {
                 const owned = ownsItem(state, item.id);
                 const inUse = cosmetics[kind] === item.value;
-                const short = item.price - points;
+                const short = item.price - gems;
                 return (
                   <li key={item.id} className={`sh-item${inUse ? " sh-item--on" : ""}`}>
                     <ItemPreview item={item} dark={dark} />
@@ -126,6 +151,8 @@ export default function Shop() {
           </section>
         ))}
 
+        <EarnList g={t.gems} />
+
         <Link to="/quick" className="lg-btn lg-btn--primary lg-btn--hero">{s.earnMore}</Link>
       </main>
     </GameScreen>
@@ -135,13 +162,13 @@ export default function Shop() {
 // Home screen entry with the current balance.
 export function ShopCard() {
   const { t } = useSettings();
-  const { points } = useProgress();
+  const { gems } = useProgress();
   return (
     <Link to="/shop" className="lg-card sh-card">
-      <span className="sh-card__icon" aria-hidden="true"><Sparkles size={26} strokeWidth={2} /></span>
+      <span className="sh-card__icon" aria-hidden="true"><Gem size={26} strokeWidth={2} /></span>
       <span className="qp-card__text">
         <span className="lg-card__name">{t.shop.title}</span>
-        <span className="lg-card__desc">{fill(t.shop.cardDesc, { n: points })}</span>
+        <span className="lg-card__desc">{fill(t.shop.cardDesc, { n: gems })}</span>
       </span>
     </Link>
   );

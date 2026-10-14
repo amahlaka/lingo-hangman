@@ -1,6 +1,7 @@
 import React from "react";
 import { useProgress } from "../../app/ProgressContext";
 import { useSettings } from "../../app/SettingsContext";
+import { Gem } from "lucide-react";
 import { Flame, GoalRing, Shield } from "./Icons";
 import { fill } from "../../i18n";
 
@@ -23,7 +24,7 @@ export function HeaderProgress() {
 
 // Full progress bar for the home screen and end-of-round screens.
 export default function DailyProgress() {
-  const { streak, today, dailyGoal, level, xp } = useProgress();
+  const { streak, today, dailyGoal, level, xp, gems } = useProgress();
   const { t } = useSettings();
   const levelPct = Math.round((level.into / level.perLevel) * 100);
   return (
@@ -47,6 +48,13 @@ export default function DailyProgress() {
         <span>
           {streak.restDaysLeft}
           <small>{streak.restDaysLeft === 1 ? t.restDayLeft : t.restDaysLeft}</small>
+        </span>
+      </div>
+      <div className="lg-stat">
+        <Gem size={24} strokeWidth={2} aria-hidden="true" className="lg-gem" />
+        <span>
+          {gems}
+          <small>{t.gems.label.toLowerCase()}</small>
         </span>
       </div>
       <div className="lg-level">

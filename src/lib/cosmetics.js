@@ -1,9 +1,9 @@
-// Cosmetic items bought with points in the shop (/shop).
+// Cosmetic items bought with gems in the shop (/shop).
 //
-// How paying works: every point earned in any game also goes into a shop
-// balance that lasts between visits. The balance is lifetime XP minus what the
-// learner has spent here, so buying never lowers XP, the level or the daily
-// numbers. Hints inside a round still spend that round's points only.
+// How paying works: gems are their own currency, separate from points (XP).
+// They are earned for the daily goal, streak days and milestones (see
+// gemsForEvents in progress.js) and kept in `shop.gems`. Points still only
+// feed levels and in-round hints.
 //
 // Three kinds, one item of each kind in use at a time:
 // - accent: the colour of buttons, links and highlights (the `lake` tokens).
@@ -52,22 +52,22 @@ export const FIGURES = ["none", "beanie", "glasses", "scarf", "bowtie", "crown"]
 // Everything in the shop, in display order. Names live in i18n (t.shop.items).
 export const SHOP_ITEMS = [
   { id: "accent-lake", kind: "accent", value: "lake", price: 0 },
-  { id: "accent-fjord", kind: "accent", value: "fjord", price: 250 },
-  { id: "accent-heather", kind: "accent", value: "heather", price: 250 },
-  { id: "accent-aurora", kind: "accent", value: "aurora", price: 400 },
-  { id: "accent-midnight", kind: "accent", value: "midnight", price: 400 },
+  { id: "accent-fjord", kind: "accent", value: "fjord", price: 40 },
+  { id: "accent-heather", kind: "accent", value: "heather", price: 40 },
+  { id: "accent-aurora", kind: "accent", value: "aurora", price: 60 },
+  { id: "accent-midnight", kind: "accent", value: "midnight", price: 60 },
   { id: "confetti-classic", kind: "confetti", value: "classic", price: 0 },
-  { id: "confetti-lingonberry", kind: "confetti", value: "lingonberry", price: 150 },
-  { id: "confetti-snow", kind: "confetti", value: "snow", price: 200 },
-  { id: "confetti-ruska", kind: "confetti", value: "ruska", price: 200 },
-  { id: "confetti-stars", kind: "confetti", value: "stars", price: 300 },
-  { id: "confetti-aurora", kind: "confetti", value: "aurora", price: 500 },
+  { id: "confetti-lingonberry", kind: "confetti", value: "lingonberry", price: 25 },
+  { id: "confetti-snow", kind: "confetti", value: "snow", price: 30 },
+  { id: "confetti-ruska", kind: "confetti", value: "ruska", price: 30 },
+  { id: "confetti-stars", kind: "confetti", value: "stars", price: 45 },
+  { id: "confetti-aurora", kind: "confetti", value: "aurora", price: 75 },
   { id: "figure-none", kind: "figure", value: "none", price: 0 },
-  { id: "figure-glasses", kind: "figure", value: "glasses", price: 100 },
-  { id: "figure-scarf", kind: "figure", value: "scarf", price: 150 },
-  { id: "figure-beanie", kind: "figure", value: "beanie", price: 200 },
-  { id: "figure-bowtie", kind: "figure", value: "bowtie", price: 200 },
-  { id: "figure-crown", kind: "figure", value: "crown", price: 750 },
+  { id: "figure-glasses", kind: "figure", value: "glasses", price: 15 },
+  { id: "figure-scarf", kind: "figure", value: "scarf", price: 20 },
+  { id: "figure-beanie", kind: "figure", value: "beanie", price: 30 },
+  { id: "figure-bowtie", kind: "figure", value: "bowtie", price: 30 },
+  { id: "figure-crown", kind: "figure", value: "crown", price: 120 },
 ];
 
 export function shopItem(id) {
@@ -78,7 +78,9 @@ const FREE_ITEMS = SHOP_ITEMS.filter((item) => item.price === 0);
 
 export function emptyShop() {
   return {
-    spent: 0,
+    // Gems to spend. Older saves without it get gems for what they already
+    // did, see loadProgress.
+    gems: 0,
     // ids of bought items; free items are always owned and not listed.
     owned: [],
     // kind -> item id in use
@@ -92,9 +94,16 @@ function shopOf(state) {
   return { ...base, ...shop, equipped: { ...base.equipped, ...shop.equipped } };
 }
 
-// Points the learner can spend: everything earned minus everything spent.
-export function shopBalance(state) {
-  return Math.max(0, (state.xp || 0) - shopOf(state).spent);
+// Gems the learner can spend.
+export function gemBalance(state) {
+  return Math.max(0, shopOf(state).gems || 0);
+}
+
+// Add earned gems.
+export function addGems(state, n) {
+  if (!n) return state;
+  const shop = shopOf(state);
+  return { ...state, shop: { ...shop, gems: gemBalance(state) + n } };
 }
 
 export function ownsItem(state, id) {
@@ -113,18 +122,18 @@ export function equippedValues(state) {
 }
 
 // Buy an item and put it in use. Returns { state, ok, reason }; reason is
-// "unknown", "owned" or "points" when nothing changed.
+// "unknown", "owned" or "gems" when nothing changed.
 export function buyItem(state, id) {
   const item = shopItem(id);
   if (!item) return { state, ok: false, reason: "unknown" };
   if (ownsItem(state, id)) return { state, ok: false, reason: "owned" };
-  if (shopBalance(state) < item.price) return { state, ok: false, reason: "points" };
+  if (gemBalance(state) < item.price) return { state, ok: false, reason: "gems" };
   const shop = shopOf(state);
   return {
     state: {
       ...state,
       shop: {
-        spent: shop.spent + item.price,
+        gems: gemBalance(state) - item.price,
         owned: [...shop.owned, id],
         equipped: { ...shop.equipped, [item.kind]: id },
       },

@@ -15,9 +15,10 @@ import {
   buyItem as buyItemPure,
   equipItem as equipItemPure,
   equippedValues,
-  shopBalance,
+  gemBalance,
 } from "../lib/cosmetics";
 import { useSettings } from "./SettingsContext";
+import GemToast from "../components/lingo/GemToast";
 
 // Shared progress for every game. See src/lib/progress.js for the rules and
 // src/games/README.md for how a game reports a finished word.
@@ -37,6 +38,9 @@ export function ProgressProvider({ children, storage, gameIds = [] }) {
   gameIdsRef.current = gameIds;
   const stateRef = useRef(state);
   stateRef.current = state;
+  // The last gems earned, for the "+N gems" toast.
+  const [gemToast, setGemToast] = useState(null);
+  const clearGemToast = useCallback(() => setGemToast(null), []);
 
   useEffect(() => {
     saveProgress(state, store);
@@ -44,13 +48,14 @@ export function ProgressProvider({ children, storage, gameIds = [] }) {
 
   // Report one finished word. Returns what happened, for celebrations:
   // { xpGained, levelUp, goalReached, streakChange, newAchievements,
-  //   wordLearned, wordStreak, wordStreakMilestone }
+  //   wordLearned, gemsGained, gemReasons, wordStreak, wordStreakMilestone }
   const recordWord = useCallback((result) => {
     const { state: next, events } = recordWordPure(stateRef.current, result, {
       gameIds: gameIdsRef.current,
     });
     stateRef.current = next;
     setState(next);
+    if (events.gemsGained) setGemToast({ n: events.gemsGained, reasons: events.gemReasons, key: Date.now() });
     const nextWordStreak = result.solved ? wordStreakRef.current + 1 : 0;
     wordStreakRef.current = nextWordStreak;
     setWordStreak(nextWordStreak);
@@ -66,7 +71,7 @@ export function ProgressProvider({ children, storage, gameIds = [] }) {
     setState((s) => setDailyGoalPure(s, goal));
   }, []);
 
-  // Shop: buy an item with points (and put it in use), or switch to an owned
+  // Shop: buy an item with gems (and put it in use), or switch to an owned
   // one. buyItem returns { ok, reason } like cosmetics.buyItem.
   const buyItem = useCallback((id) => {
     const { state: next, ok, reason } = buyItemPure(stateRef.current, id);
@@ -108,14 +113,19 @@ export function ProgressProvider({ children, storage, gameIds = [] }) {
       wordStreak,
       recordWord,
       setDailyGoal,
-      points: shopBalance(state),
+      gems: gemBalance(state),
       cosmetics,
       buyItem,
       equipItem,
     };
   }, [state, wordStreak, recordWord, setDailyGoal, cosmetics, buyItem, equipItem]);
 
-  return <ProgressContext.Provider value={value}>{children}</ProgressContext.Provider>;
+  return (
+    <ProgressContext.Provider value={value}>
+      {children}
+      <GemToast toast={gemToast} onDone={clearGemToast} />
+    </ProgressContext.Provider>
+  );
 }
 
 // For shared pieces that also render outside the providers (in tests):

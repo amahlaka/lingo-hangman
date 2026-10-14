@@ -12,17 +12,22 @@ import tailwindcss from '@tailwindcss/vite'
 // (scripts/pull-content.mjs, run before dev, build and test).
 function wordBankFiles() {
   const dir = path.resolve(__dirname, 'content');
-  const jsonFiles = () =>
+  // audio/ (voice clips, see src/games/README.md) is published by the Content
+  // publish workflow, never built in; in dev it is served if you made some.
+  const files = () =>
     fs.readdirSync(dir, { recursive: true })
-      .map((f) => f.split(path.sep).join('/'))
-      .filter((f) => f.endsWith('.json'));
+      .map((f) => f.split(path.sep).join('/'));
+  const jsonFiles = () => files().filter((f) => f.endsWith('.json') && !f.startsWith('audio/'));
   return {
     name: 'lingo-word-bank',
     configureServer(server) {
       server.middlewares.use('/content/', (req, res, next) => {
+        // The app's own `import ... from '../../content/...'` is Vite's to answer.
+        if (/[?&]import\b/.test(req.url)) return next();
         const file = decodeURIComponent(req.url.split('?')[0]).replace(/^\//, '');
-        if (!jsonFiles().includes(file)) return next();
-        res.setHeader('Content-Type', 'application/json');
+        const audio = file.startsWith('audio/') && /\.(json|mp3)$/.test(file);
+        if (!jsonFiles().includes(file) && !(audio && files().includes(file))) return next();
+        res.setHeader('Content-Type', file.endsWith('.mp3') ? 'audio/mpeg' : 'application/json');
         res.setHeader('Cache-Control', 'no-cache');
         res.end(fs.readFileSync(path.join(dir, file)));
       });

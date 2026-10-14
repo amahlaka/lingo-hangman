@@ -223,6 +223,20 @@ chips (5), colours, and the sentence-structure rule each sentence practises
 answering and on the sentence rules page (`/phrase/rules`). Answers are
 recorded under that rule, so the profile shows which structures are hard.
 
+## Type it (spelling)
+
+`src/games/type/` is a question-by-question game where the learner types the
+English: a word or short phrase from its Finnish meaning, or (when the browser
+can speak) a sentence they hear, with the Finnish as support. `typeLogic.js`
+checks the typing: capitals, punctuation, contractions ("I'm" / "I am") and
+British or American spelling don't count against the learner, but spelling
+does; a letter or two off says "So close". Words also accept any other
+English word in the pool with the same Finnish meaning. Hints are bought with
+the round's points through `PaidHints` (`TYPE_HINT_COSTS`): first letters of
+every word, the next letter (words) or next word (sentences), and hearing the
+word. Hints never give away the last letter or word. Quick play asks the same
+questions under `type-it`.
+
 ## Quick play and answer statistics
 
 `recordWord` also keeps answer statistics, on the device only: per game and

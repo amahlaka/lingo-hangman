@@ -19,6 +19,7 @@ import { PhraseQuestion } from "../phrase/PhraseGame";
 import { GapQuestion as FillGapQuestion } from "../fill-gap/FillGapGame";
 import GapQuestion from "../gap/GapQuestion";
 import SoundQuestion from "../sounds/SoundQuestion";
+import TypeQuestion from "../type/TypeQuestion";
 import { buildQuickRound, preferenceFilter, quickTargets } from "./quickLogic";
 
 const learningLang = DEFAULT_LEARNING_LANG;
@@ -35,13 +36,15 @@ function gameText(game, t) {
     grammar: [p.grammarName, p.grammarIntro],
     "mixed-up": [p.mixedName, p.mixedIntro],
     sounds: [t.sounds.name, t.sounds.practiceIntro],
+    "type-it": [p.typeName, p.typeIntroWords],
   }[game];
 }
 
 // Which game this question comes from and what to do. Whether it is an easy
 // win or a challenge stays behind the scenes.
 function QuestionHeader({ question, t }) {
-  const [name, intro] = gameText(question.quick.game, t);
+  const [name, gameIntro] = gameText(question.quick.game, t);
+  const intro = question.mode === "dictation" ? t.practice.typeIntroSentence : gameIntro;
   return (
     <div className="qp-head">
       <div className="qp-head__row">
@@ -101,6 +104,18 @@ function QuickQuestion({ question, done, onDone, t, lang }) {
         nativeLang={nativeLang}
         nativeLabel={p.finnish}
         uiLang={lang}
+      />
+    );
+  } else if (game === "type-it") {
+    body = (
+      <TypeQuestion
+        question={question}
+        done={done}
+        onDone={onDone}
+        p={p}
+        learningLang={learningLang}
+        nativeLang={nativeLang}
+        nativeLabel={p.finnish}
       />
     );
   } else if (game === "grammar" || game === "mixed-up") {

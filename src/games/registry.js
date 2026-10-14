@@ -10,6 +10,7 @@ import WordPairsGame from "./word-pairs/WordPairsGame";
 import FillGapGame from "./fill-gap/FillGapGame";
 import { GrammarGame, MixedUpGame } from "./gap/GapGames";
 import SayGame from "./say/SayGame";
+import TypeGame from "./type/TypeGame";
 import SoundsGame from "./sounds/SoundsGame";
 import QuickPlay from "./quick/QuickPlay";
 
@@ -93,6 +94,17 @@ export const GAMES = [
     skill: "Speaking",
     path: "/say",
     routes: [{ path: "/say", Component: SayGame }],
+  },
+  {
+    id: "type-it",
+    name: "Type it",
+    nameFi: "Kirjoita se",
+    description: "Type the English for a Finnish word, and write down sentences you hear.",
+    art: "k_tchen",
+    minutes: 4,
+    skill: "Spelling",
+    path: "/type-it",
+    routes: [{ path: "/type-it", Component: TypeGame }],
   },
   {
     id: "grammar",

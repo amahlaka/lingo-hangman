@@ -363,6 +363,23 @@ a { color: var(--lake); }
 .sy-privacy, .sy-self-note { margin: 0; text-align: center; }
 .sy-self { display: flex; flex-direction: column; align-items: center; gap: var(--space-2); }
 
+/* Type it (typing practice). Prefix ty-. */
+.ty-support { margin: var(--space-1) 0 0; font-size: 16px; line-height: 24px; overflow-wrap: anywhere; }
+.ty-form { display: flex; flex-direction: column; gap: var(--space-1); }
+.ty-label { font: 700 15px/20px var(--font-sans); }
+.ty-row { display: flex; gap: var(--space-2); align-items: stretch; }
+.ty-input { flex: 1 1 auto; font-size: 20px; line-height: 28px; }
+.ty-input:focus { border-color: var(--lake); outline: none; }
+.ty-input[readonly] { color: var(--ink-muted); }
+.ty-shape { display: flex; flex-wrap: wrap; justify-content: center; align-items: flex-end; gap: var(--space-2) var(--space-4); margin: 0; }
+.ty-shape__word { display: inline-flex; align-items: flex-end; gap: 4px; white-space: nowrap; }
+.ty-shape__letter { display: inline-flex; align-items: flex-end; justify-content: center; width: 20px; height: 30px; border-bottom: 3px solid var(--border); font: 700 20px/28px var(--font-sans); color: var(--ink); }
+.ty-shape__letter--shown { border-bottom-color: var(--lake); }
+.ty-shape__mark { font: 700 20px/28px var(--font-sans); color: var(--ink-muted); }
+.ty-answer { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: var(--space-2); margin: 0; font-size: 20px; line-height: 28px; text-align: center; overflow-wrap: anywhere; }
+.ty-answer__listen { min-width: var(--space-12); }
+.ty-question .pg-peek__row { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--space-1) var(--space-2); }
+
 @media (max-width: 360px) {
   .pg-prompt__word { font-size: 32px; line-height: 38px; }
   .pg-choices { grid-template-columns: 1fr; }

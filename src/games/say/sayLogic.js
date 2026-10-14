@@ -19,7 +19,7 @@ const NUMBER_WORDS = [
   "nineteen", "twenty",
 ];
 
-const CONTRACTIONS = {
+export const CONTRACTIONS = {
   "i'm": "i am", "you're": "you are", "we're": "we are", "they're": "they are",
   "he's": "he is", "she's": "she is", "it's": "it is", "that's": "that is",
   "what's": "what is", "where's": "where is", "there's": "there is", "let's": "let us",

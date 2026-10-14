@@ -57,25 +57,36 @@ function Both({ text, lang, className = "" }) {
 }
 
 // What the learner sees once the question is done: how to read the word the
-// Finnish way, what it means, and a note or the lesson's rule.
+// Finnish way, what it means, and a note or the lesson's rule. The reading
+// travels with the rule (see RuleBox), so the bottom bar never covers it.
 function AfterAnswer({ question, showRule, lang, s }) {
   const { word } = question;
   // Heard-word questions already show the reading and meaning on each option.
   const onOptions = BY_EAR.includes(question.kind);
-  return (
-    <div className="snd-after lg-reveal">
-      {!onOptions && word.say && (
+  const say = !onOptions && word.say;
+  const meaning = !onOptions && word.fi;
+  const lead = say || meaning ? (
+    <div className="snd-after__lead">
+      {say && (
         <p className="snd-say">
           <span className="lg-caption">{s.sayLike}</span> <strong lang="fi">{word.say}</strong>
         </p>
       )}
-      {!onOptions && word.fi && <p className="snd-meaning" lang="fi">{word.fi}</p>}
-      {(word.note || showRule) && (
-        <RuleBox label={s.rule} className="snd-why">
-          {word.note && <div className="gp-why__part"><Both text={word.note} lang={lang} className="gp-why" /></div>}
-          {showRule && <div className="gp-why__part"><Both text={question.explanation} lang={lang} className="gp-why" /></div>}
-        </RuleBox>
-      )}
+      {meaning && <p className="snd-meaning" lang="fi">{word.fi}</p>}
+    </div>
+  ) : null;
+  const hasRule = Boolean(word.note || showRule);
+  if (!lead && !hasRule) return null;
+  return (
+    <div className="snd-after lg-reveal">
+      <RuleBox label={s.rule} className="snd-why" lead={lead}>
+        {hasRule && (
+          <>
+            {word.note && <div className="gp-why__part"><Both text={word.note} lang={lang} className="gp-why" /></div>}
+            {showRule && <div className="gp-why__part"><Both text={question.explanation} lang={lang} className="gp-why" /></div>}
+          </>
+        )}
+      </RuleBox>
     </div>
   );
 }

@@ -308,10 +308,21 @@ a { color: var(--lake); }
 .gp-why__text { margin: 0; font: 400 16px/24px var(--font-sans); color: var(--ink); }
 .gp-why__fi { margin: var(--space-1) 0 0; font: 400 15px/22px var(--font-sans); color: var(--ink-muted); }
 .lg-example { background: none; color: var(--lingon); font-weight: 700; }
+/* "vowel", "consonant" and their Finnish forms in rule texts (Term.jsx) */
+.lg-term { display: inline; margin: 0; padding: 0; border: 0; background: none; font: inherit; color: inherit; cursor: help; text-decoration: underline dotted; text-decoration-thickness: 2px; text-underline-offset: 3px; text-decoration-color: var(--lake); }
+.lg-term[aria-expanded="true"] { text-decoration-style: solid; }
+.lg-term-tip { position: fixed; z-index: 50; display: flex; flex-direction: column; gap: 2px; max-width: min(18rem, calc(100vw - 16px)); padding: var(--space-2) var(--space-3); border-radius: var(--radius-md); background: var(--ink); color: var(--surface); box-shadow: var(--shadow-dialog); font: 400 14px/20px var(--font-sans); text-align: left; pointer-events: none; }
+.lg-term-tip__title { font-weight: 700; }
+.lg-term-tip__letters { font-weight: 600; letter-spacing: .02em; }
+.lg-term-tip__note { opacity: .85; }
 /* The rule after answering: a faded preview in the bottom bar that opens
    upwards, or its own view after "Next" (see games/practice/RuleBox.jsx). */
 .pg-tray-slot:empty { display: none; }
 .pg-tray-slot { width: 100%; }
+/* What the answer reveals besides the rule (how to read the word), kept with
+   the rule and Next so the bottom bar never covers it. */
+.pg-reveal { width: 100%; }
+.pg-tray-lead { display: flex; flex-direction: column; align-items: center; gap: var(--space-1); margin-bottom: var(--space-2); text-align: center; }
 .pg-tray-rule__body { max-height: 7.5rem; overflow: hidden; transition: max-height .3s ease-out; }
 .pg-tray-rule__body .gp-why { margin-top: 0; }
 .pg-tray-rule--clipped .pg-tray-rule__body { -webkit-mask-image: linear-gradient(to bottom, #000 55%, transparent); mask-image: linear-gradient(to bottom, #000 55%, transparent); }
@@ -404,6 +415,7 @@ a { color: var(--lake); }
 .snd-say strong { font: 700 22px/28px var(--font-display); }
 .snd-meaning { margin: 0; font: 400 16px/22px var(--font-sans); color: var(--ink-muted); }
 .snd-why { width: 100%; box-sizing: border-box; }
+.snd-after__lead { display: flex; flex-direction: column; align-items: center; gap: var(--space-1); }
 
 @media (max-width: 360px) {
   .snd-tile { width: 44px; min-height: 52px; font-size: 24px; }

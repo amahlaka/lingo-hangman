@@ -6,6 +6,7 @@ import './styles/lingo.css'
 import './styles/app.css'
 import { registerSW } from 'virtual:pwa-register';
 import { loadPublishedContent } from './lib/content';
+import { loadSpeechClips } from './lib/speech';
 
 // Games read words synchronously, so switch to the newest published word bank
 // first. If that is slow or offline, the copy built into the app is used.
@@ -18,3 +19,6 @@ loadPublishedContent().finally(() => {
 })
 
 registerSW();
+
+// Recorded voice clips; the browser's own voice is used until they load.
+loadSpeechClips();

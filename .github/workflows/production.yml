@@ -70,6 +70,25 @@ jobs:
           ssh_cmd="ssh -p $SSH_PORT -i ~/.ssh/prod_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes"
           # The key is restricted with rrsync to the production folder, so paths
           # are relative to it: releases/<sha>/ holds builds, "current" points at one.
+
+          # nginx config first, so a release that needs it never goes live
+          # without it. The server checks it (nginx -t) and reloads within
+          # ~15 s, then writes the outcome to nginx-status/result.txt; see
+          # deploy/preview/apply-nginx-conf.sh.
+          sum=$(sha256sum deploy/preview/nginx.conf | cut -d' ' -f1)
+          rsync -z --mkpath --chmod=F644 -e "$ssh_cmd" deploy/preview/nginx.conf "$SSH_USER@$SSH_HOST:nginx/nginx.conf"
+          result=""
+          for i in $(seq 1 12); do
+            rsync -q -e "$ssh_cmd" "$SSH_USER@$SSH_HOST:nginx-status/result.txt" result.txt 2>/dev/null || true
+            if [ -f result.txt ] && head -n1 result.txt | grep -q "^$sum "; then result=$(head -n1 result.txt | cut -d' ' -f2); break; fi
+            sleep 5
+          done
+          case "$result" in
+            ok) echo "nginx config is live: $(sed -n 2p result.txt)" ;;
+            failed) echo "::error::The server rejected deploy/preview/nginx.conf; the live site keeps its old config:"; tail -n +2 result.txt; rm -f ~/.ssh/prod_key; exit 1 ;;
+            *) echo "::warning::The server did not confirm the nginx config within a minute. Is lingo-nginx-conf.timer installed? See docs/preview-deployments.md." ;;
+          esac
+
           rsync -rlz --mkpath --delete --chmod=D755,F644 -e "$ssh_cmd" \
             dist/ "$SSH_USER@$SSH_HOST:releases/$RELEASE/"
           mkdir -p switch && ln -sfn "releases/$RELEASE" switch/current

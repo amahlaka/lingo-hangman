@@ -53,3 +53,16 @@ describe('Sound effects', () => {
     expect(played).toHaveLength(0);
   });
 });
+
+describe('Voice setting', () => {
+  afterEach(() => localStorage.removeItem('lingoVoice'));
+
+  it('switches the reading voice to a man and remembers it', () => {
+    renderApp(link);
+    fireEvent.click(screen.getAllByRole('button', { name: 'Settings' })[0]);
+    expect(screen.getByRole('button', { name: 'Woman' })).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.click(screen.getByRole('button', { name: 'Man' }));
+    expect(screen.getByRole('button', { name: 'Man' })).toHaveAttribute('aria-pressed', 'true');
+    expect(localStorage.getItem('lingoVoice')).toBe('male');
+  });
+});

@@ -5,11 +5,11 @@ import { useSettings } from "../../app/SettingsContext";
 import { useProgress } from "../../app/ProgressContext";
 import { DAILY_GOAL_OPTIONS } from "../../lib/progress";
 
-// Settings popover: language, theme, sound effects, daily goal and a link to
+// Settings popover: language, theme, sound effects, voice, daily goal and a link to
 // focus areas and difficulty, the learner profile and the shop, plus any game-specific
 // `actions` ([{ label, onClick }]) such as "Restart".
 export default function SettingsMenu({ actions = [] }) {
-  const { lang, setLang, theme, setTheme, sound, setSound, t } = useSettings();
+  const { lang, setLang, theme, setTheme, sound, setSound, voice, setVoice, t } = useSettings();
   const { dailyGoal, setDailyGoal } = useProgress();
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
@@ -92,6 +92,13 @@ export default function SettingsMenu({ actions = [] }) {
             <div className="lg-chips">
               {choice(sound, true, setSound, t.soundOn)}
               {choice(sound, false, setSound, t.soundOff)}
+            </div>
+          </div>
+          <div>
+            <p className="lg-menu__label">{t.voiceLabel}</p>
+            <div className="lg-chips">
+              {choice(voice, "female", setVoice, t.voiceFemale)}
+              {choice(voice, "male", setVoice, t.voiceMale)}
             </div>
           </div>
           <div>

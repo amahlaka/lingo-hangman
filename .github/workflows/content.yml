@@ -50,9 +50,79 @@ jobs:
             echo "publish=true" >> "$GITHUB_OUTPUT"
           fi
 
-  publish:
+  # Recorded speech for new texts, made with an open voice model on the
+  # runners' CPUs (scripts/speech-audio.mjs and .py), split over six runners.
+  # Only texts without a clip on the live site are made, so after the first
+  # run this takes a minute. No secrets here; the clips go to the publish job
+  # as artifacts. If this fails, the words are still published and new texts
+  # use the browser voice.
+  audio:
     needs: check
     if: needs.check.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    strategy:
+      matrix:
+        shard: [0, 1, 2, 3, 4, 5]
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: master
+          persist-credentials: false
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+
+      # The word base as files only (a tarball, no git), read as data.
+      - env:
+          WORDBASE_REF: ${{ needs.check.outputs.sha }}
+        run: node scripts/pull-content.mjs
+
+      - id: plan
+        run: |
+          node scripts/speech-audio.mjs plan --live "$URL"
+          echo "count=$(node -p 'require("./audio-build/todo.json").items.length')" >> "$GITHUB_OUTPUT"
+
+      - if: steps.plan.outputs.count != '0'
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      # Kokoro v1.0 (Apache-2.0) as ONNX, from the kokoro-onnx project's release.
+      # Downloaded each time rather than cached: this job has the word base
+      # checked out, and nothing from it may reach a cache shared with master.
+      - if: steps.plan.outputs.count != '0'
+        run: |
+          mkdir -p ~/kokoro && cd ~/kokoro
+          base=https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0
+          curl -fsSLO "$base/kokoro-v1.0.onnx"
+          curl -fsSLO "$base/voices-v1.0.bin"
+          sha256sum -c - <<'SUMS'
+          7d5df8ecf7d4b1878015a32686053fd0eebe2bc377234608764cc0ef3636a6c5  kokoro-v1.0.onnx
+          bca610b8308e8d99f32e6fe4197e7ec01679264efed0cac9140fe9c29f1fbf7d  voices-v1.0.bin
+          SUMS
+
+      - if: steps.plan.outputs.count != '0'
+        env:
+          SHARD: ${{ matrix.shard }}
+        run: |
+          command -v ffmpeg >/dev/null || { sudo apt-get update -qq && sudo apt-get install -y -qq --no-install-recommends ffmpeg >/dev/null; }
+          python -m pip install --quiet kokoro-onnx==0.6.1 soundfile==0.14.0
+          python scripts/speech-audio.py audio-build/todo.json --model ~/kokoro --shard "$SHARD/6"
+
+      - if: steps.plan.outputs.count != '0'
+        uses: actions/upload-artifact@v4
+        with:
+          name: speech-audio-${{ matrix.shard }}
+          path: audio-build/*/*.mp3
+          if-no-files-found: ignore
+          retention-days: 3
+
+  publish:
+    needs: [check, audio]
+    # Publish the words even if making clips failed.
+    if: ${{ !cancelled() && needs.check.outputs.publish == 'true' }}
     runs-on: ubuntu-latest
     environment:
       name: production
@@ -78,6 +148,23 @@ jobs:
         with:
           node-version: 24
 
+      # New clips from the audio job, if it made any, and the list of every
+      # clip the site will have. Skipped (keeping the live list) if anything
+      # here fails.
+      - uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          pattern: speech-audio-*
+          merge-multiple: true
+          path: audio-build
+
+      - name: List the voice clips
+        continue-on-error: true
+        run: |
+          node scripts/speech-audio.mjs finish --live "$URL"
+          mkdir -p content/audio
+          cp -r audio-build/. content/audio/
+
       # Plain Node, no install needed. Stops here if anything is wrong, so the
       # live site keeps the last good words.
       - run: node scripts/check-content.mjs
@@ -97,10 +184,17 @@ jobs:
           chmod 600 ~/.ssh/prod_key
           printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
           ssh_cmd="ssh -p $SSH_PORT -i ~/.ssh/prod_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes"
-          # JSON only. Packs first, index.json and version.json last, so a
-          # visitor never gets an index naming a pack that isn't there yet.
           # Paths are relative to the production folder (the key is restricted
-          # with rrsync).
+          # with rrsync). Voice clips first: a clip's file never changes, and
+          # older ones stay for visitors still on the old list.
+          if [ -d content/audio ]; then
+            rsync -rlz --mkpath --ignore-existing --chmod=D755,F644 \
+              --include='*/' --include='*.mp3' --exclude='*' \
+              -e "$ssh_cmd" content/audio/ "$SSH_USER@$SSH_HOST:content/audio/"
+          fi
+          # Then JSON (with audio/index.json). Packs first, index.json and
+          # version.json last, so a visitor never gets an index naming a pack
+          # that isn't there yet.
           rsync -rlz --mkpath --chmod=D755,F644 \
             --exclude=/index.json --exclude=/version.json --exclude='.*' \
             --include='*/' --include='*.json' --exclude='*' \

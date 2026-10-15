@@ -1,0 +1,11 @@
+# Checks for an uploaded nginx config every 15 seconds.
+[Unit]
+Description=Check for an uploaded Lingo nginx config
+
+[Timer]
+OnBootSec=1min
+OnUnitActiveSec=15s
+AccuracySec=1s
+
+[Install]
+WantedBy=timers.target

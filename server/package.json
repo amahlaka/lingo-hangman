@@ -1,0 +1,18 @@
+{
+  "name": "lingo-api",
+  "private": true,
+  "version": "0.0.1",
+  "description": "Optional backend for Lingo: accounts, sync, reminders, speech and reports. The app works without it.",
+  "type": "module",
+  "engines": {
+    "node": ">=22.13"
+  },
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "fastify": "^5.12.0"
+  }
+}

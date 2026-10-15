@@ -7,6 +7,8 @@
 # Uses the "production" environment: its PROD_SSH_KEY secret only exists
 # there, and required reviewers can be added to it in the repo settings.
 # The server only needs a one-time setup; see docs/preview-deployments.md.
+# The same run also builds the API image (server/) for the commit, pushes it to
+# GitHub's container registry and asks the server to run it; see docs/backend.md.
 
 name: Production deploy
 
@@ -20,6 +22,8 @@ on:
 
 permissions:
   contents: read
+  # Push the API image to ghcr.io.
+  packages: write
 
 concurrency:
   group: production
@@ -53,6 +57,31 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm run build
+
+      # Releases from before the API existed have no server/ folder.
+      - name: Test the API
+        if: hashFiles('server/package.json') != ''
+        working-directory: server
+        run: npm ci && npm test
+
+      - name: Build and push the API image
+        id: api
+        if: hashFiles('server/Dockerfile') != ''
+        env:
+          SHA: ${{ steps.meta.outputs.sha }}
+          REPO: ${{ github.repository }}
+          ACTOR: ${{ github.actor }}
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          image="ghcr.io/${REPO,,}-api"
+          printf '%s' "$TOKEN" | docker login ghcr.io -u "$ACTOR" --password-stdin
+          docker build -f server/Dockerfile --build-arg LINGO_VERSION="$SHA" \
+            --label org.opencontainers.image.source="https://github.com/$REPO" \
+            --label org.opencontainers.image.revision="$SHA" \
+            -t "$image:$SHA" .
+          docker push "$image:$SHA"
+          docker logout ghcr.io
+          echo "image=$image" >> "$GITHUB_OUTPUT"
 
       - name: Upload the release and switch to it
         env:
@@ -96,6 +125,39 @@ jobs:
           mkdir -p switch && ln -sfn "releases/$RELEASE" switch/current
           rsync -lz -e "$ssh_cmd" switch/current "$SSH_USER@$SSH_HOST:./"
           rm -f ~/.ssh/prod_key
+
+      # The app works without the API, so this runs after the static release
+      # is live. The server pulls the image, backs up the database, starts it
+      # and checks its health within ~2 minutes, or goes back to the previous
+      # release; see deploy/api/apply-api-release.sh.
+      - name: Start the API release
+        if: steps.api.outputs.image != ''
+        env:
+          SSH_HOST: ${{ vars.PROD_SSH_HOST }}
+          SSH_PORT: ${{ vars.PROD_SSH_PORT || '22' }}
+          SSH_USER: ${{ secrets.PROD_SSH_USER }}
+          SSH_KEY: ${{ secrets.PROD_SSH_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.PROD_SSH_KNOWN_HOSTS }}
+          SHA: ${{ steps.meta.outputs.sha }}
+          RUN: ${{ github.run_id }}${{ github.run_attempt }}
+        run: |
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/prod_key
+          chmod 600 ~/.ssh/prod_key
+          ssh_cmd="ssh -p $SSH_PORT -i ~/.ssh/prod_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes"
+          mkdir -p api && printf '%s %s\n' "$SHA" "$RUN" > api/tag
+          rsync -z --mkpath --chmod=F644 -e "$ssh_cmd" api/tag "$SSH_USER@$SSH_HOST:api/"
+          result=""
+          for i in $(seq 1 36); do
+            rsync -q -e "$ssh_cmd" "$SSH_USER@$SSH_HOST:api-status/result.txt" api-result.txt 2>/dev/null || true
+            if [ -f api-result.txt ] && head -n1 api-result.txt | grep -q "^$SHA $RUN "; then result=$(head -n1 api-result.txt | cut -d' ' -f3); break; fi
+            sleep 5
+          done
+          rm -f ~/.ssh/prod_key
+          case "$result" in
+            ok) echo "API is live: $(sed -n 2p api-result.txt)" ;;
+            failed) echo "::error::The API release failed; the app is live and works without it:"; tail -n +2 api-result.txt; exit 1 ;;
+            *) echo "::warning::The server did not confirm the API release within 3 minutes. Is lingo-api-release.timer installed? See docs/backend.md." ;;
+          esac
 
       - name: Check the live site serves this release
         env:

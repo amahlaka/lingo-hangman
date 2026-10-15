@@ -1,6 +1,7 @@
 import { fireEvent, screen, within } from '@testing-library/react';
 import { renderApp } from '../test-utils';
 import { encodeWords } from '../lib/words';
+import { resetPreferences, setPreferences } from '../lib/preferences';
 
 const words = [
   { learning: 'dog', native: 'koira' },
@@ -95,13 +96,43 @@ describe('Build the phrase', () => {
     expect(screen.getByTestId('meaning-reveal')).toHaveTextContent('Mitä kuuluu?');
   });
 
+  const bank = () => screen.getByRole('group', { name: 'Words to use' });
+  const built = () => screen.getByRole('generic', { name: 'Your phrase' });
+
   it('keeps the right start and gives the rest back', () => {
     renderApp(link('/phrase', phrases));
-    const bank = () => screen.getByRole('group', { name: 'Words to use' });
     ['how', 'you', 'are'].forEach((w) => fireEvent.click(within(bank()).getByRole('button', { name: w })));
     fireEvent.click(screen.getByRole('button', { name: 'Check' }));
-    expect(screen.getByText('Not quite yet. The first word is in the right place.')).toBeInTheDocument();
+    expect(screen.getByText('Not quite yet. One word is in the right place, so it stays there.')).toBeInTheDocument();
     expect(within(bank()).getAllByRole('button')).toHaveLength(2);
+  });
+
+  it('keeps right words anywhere in the sentence and fills the open places around them', () => {
+    renderApp(link('/phrase', phrases));
+    ['are', 'how', 'you'].forEach((w) => fireEvent.click(within(bank()).getByRole('button', { name: w })));
+    fireEvent.click(screen.getByRole('button', { name: 'Check' }));
+    expect(screen.getByText('Not quite yet. One word is in the right place, so it stays there.')).toBeInTheDocument();
+    const kept = within(built()).getByRole('button', { name: 'you' });
+    expect(kept).toBeDisabled();
+    expect(screen.getAllByTestId('open-place')).toHaveLength(2);
+    ['how', 'are'].forEach((w) => fireEvent.click(within(bank()).getByRole('button', { name: w })));
+    fireEvent.click(screen.getByRole('button', { name: 'Check' }));
+    expect(screen.getByText('Yes, "How are you?" is right.')).toBeInTheDocument();
+  });
+
+  it('sometimes gives a beginner a word already in place', () => {
+    setPreferences({ difficulty: 'easy' });
+    const random = jest.spyOn(Math, 'random').mockReturnValue(0);
+    try {
+      renderApp(link('/phrase', phrases));
+      const given = within(built()).getAllByRole('button');
+      expect(given).toHaveLength(1);
+      expect(given[0]).toBeDisabled();
+      expect(within(bank()).getAllByRole('button')).toHaveLength(2);
+    } finally {
+      random.mockRestore();
+      resetPreferences();
+    }
   });
 });
 

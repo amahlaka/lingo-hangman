@@ -250,6 +250,8 @@ a { color: var(--lake); }
 .pg-chip:hover:not(:disabled) { border-color: var(--lake); background: var(--lake-soft); }
 .pg-chip--placed { border-color: transparent; box-shadow: var(--shadow-raised); }
 .pg-chip:disabled { cursor: default; color: var(--ink); }
+/* A word locked in its right place: given to a beginner, or kept after a check. */
+.pg-chip--locked { border-bottom: 3px solid var(--pine); background: var(--pine-soft); }
 .pg-phrase--right .pg-chip { border-bottom: 3px solid var(--pine); }
 .pg-phrase--shown .pg-chip { color: var(--cloudberry-ink); }
 .lg-tiles--win .pg-chip { animation: lg-wave .5s ease-in-out both; animation-delay: calc(var(--i, 0) * 70ms); }

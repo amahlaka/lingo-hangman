@@ -5,6 +5,7 @@
 import { DEFAULT_LEARNING_LANG, DEFAULT_NATIVE_LANG, decodeWords, filterCommonWords, getWordGroups } from "../../lib/words";
 import { sentenceWords } from "../../lib/contentSchema";
 import { gapItemChoices } from "../../lib/decoys";
+import { getPreferences } from "../../lib/preferences";
 
 export const ROUND_LENGTH = 10;
 // After this many misses on one question the answer is shown, so nobody gets stuck.
@@ -110,8 +111,23 @@ export function isPhraseCandidate(pair) {
   return n >= 3 && n <= 9;
 }
 
-// Chips with stable ids so repeated words ("the … the") stay distinct.
-export function buildPhrasePuzzle(target, random = Math.random) {
+// How often a beginner (the "easy" difficulty) gets a word or two already in
+// place in Build the phrase.
+export const GIVEN_SHARE = 1 / 3;
+
+// The places of the words handed out already in place: none on most
+// sentences, one on short ones and two on longer ones, and never so many that
+// fewer than two words are left to place.
+export function givenPlaces(answer, random = Math.random) {
+  if (answer.length < 3 || random() >= GIVEN_SHARE) return [];
+  const count = answer.length >= 6 ? 2 : 1;
+  return shuffle(answer.map((_, i) => i), random).slice(0, count).sort((a, b) => a - b);
+}
+
+// Chips with stable ids so repeated words ("the … the") stay distinct; a
+// chip's id is its place in the answer. `given` lists the places whose chips
+// start out locked in place (see givenPlaces); by default beginners get them.
+export function buildPhrasePuzzle(target, random = Math.random, { easy = getPreferences().difficulty === "easy" } = {}) {
   const text = target.learning;
   const answer = phraseTokens(text);
   const chips = answer.map((word, id) => ({ id, word }));
@@ -120,22 +136,20 @@ export function buildPhrasePuzzle(target, random = Math.random) {
   // Never hand out the answer already in order.
   for (let tries = 0; tries < 5 && inOrder(shuffled); tries++) shuffled = shuffle(chips, random);
   if (inOrder(shuffled) && shuffled.length > 1) shuffled = [...shuffled.slice(1), shuffled[0]];
-  return { target, text, answer, ending: phraseEnding(text), chips: shuffled };
+  const given = easy ? givenPlaces(answer, random) : [];
+  return { target, text, answer, ending: phraseEnding(text), chips: shuffled, given };
 }
+
+const sameWord = (a, b) => a.toLowerCase() === b.toLowerCase();
 
 export function checkPhrase(placedWords, answer) {
-  return (
-    placedWords.length === answer.length &&
-    placedWords.every((w, i) => w.toLowerCase() === answer[i].toLowerCase())
-  );
+  return placedWords.length === answer.length && placedWords.every((w, i) => sameWord(w, answer[i]));
 }
 
-// How many words from the start are already in the right place; used to give
-// a specific hint instead of a bare "not yet".
-export function correctPrefixLength(placedWords, answer) {
-  let n = 0;
-  while (n < placedWords.length && n < answer.length && placedWords[n].toLowerCase() === answer[n].toLowerCase()) n++;
-  return n;
+// The places where the placed word is the right one, wherever they are in the
+// sentence. After a wrong answer these words stay put and the rest go back.
+export function correctPlaces(placedWords, answer) {
+  return placedWords.flatMap((w, i) => (i < answer.length && w && sameWord(w, answer[i]) ? [i] : []));
 }
 
 // --- Round summary --------------------------------------------------------

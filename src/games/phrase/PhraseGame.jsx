@@ -15,7 +15,7 @@ import {
   buildPhrasePuzzle,
   buildRound,
   checkPhrase,
-  correctPrefixLength,
+  correctPlaces,
   isPhraseCandidate,
   practicePool,
 } from "../practice/practiceLogic";
@@ -44,7 +44,13 @@ function SentenceRule({ rule, lang, p }) {
 
 export function PhraseQuestion({ puzzle, done, onDone, p, learningLang, nativeLang, nativeLabel }) {
   const { lang } = useSettings();
-  const [placed, setPlaced] = useState([]);
+  // Words locked in their place ({ [place]: chip }): the ones a beginner is
+  // given, and after a check every word that was in the right place. The
+  // learner's other words (`free`) fill the open places in order.
+  const [locked, setLocked] = useState(() =>
+    Object.fromEntries((puzzle.given || []).map((i) => [i, puzzle.chips.find((c) => c.id === i)]))
+  );
+  const [free, setFree] = useState([]);
   const [misses, setMisses] = useState(0);
   const [hint, setHint] = useState("");
   const [result, setResult] = useState(null);
@@ -65,9 +71,12 @@ export function PhraseQuestion({ puzzle, done, onDone, p, learningLang, nativeLa
   const rule = ruleId ? getItem(ruleId) : null;
   const typeOf = (chip) => (types ? types[chip.id] : null);
 
-  const bank = puzzle.chips.filter((c) => !placed.includes(c));
-  const placedWords = placed.map((c) => c.word);
-  const full = placed.length === puzzle.answer.length;
+  const lockedChips = Object.values(locked);
+  const hasLocked = lockedChips.length > 0;
+  const layout = [];
+  for (let i = 0, k = 0; i < puzzle.answer.length; i++) layout.push(locked[i] || free[k++] || null);
+  const bank = puzzle.chips.filter((c) => !free.includes(c) && !lockedChips.includes(c));
+  const full = layout.every(Boolean);
 
   const finish = (solved, missCount) => {
     setResult(solved ? "right" : "shown");
@@ -85,16 +94,17 @@ export function PhraseQuestion({ puzzle, done, onDone, p, learningLang, nativeLa
     if (done) return;
     sounds.tap();
     setHint("");
-    setPlaced((list) => [...list, chip]);
+    setFree((list) => [...list, chip]);
   };
   const remove = (chip) => {
-    if (done) return;
+    if (done || lockedChips.includes(chip)) return;
     setHint("");
-    setPlaced((list) => list.filter((c) => c !== chip));
+    setFree((list) => list.filter((c) => c !== chip));
   };
 
   const check = () => {
     if (!full || done) return;
+    const placedWords = layout.map((c) => c.word);
     if (checkPhrase(placedWords, puzzle.answer)) {
       finish(true, misses);
       return;
@@ -106,27 +116,34 @@ export function PhraseQuestion({ puzzle, done, onDone, p, learningLang, nativeLa
       return;
     }
     sounds.miss();
-    const keep = correctPrefixLength(placedWords, puzzle.answer);
-    // Keep the words that are already right and hand the rest back.
-    setPlaced((list) => list.slice(0, keep));
-    setHint(keep === 0 ? p.phraseNotYet : keep === 1 ? p.phrasePrefixOne : fill(p.phrasePrefix, { n: keep }));
+    // Keep every word that is in the right place and hand the rest back.
+    const keep = correctPlaces(placedWords, puzzle.answer);
+    const before = lockedChips.length;
+    setLocked(Object.fromEntries(keep.map((i) => [i, layout[i]])));
+    setFree([]);
+    const found = keep.length - before;
+    setHint(found <= 0 ? p.phraseNotYet : found === 1 ? p.phraseKeptOne : fill(p.phraseKept, { n: found }));
   };
 
-  const shownWords = result === "shown" ? puzzle.answer.map((word, id) => ({ id, word })) : placed;
+  const shownWords = result === "shown" ? puzzle.answer.map((word, id) => ({ id, word })) : layout;
 
-  const chipButton = (chip, i, { inBank = false, label = false } = {}) => (
+  const chipButton = (chip, i, { inBank = false, label = false } = {}) => {
+    const isLocked = !inBank && !result && lockedChips.includes(chip);
+    return (
     <button
       key={chip.id}
       type="button"
-      className={`pg-chip${inBank ? " lg-pop" : " pg-chip--placed"}${typeClass(typeOf(chip), colors)}${label ? " pg-chip--typed" : ""}`}
+      className={`pg-chip${inBank ? " lg-pop" : " pg-chip--placed"}${isLocked ? " pg-chip--locked" : ""}${typeClass(typeOf(chip), colors)}${label ? " pg-chip--typed" : ""}`}
       style={inBank ? undefined : { "--i": i }}
       onClick={() => (inBank ? add(chip) : remove(chip))}
-      disabled={!inBank && done}
+      disabled={!inBank && (done || isLocked)}
+      title={isLocked ? p.phraseLocked : undefined}
     >
       <span className="pg-chip__word">{chip.word}</span>
       {label && <TypeLabel type={typeOf(chip)} />}
     </button>
-  );
+    );
+  };
 
   const buy = (key) => () => setBought((b) => ({ ...b, [key]: true }));
   const hints = done
@@ -165,8 +182,15 @@ export function PhraseQuestion({ puzzle, done, onDone, p, learningLang, nativeLa
                 <TypeLabel type={types[i]} place />
               </div>
             ))
-          : shownWords.map((chip, i) => chipButton(chip, i, { label: showOptions }))}
-        {!showSlots && shownWords.length === 0 && <span className="pg-phrase__empty">{p.emptyPhrase}</span>}
+          : shownWords.map((chip, i) =>
+              chip ? (
+                chipButton(chip, i, { label: showOptions })
+              ) : (
+                // Open places show only once some words are locked in theirs.
+                hasLocked && <span key={`open-${i}`} className="pg-slot__box" data-testid="open-place" aria-hidden="true" />
+              )
+            )}
+        {!showSlots && !shownWords.some(Boolean) && <span className="pg-phrase__empty">{p.emptyPhrase}</span>}
         {(full || result) && puzzle.ending && <span className="pg-phrase__ending">{puzzle.ending}</span>}
       </div>
 
@@ -187,8 +211,8 @@ export function PhraseQuestion({ puzzle, done, onDone, p, learningLang, nativeLa
             <button type="button" className="lg-btn lg-btn--primary" onClick={check} disabled={!full}>
               {p.check}
             </button>
-            {placed.length > 0 && (
-              <button type="button" className="lg-btn lg-btn--quiet" onClick={() => { setPlaced([]); setHint(""); }}>
+            {free.length > 0 && (
+              <button type="button" className="lg-btn lg-btn--quiet" onClick={() => { setFree([]); setHint(""); }}>
                 {p.startOver}
               </button>
             )}

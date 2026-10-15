@@ -4,7 +4,8 @@ import {
   buildChoiceQuestion,
   buildPhrasePuzzle,
   checkPhrase,
-  correctPrefixLength,
+  correctPlaces,
+  givenPlaces,
   emptyTally,
   isPhraseCandidate,
   phraseEnding,
@@ -81,7 +82,29 @@ describe('build the phrase', () => {
     const answer = ['how', 'are', 'you'];
     expect(checkPhrase(['how', 'are', 'you'], answer)).toBe(true);
     expect(checkPhrase(['are', 'how', 'you'], answer)).toBe(false);
-    expect(correctPrefixLength(['how', 'you', 'are'], answer)).toBe(1);
+    expect(correctPlaces(['how', 'you', 'are'], answer)).toEqual([0]);
+    expect(correctPlaces(['are', 'how', 'you'], answer)).toEqual([2]);
+    expect(correctPlaces(['How', 'you', 'you'], answer)).toEqual([0, 2]);
+  });
+
+  it('gives beginners a word or two in place on some sentences only', () => {
+    const always = () => 0;
+    expect(givenPlaces(['how', 'are', 'you'], always)).toHaveLength(1);
+    expect(givenPlaces(['i', 'would', 'like', 'a', 'cup', 'of', 'tea'], always)).toHaveLength(2);
+    expect(givenPlaces(['thank', 'you'], always)).toEqual([]);
+    expect(givenPlaces(['how', 'are', 'you'], () => 0.5)).toEqual([]);
+    let given = 0;
+    for (let i = 0; i < 300; i++) given += givenPlaces(['how', 'are', 'you']).length > 0 ? 1 : 0;
+    expect(given).toBeGreaterThan(50);
+    expect(given).toBeLessThan(150);
+  });
+
+  it('hands out given words only on the easy difficulty', () => {
+    const target = { learning: 'Where is the bus stop?', native: 'Missä on bussipysäkki?' };
+    expect(buildPhrasePuzzle(target, () => 0, { easy: false }).given).toEqual([]);
+    const easy = buildPhrasePuzzle(target, () => 0, { easy: true });
+    expect(easy.given).toHaveLength(1);
+    easy.given.forEach((i) => expect(i).toBeLessThan(easy.answer.length));
   });
 
   it('has enough phrases in the word bank for a round', () => {

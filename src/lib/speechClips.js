@@ -3,10 +3,25 @@
 // makes the clips (scripts/speech-audio.mjs), so this file has no imports and
 // runs in plain Node.
 //
-// Clips live at /content/audio/<voice>/<key>.mp3 with a list of the keys in
-// /content/audio/index.json. A text without a clip is read by the browser.
+// Clips live at /content/audio/<folder>/<key>.mp3, one folder per voice, with
+// the keys of each folder in /content/audio/index.json:
+// { "voices": { "<folder>": ["<key>", ...] } }. A text without a clip is read
+// by the browser.
 
 export const AUDIO_BASE = "/content/audio/";
+
+// The recorded voices, picked under Settings. `speaker` is the Kokoro voice
+// (https://huggingface.co/hexgrad/Kokoro-82M). Changing a voice or the model
+// needs a new folder name, so every clip is made again.
+export const VOICES = [
+  { id: "female", folder: "kokoro-1.0-bf_emma", speaker: "bf_emma" },
+  { id: "male", folder: "kokoro-1.0-bm_george", speaker: "bm_george" },
+];
+export const DEFAULT_VOICE = "female";
+
+export function voiceById(id) {
+  return VOICES.find((v) => v.id === id) || VOICES.find((v) => v.id === DEFAULT_VOICE);
+}
 
 // The only accent recorded so far. Other learning languages use the browser.
 export const CLIP_LANGS = ["en-GB"];

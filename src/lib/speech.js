@@ -6,7 +6,7 @@
 // Anything without a clip, or a clip that won't play (offline, say), falls
 // back to the browser's own speech synthesis.
 
-import { AUDIO_BASE, clipKey } from "./speechClips";
+import { AUDIO_BASE, DEFAULT_VOICE, clipKey, voiceById } from "./speechClips";
 
 export const RATE_NORMAL = 0.9;
 export const RATE_SLOW = 0.6;
@@ -24,13 +24,24 @@ function canPlayClips() {
   return typeof window !== "undefined" && typeof window.Audio === "function";
 }
 
-// { base, voice, keys: Set } once /content/audio/index.json has loaded.
+// { base, folders: Map(folder -> Set of keys) } once /content/audio/index.json
+// has loaded.
 let clips = null;
+let voiceId = DEFAULT_VOICE; // "female" or "male", from Settings
 let player = null;
 let turn = 0; // bumps on every speak/stop, so a clip that was stopped never falls back
 
 export function canSpeak() {
-  return Boolean(synth()) || Boolean(clips && clips.keys.size && canPlayClips());
+  return Boolean(synth()) || Boolean(clipKeys()?.size && canPlayClips());
+}
+
+// The recorded voice to use (see VOICES in ./speechClips.js).
+export function setSpeechVoice(id) {
+  voiceId = voiceById(id).id;
+}
+
+function clipKeys() {
+  return clips?.folders.get(voiceById(voiceId).folder) || null;
 }
 
 // Load the list of recorded clips. Called once at startup; until it has
@@ -41,8 +52,11 @@ export async function loadSpeechClips({ base = AUDIO_BASE, fetchImpl = globalThi
     const res = await fetchImpl(`${base}index.json`, { cache: "no-cache" });
     if (!res.ok) return false;
     const manifest = await res.json();
-    if (typeof manifest.voice !== "string" || !Array.isArray(manifest.keys)) return false;
-    clips = { base, voice: manifest.voice, keys: new Set(manifest.keys) };
+    if (!manifest.voices || typeof manifest.voices !== "object") return false;
+    const folders = new Map(
+      Object.entries(manifest.voices).filter(([, keys]) => Array.isArray(keys)).map(([folder, keys]) => [folder, new Set(keys)])
+    );
+    clips = { base, folders };
     unlockOnFirstTap();
     return true;
   } catch {
@@ -111,7 +125,7 @@ function playClip(key, text, langTag, rate) {
     speakWithBrowser(text, langTag, rate);
   };
   const p = getPlayer();
-  p.src = `${clips.base}${clips.voice}/${key}.mp3`;
+  p.src = `${clips.base}${voiceById(voiceId).folder}/${key}.mp3`;
   p.preservesPitch = true;
   p.playbackRate = rate < RATE_NORMAL ? CLIP_SLOW : 1;
   // Not played: offline, blocked before the first tap, or a broken file.
@@ -133,7 +147,7 @@ export function speak(text, { lang = "en-GB", rate = RATE_NORMAL } = {}) {
   const langTag = speechLang(lang);
   const key = clipKey(text, langTag);
   stopSpeaking();
-  if (clips && clips.keys.has(key) && canPlayClips()) {
+  if (clipKeys()?.has(key) && canPlayClips()) {
     playClip(key, text, langTag, rate);
     return true;
   }
@@ -154,4 +168,5 @@ export function stopSpeaking() {
 export function resetSpeechClips() {
   clips = null;
   player = null;
+  voiceId = DEFAULT_VOICE;
 }

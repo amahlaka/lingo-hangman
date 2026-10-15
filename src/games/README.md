@@ -172,15 +172,17 @@ app change. `?set=<topic id>` practises one topic, e.g.
 when the browser has no voices.
 
 British English texts from the word base play recorded clips, so every device
-hears the same voice; anything else uses the browser's speech synthesis.
+hears the same voice; anything else uses the browser's speech synthesis. The
+learner picks a woman's or a man's voice under Settings (`VOICES` in
+`src/lib/speechClips.js`: Kokoro "Emma" and "George").
 `spokenTexts()` in `src/lib/speechClips.js` lists what the games can say. A
 game that reads a new kind of text aloud adds it there, or that text keeps the
-browser voice. The clips are made with the open Kokoro voice model (British
-"Emma") by the Content publish workflow, only for texts that have none yet,
-and served from `/content/audio/<voice>/<key>.mp3` with a list in
-`/content/audio/index.json`. Changing `VOICE` in `scripts/speech-audio.mjs`
-makes them all again in a new folder. After a change to `spokenTexts()` or
-the voice, run Content publish by hand with "force" ticked.
+browser voice. The clips are made with the open Kokoro voice model by the
+Content publish workflow, only for texts that have none yet, and served from
+`/content/audio/<voice folder>/<key>.mp3` with a list per voice in
+`/content/audio/index.json`. A new voice, or a new folder name for one, makes
+its clips from scratch. After a change to `spokenTexts()` or
+the voices, run Content publish by hand with "force" ticked.
 
 To make clips on your own computer: `pip install kokoro-onnx soundfile`,
 download `kokoro-v1.0.onnx` and `voices-v1.0.bin` (see the workflow), then

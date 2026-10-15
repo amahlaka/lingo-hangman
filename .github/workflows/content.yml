@@ -51,7 +51,7 @@ jobs:
           fi
 
   # Recorded speech for new texts, made with an open voice model on the
-  # runners' CPUs (scripts/speech-audio.mjs and .py), split over four runners.
+  # runners' CPUs (scripts/speech-audio.mjs and .py), split over six runners.
   # Only texts without a clip on the live site are made, so after the first
   # run this takes a minute. No secrets here; the clips go to the publish job
   # as artifacts. If this fails, the words are still published and new texts
@@ -63,7 +63,7 @@ jobs:
     timeout-minutes: 120
     strategy:
       matrix:
-        shard: [0, 1, 2, 3]
+        shard: [0, 1, 2, 3, 4, 5]
     steps:
       - uses: actions/checkout@v5
         with:
@@ -109,7 +109,7 @@ jobs:
         run: |
           command -v ffmpeg >/dev/null || { sudo apt-get update -qq && sudo apt-get install -y -qq --no-install-recommends ffmpeg >/dev/null; }
           python -m pip install --quiet kokoro-onnx==0.6.1 soundfile==0.14.0
-          python scripts/speech-audio.py audio-build/todo.json --model ~/kokoro --shard "$SHARD/4"
+          python scripts/speech-audio.py audio-build/todo.json --model ~/kokoro --shard "$SHARD/6"
 
       - if: steps.plan.outputs.count != '0'
         uses: actions/upload-artifact@v4

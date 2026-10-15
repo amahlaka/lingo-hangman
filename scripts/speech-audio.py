@@ -2,8 +2,9 @@
 
     python scripts/speech-audio.py audio-build/todo.json --model DIR [--shard I/N]
 
-Reads todo.json ({ voice, items: [{ key, text, lang }] }) and writes
-<folder of todo.json>/<voice>/<key>.mp3 for each item, with the open Kokoro
+Reads todo.json ({ items: [{ key, text, lang, folder, speaker }] }) and
+writes <folder of todo.json>/<folder>/<key>.mp3 for each item in the Kokoro
+voice `speaker`, with the open Kokoro
 voice model (https://huggingface.co/hexgrad/Kokoro-82M, Apache-2.0) running
 on the CPU through kokoro-onnx. DIR holds kokoro-v1.0.onnx and voices-v1.0.bin.
 With --shard I/N only every Nth item from item I (counting from 0) is made, so
@@ -22,8 +23,8 @@ import time
 import soundfile
 from kokoro_onnx import Kokoro
 
-# Kokoro voice and phonemizer language for each learning language.
-VOICES = {"en-GB": ("bf_emma", "en-gb")}
+# Phonemizer language for each learning language.
+PHONEMES = {"en-GB": "en-gb"}
 
 
 def main():
@@ -40,8 +41,7 @@ def main():
     if not items:
         print("Nothing to make.")
         return
-    out = os.path.join(os.path.dirname(os.path.abspath(args.todo)), todo["voice"])
-    os.makedirs(out, exist_ok=True)
+    base = os.path.dirname(os.path.abspath(args.todo))
 
     kokoro = Kokoro(os.path.join(args.model, "kokoro-v1.0.onnx"), os.path.join(args.model, "voices-v1.0.bin"))
     started = time.time()
@@ -49,10 +49,11 @@ def main():
     with tempfile.TemporaryDirectory() as tmp:
         wav = os.path.join(tmp, "clip.wav")
         for n, item in enumerate(items, 1):
-            voice, lang = VOICES[item["lang"]]
             try:
-                samples, rate = kokoro.create(item["text"], voice=voice, speed=1.0, lang=lang)
+                samples, rate = kokoro.create(item["text"], voice=item["speaker"], speed=1.0, lang=PHONEMES[item["lang"]])
                 soundfile.write(wav, samples, rate)
+                out = os.path.join(base, item["folder"])
+                os.makedirs(out, exist_ok=True)
                 target = os.path.join(out, item["key"] + ".mp3")
                 # Mono 48 kbit/s MP3 plays everywhere and keeps a word under 10 kB.
                 subprocess.run(

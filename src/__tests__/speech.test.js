@@ -2,7 +2,7 @@ import { getContent } from '../lib/content';
 import { getSentences, getSoundLessons, filterCommonWords } from '../lib/words';
 import { lessonWords } from '../games/sounds/soundsLogic';
 import { clipKey, spokenTexts } from '../lib/speechClips';
-import { RATE_SLOW, loadSpeechClips, resetSpeechClips, speak, stopSpeaking } from '../lib/speech';
+import { RATE_SLOW, loadSpeechClips, resetSpeechClips, setSpeechVoice, speak, stopSpeaking } from '../lib/speech';
 
 describe('spokenTexts', () => {
   const texts = new Set(spokenTexts(getContent().raw, 'en-GB').values());
@@ -43,7 +43,10 @@ describe('speak', () => {
     };
   }
 
-  const fetchImpl = (keys) => jest.fn(async () => ({ ok: true, json: async () => ({ voice: 'v1', keys }) }));
+  const EMMA = 'kokoro-1.0-bf_emma';
+  const GEORGE = 'kokoro-1.0-bm_george';
+  const fetchImpl = (keys, male = keys) =>
+    jest.fn(async () => ({ ok: true, json: async () => ({ voices: { [EMMA]: keys, [GEORGE]: male } }) }));
   const flush = () => new Promise((r) => setTimeout(r, 0));
 
   afterEach(() => {
@@ -60,13 +63,30 @@ describe('speak', () => {
     expect(fetch).toHaveBeenCalledWith('/content/audio/index.json', { cache: 'no-cache' });
     expect(speak('knife')).toBe(true);
     await flush();
-    expect(players[0].played).toEqual([`/content/audio/v1/${knife}.mp3`]);
+    expect(players[0].played).toEqual([`/content/audio/${EMMA}/${knife}.mp3`]);
     expect(players[0].playbackRate).toBe(1);
     expect(spoken).toEqual([]);
 
     speak('knife', { rate: RATE_SLOW });
     expect(players[0].playbackRate).toBeLessThan(1);
     expect(players[0].preservesPitch).toBe(true);
+  });
+
+  it('plays the male voice when it is picked', async () => {
+    install();
+    await loadSpeechClips({ fetchImpl: fetchImpl([knife], [knife]) });
+    setSpeechVoice('male');
+    speak('knife');
+    expect(players[0].played).toEqual([`/content/audio/${GEORGE}/${knife}.mp3`]);
+  });
+
+  it('uses the browser voice when the picked voice has no clip yet', async () => {
+    install();
+    await loadSpeechClips({ fetchImpl: fetchImpl([knife], []) });
+    setSpeechVoice('male');
+    speak('knife');
+    expect(spoken.map((u) => u.text)).toEqual(['knife']);
+    expect(players).toEqual([]);
   });
 
   it('uses the browser voice for texts without a clip and for other accents', async () => {

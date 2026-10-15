@@ -1,14 +1,17 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 import i18n from "../i18n";
 import { setSoundEnabled } from "../lib/sounds";
+import { setSpeechVoice } from "../lib/speech";
+import { DEFAULT_VOICE, voiceById } from "../lib/speechClips";
 
-// App-wide settings: interface language (en/fi), theme (light/dark/system) and
-// sound effects (on/off).
+// App-wide settings: interface language (en/fi), theme (light/dark/system),
+// sound effects (on/off) and the voice that reads words aloud (female/male).
 // Games read them with useSettings().
 
 const LANG_KEY = "lingoHangmanLang";
 const THEME_KEY = "theme";
 const SOUND_KEY = "lingoSound";
+const VOICE_KEY = "lingoVoice";
 
 const SettingsContext = createContext(null);
 
@@ -49,9 +52,15 @@ export function SettingsProvider({ children, initialLang }) {
   const [systemDark, setSystemDark] = useState(systemPrefersDark);
   const [sound, setSoundState] = useState(() => readStorage(SOUND_KEY) !== "off");
 
+  const [voice, setVoiceState] = useState(() => voiceById(readStorage(VOICE_KEY)).id);
+
   useEffect(() => {
     setSoundEnabled(sound);
   }, [sound]);
+
+  useEffect(() => {
+    setSpeechVoice(voice);
+  }, [voice]);
 
   useEffect(() => {
     if (!window.matchMedia) return;
@@ -86,8 +95,15 @@ export function SettingsProvider({ children, initialLang }) {
         setSoundState(on);
         writeStorage(SOUND_KEY, on ? null : "off");
       },
+      voice,
+      setVoice: (next) => {
+        const id = voiceById(next).id;
+        setVoiceState(id);
+        setSpeechVoice(id);
+        writeStorage(VOICE_KEY, id === DEFAULT_VOICE ? null : id);
+      },
     }),
-    [lang, theme, dark, sound]
+    [lang, theme, dark, sound, voice]
   );
 
   return <SettingsContext.Provider value={value}>{children}</SettingsContext.Provider>;

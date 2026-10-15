@@ -74,9 +74,11 @@ jobs:
           # nginx config first, so a release that needs it never goes live
           # without it. The server checks it (nginx -t) and reloads within
           # ~15 s, then writes the outcome to nginx-status/result.txt; see
-          # deploy/preview/apply-nginx-conf.sh.
+          # deploy/preview/apply-nginx-conf.sh. The destination is the folder,
+          # not the file: the server's rsync (3.5.0) fails to replace an
+          # existing file named as the destination ("unlink(4) failed").
           sum=$(sha256sum deploy/preview/nginx.conf | cut -d' ' -f1)
-          rsync -z --mkpath --chmod=F644 -e "$ssh_cmd" deploy/preview/nginx.conf "$SSH_USER@$SSH_HOST:nginx/nginx.conf"
+          rsync -z --mkpath --chmod=F644 -e "$ssh_cmd" deploy/preview/nginx.conf "$SSH_USER@$SSH_HOST:nginx/"
           result=""
           for i in $(seq 1 12); do
             rsync -q -e "$ssh_cmd" "$SSH_USER@$SSH_HOST:nginx-status/result.txt" result.txt 2>/dev/null || true

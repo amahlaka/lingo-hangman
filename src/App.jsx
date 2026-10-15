@@ -6,6 +6,8 @@ import Home from "./app/Home";
 import Profile from "./app/Profile";
 import Preferences from "./app/Preferences";
 import Shop from "./app/Shop";
+import Account from "./app/Account";
+import Privacy from "./app/Privacy";
 import ContentAdmin from "./admin/ContentAdmin";
 import { GAMES, PLAYABLE_GAME_IDS } from "./games/registry";
 
@@ -17,6 +19,8 @@ export function AppRoutes() {
       <Route path="/preferences" element={<Preferences />} />
       <Route path="/profile" element={<Profile />} />
       <Route path="/shop" element={<Shop />} />
+      <Route path="/account" element={<Account />} />
+      <Route path="/privacy" element={<Privacy />} />
       {/* Word bank editor; not linked from the app, see the lingo-wordbase README. */}
       <Route path="/admin" element={<ContentAdmin />} />
       {GAMES.flatMap((game) =>

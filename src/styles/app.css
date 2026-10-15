@@ -619,3 +619,15 @@ a { color: var(--lake); }
 .sh-earn__list li { display: flex; justify-content: space-between; gap: var(--space-3); padding: var(--space-2) 0; border-bottom: 1px solid var(--line); }
 .sh-earn__list li:last-child { border-bottom: 0; }
 .sh-earn__n { display: inline-flex; align-items: center; gap: var(--space-1); font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* Account (/account) and privacy (/privacy) */
+.ac-signin { display: flex; flex-direction: column; gap: var(--space-3); align-items: flex-start; }
+.ac-signin .lg-btn { gap: var(--space-2); }
+.ac-code { font-size: 24px; letter-spacing: 6px; max-width: 12ch; }
+.ac-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-2); }
+.ac-item { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-lg); background: var(--surface-raised); }
+.ac-item__text { display: flex; flex-direction: column; min-width: 0; }
+.ac-item__name { font-weight: 700; overflow-wrap: anywhere; }
+.ac-danger { background: var(--lingon); color: var(--on-lingon); align-self: flex-start; }
+.ac-danger:hover { filter: brightness(1.1); }
+.pv-list { margin: 0; padding-left: var(--space-6); display: flex; flex-direction: column; gap: var(--space-2); }

@@ -4,15 +4,28 @@ import { Settings } from "lucide-react";
 import { useSettings } from "../../app/SettingsContext";
 import { useProgress } from "../../app/ProgressContext";
 import { DAILY_GOAL_OPTIONS } from "../../lib/progress";
+import { backendAvailable } from "../../lib/backend";
 
 // Settings popover: language, theme, sound effects, voice, daily goal and a link to
-// focus areas and difficulty, the learner profile and the shop, plus any game-specific
+// focus areas and difficulty, the learner profile, the shop and (when the
+// optional backend answers) the account page, plus any game-specific
 // `actions` ([{ label, onClick }]) such as "Restart".
 export default function SettingsMenu({ actions = [] }) {
   const { lang, setLang, theme, setTheme, sound, setSound, voice, setVoice, t } = useSettings();
   const { dailyGoal, setDailyGoal } = useProgress();
   const [open, setOpen] = useState(false);
+  const [hasBackend, setHasBackend] = useState(false);
   const ref = useRef(null);
+
+  // Asked only once the menu opens, so screens never wait on the network.
+  useEffect(() => {
+    if (!open) return undefined;
+    let live = true;
+    backendAvailable().then((ok) => live && setHasBackend(ok));
+    return () => {
+      live = false;
+    };
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -116,11 +129,17 @@ export default function SettingsMenu({ actions = [] }) {
           <Link to="/shop" className="lg-btn lg-btn--quiet" onClick={() => setOpen(false)}>
             {t.shop.title}
           </Link>
+          {hasBackend && (
+            <Link to="/account" className="lg-btn lg-btn--quiet" onClick={() => setOpen(false)}>
+              {t.account.title}
+            </Link>
+          )}
           <p className="lg-menu__foot">
             <a href="https://github.com/amahlaka/lingo-hangman" target="_blank" rel="noopener noreferrer">
               GitHub
             </a>
-            <span> · Developed by Amahlaka</span>
+            <span> · Developed by Amahlaka · </span>
+            <Link to="/privacy" onClick={() => setOpen(false)}>{t.privacy.title}</Link>
           </p>
         </div>
       )}

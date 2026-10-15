@@ -5,14 +5,17 @@ import { useSettings } from "../../app/SettingsContext";
 import { useProgress } from "../../app/ProgressContext";
 import { DAILY_GOAL_OPTIONS } from "../../lib/progress";
 import { backendAvailable } from "../../lib/backend";
+import { useFeedback } from "../../app/FeedbackContext";
 
 // Settings popover: language, theme, sound effects, voice, daily goal and a link to
 // focus areas and difficulty, the learner profile, the shop and (when the
-// optional backend answers) the account page, plus any game-specific
+// optional backend answers) reporting a problem with the question on screen,
+// suggesting content and the account page, plus any game-specific
 // `actions` ([{ label, onClick }]) such as "Restart".
 export default function SettingsMenu({ actions = [] }) {
   const { lang, setLang, theme, setTheme, sound, setSound, voice, setVoice, t } = useSettings();
   const { dailyGoal, setDailyGoal } = useProgress();
+  const { subject, openReport } = useFeedback();
   const [open, setOpen] = useState(false);
   const [hasBackend, setHasBackend] = useState(false);
   const ref = useRef(null);
@@ -129,6 +132,23 @@ export default function SettingsMenu({ actions = [] }) {
           <Link to="/shop" className="lg-btn lg-btn--quiet" onClick={() => setOpen(false)}>
             {t.shop.title}
           </Link>
+          {hasBackend && subject && (
+            <button
+              type="button"
+              className="lg-btn lg-btn--quiet"
+              onClick={() => {
+                setOpen(false);
+                openReport();
+              }}
+            >
+              {t.feedback.reportButton}
+            </button>
+          )}
+          {hasBackend && (
+            <Link to="/suggest" className="lg-btn lg-btn--quiet" onClick={() => setOpen(false)}>
+              {t.feedback.suggestLink}
+            </Link>
+          )}
           {hasBackend && (
             <Link to="/account" className="lg-btn lg-btn--quiet" onClick={() => setOpen(false)}>
               {t.account.title}

@@ -41,6 +41,10 @@ function wordBankFiles() {
 }
 
 export default defineConfig({
+  // Sent with problem reports (src/lib/feedback.js).
+  define: {
+    __APP_VERSION__: JSON.stringify((process.env.GITHUB_SHA || 'dev').slice(0, 8)),
+  },
   plugins: [
     wordBankFiles(),
     tailwindcss(),

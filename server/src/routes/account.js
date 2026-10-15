@@ -4,7 +4,8 @@
 import { generateRegistrationOptions, verifyRegistrationResponse } from "@simplewebauthn/server";
 import { describeDevice } from "../lib/userAgent.js";
 import { enqueueMail } from "../mail/queue.js";
-import { COOKIE, findSession } from "../sessions.js";
+import { COOKIE, requireSession } from "../sessions.js";
+import { reportView, suggestionView } from "./feedback.js";
 
 const CHALLENGE_MS = 5 * 60_000;
 const MAX_PASSKEYS = 20;
@@ -27,13 +28,7 @@ const sessionView = (s, current) => ({
 
 export default async function accountRoutes(app, { db, config }) {
   // Every route here needs a session.
-  app.addHook("preHandler", async (req, reply) => {
-    req.session = findSession(db, req.cookies[COOKIE]);
-    if (!req.session) {
-      reply.clearCookie(COOKIE, { path: "/api" });
-      return reply.code(401).send({ error: "signed_out" });
-    }
-  });
+  app.addHook("preHandler", requireSession(db));
 
   const passkeysOf = (userId) =>
     db.prepare("SELECT * FROM passkeys WHERE user_id = ? ORDER BY created_at").all(userId);
@@ -144,6 +139,8 @@ export default async function accountRoutes(app, { db, config }) {
         const { current, ...rest } = sessionView(row, s.id_hash);
         return rest;
       }),
+      reports: db.prepare("SELECT * FROM reports WHERE user_id = ? ORDER BY id").all(s.user_id).map(reportView),
+      suggestions: db.prepare("SELECT * FROM suggestions WHERE user_id = ? ORDER BY id").all(s.user_id).map(suggestionView),
     };
   });
 

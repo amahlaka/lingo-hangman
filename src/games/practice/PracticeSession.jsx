@@ -9,6 +9,7 @@ import { sounds } from "../../lib/sounds";
 import { RULE_PEEK_COST, addResult, emptyTally } from "./practiceLogic";
 import { RuleContext } from "./RuleBox";
 import { ReportButton, useReportSubject } from "../../app/FeedbackContext";
+import { QuestionControls } from "./questionControls";
 import { describeQuestion, itemRefFor } from "../../lib/feedback";
 
 // Below this screen height the bottom bar has no room for the rule, so it gets
@@ -107,6 +108,8 @@ export default function PracticeSession({
   const [ruleStep, setRuleStep] = useState(false);
   const rule = useRulePlacement(current, trayRef);
   const timer = useRef(null);
+  // Set by the question on screen (see questionControls.js).
+  const controls = useRef(null);
   // Words finished so far in a multi-word question, and the biggest banner they earned.
   const board = useRef({ items: [], banner: null });
   // When the current question (or the board's last word) appeared, for answer times.
@@ -228,6 +231,21 @@ export default function PracticeSession({
     setIndex((i) => i + 1);
   };
 
+  // "Skip this one": the question ends unsolved with its answer shown. A
+  // question that can't show one (a pairs board) just moves on.
+  const skip = () => {
+    if (current) return;
+    const own = controls.current?.skip;
+    if (own) {
+      own();
+      return;
+    }
+    board.current = { items: [], banner: null };
+    setMarks((m) => [...m, "shown"]);
+    setIndex((i) => i + 1);
+  };
+  const reportExtra = () => controls.current?.reportExtra?.();
+
   const restart = () => {
     setQuestions(buildQuestions());
     setIndex(0);
@@ -319,10 +337,20 @@ export default function PracticeSession({
         <RuleContext.Provider value={ruleContext}>
           <div className="pg-card" hidden={ruleStep}>
             {confetti}
-            <React.Fragment key={`${roundKey}-${index}`}>
-              {renderQuestion({ question, done: Boolean(current), onDone: handleDone, onItem: handleItem })}
-            </React.Fragment>
+            <QuestionControls.Provider value={controls}>
+              <React.Fragment key={`${roundKey}-${index}`}>
+                {renderQuestion({ question, done: Boolean(current), onDone: handleDone, onItem: handleItem })}
+              </React.Fragment>
+            </QuestionControls.Provider>
           </div>
+          {!current && (
+            <div className="pg-question-actions">
+              <button type="button" className="lg-btn lg-btn--quiet" onClick={skip}>
+                {p.skip}
+              </button>
+              <ReportButton extra={reportExtra} />
+            </div>
+          )}
           <div ref={setStepSlot} className="pg-card pg-rule-step" hidden={!ruleStep} />
         </RuleContext.Provider>
       </main>
@@ -363,7 +391,7 @@ export default function PracticeSession({
             <button type="button" ref={nextRef} className="lg-btn lg-btn--primary lg-btn--hero" onClick={goNext}>
               {isLast ? p.seeResults : p.next}
             </button>
-            {!ruleStep && <ReportButton />}
+            {!ruleStep && <ReportButton extra={reportExtra} />}
           </div>
         </div>
       )}

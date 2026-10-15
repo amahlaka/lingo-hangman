@@ -639,6 +639,7 @@ a { color: var(--lake); }
 .fb-sheet { width: min(480px, 100%); max-height: calc(100dvh - 2 * var(--space-4)); overflow-y: auto; display: flex; flex-direction: column; gap: var(--space-4); padding: var(--space-6) var(--space-4); border-radius: var(--radius-lg); background: var(--surface-raised); box-shadow: var(--shadow-dialog); box-sizing: border-box; }
 @media (min-width: 600px) { .fb-backdrop { align-items: center; } }
 .fb-reasons { border: 0; margin: 0; padding: 0; min-width: 0; }
+.pg-question-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: var(--space-2); }
 .fb-report-btn { gap: var(--space-2); align-self: center; font-size: 14px; min-height: 36px; }
 textarea.lg-input { padding: var(--space-2) var(--space-3); resize: vertical; }
 .fb-status { font-size: 13px; color: var(--ink-muted); white-space: nowrap; }

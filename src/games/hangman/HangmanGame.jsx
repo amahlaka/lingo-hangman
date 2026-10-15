@@ -44,6 +44,8 @@ export default function HangmanGame() {
   const [removed, setRemoved] = useState([]);
   const [highlighted, setHighlighted] = useState([]);
   const [newlyFound, setNewlyFound] = useState([]);
+  // True when the learner skipped the word: it is shown and comes back later.
+  const [gaveUp, setGaveUp] = useState(false);
   const highlightTimer = useRef(null);
 
   useEffect(() => {
@@ -56,6 +58,7 @@ export default function HangmanGame() {
     setBanner(null);
     setRemoved([]);
     setHighlighted([]);
+    setGaveUp(false);
   }, [words]);
 
   useEffect(() => () => clearTimeout(highlightTimer.current), []);
@@ -77,7 +80,7 @@ export default function HangmanGame() {
   const misses = guesses.filter((g) => !inWord(g));
   const triesLeft = MAX_MISSES - misses.length;
   const isWon = Boolean(current) && letters.every((ch) => !isGuessable(ch) || guesses.includes(ch));
-  const isLost = misses.length >= MAX_MISSES;
+  const isLost = gaveUp || misses.length >= MAX_MISSES;
   const roundOver = isWon || isLost;
   const lastGuess = guesses[guesses.length - 1];
 
@@ -171,8 +174,15 @@ export default function HangmanGame() {
     setRemoved([]);
     setHighlighted([]);
     setNewlyFound([]);
+    setGaveUp(false);
     setSwap(swapMode && Math.random() < 0.5);
   }, [roundOver, allDone, queue, isLost, swapMode]);
+
+  const handleSkip = () => {
+    if (roundOver || allDone) return;
+    setGaveUp(true);
+    finishRound(false, MAX_MISSES);
+  };
 
   const handleRestart = () => {
     if (!fromLink) {
@@ -188,6 +198,7 @@ export default function HangmanGame() {
     setRemoved([]);
     setHighlighted([]);
     setNewlyFound([]);
+    setGaveUp(false);
     setSwap(swapMode && Math.random() < 0.5);
   };
 
@@ -358,6 +369,14 @@ export default function HangmanGame() {
             onGuess={handleGuess}
             t={t}
           />
+        )}
+        {!roundOver && (
+          <div className="pg-question-actions">
+            <button type="button" className="lg-btn lg-btn--quiet" onClick={handleSkip}>
+              {t.skipWord}
+            </button>
+            <ReportButton />
+          </div>
         )}
       </div>
     </GameScreen>

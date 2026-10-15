@@ -6,6 +6,7 @@ import { ExampleText, useLooseWordType } from "../../components/lingo";
 import { sounds } from "../../lib/sounds";
 import PracticeSession from "../practice/PracticeSession";
 import { MAX_MISSES, buildGapRound, isGapCandidate, practicePool, usableWords } from "../practice/practiceLogic";
+import { useQuestionControls } from "../practice/questionControls";
 
 const GAP_ROUND = 8;
 
@@ -32,6 +33,7 @@ export function GapQuestion({ question, done, onDone, p, learningLang, nativeLan
       answer: target.learning,
       meaning: target.native,
     });
+  useQuestionControls({ skip: () => !done && finish(false, missed.length) });
 
   const choose = (option) => {
     if (done || picked || missed.includes(option)) return;

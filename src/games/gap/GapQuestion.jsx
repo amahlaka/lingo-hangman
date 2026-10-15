@@ -4,6 +4,7 @@ import { ExampleText, useLooseWordType } from "../../components/lingo";
 import { sounds } from "../../lib/sounds";
 import { maxMissesFor, splitGap } from "./gapLogic";
 import { RuleBox, RulePeek } from "../practice/RuleBox";
+import { useQuestionControls } from "../practice/questionControls";
 
 const capitalize = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 
@@ -70,6 +71,7 @@ export default function GapQuestion({ question, done, onDone }) {
       answer: question.sentence,
       meaning: question.fi,
     });
+  useQuestionControls({ skip: () => !done && finish(false, missed.length) });
 
   const choose = (option) => {
     if (done || picked !== null || missed.includes(option)) return;

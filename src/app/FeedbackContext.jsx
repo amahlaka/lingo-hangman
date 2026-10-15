@@ -63,9 +63,13 @@ export function ReportButton({ className = "", extra }) {
   const { t } = useSettings();
   const { subject, openReport, available } = useFeedback();
   if (!available || !subject) return null;
-  const about = extra ? { ...subject, context: { ...subject.context, ...extra } } : undefined;
+  // `extra` may be a function, read when the button is pressed.
+  const report = () => {
+    const more = typeof extra === "function" ? extra() : extra;
+    openReport(more ? { ...subject, context: { ...subject.context, ...more } } : undefined);
+  };
   return (
-    <button type="button" className={`lg-btn lg-btn--quiet fb-report-btn ${className}`} onClick={() => openReport(about)}>
+    <button type="button" className={`lg-btn lg-btn--quiet fb-report-btn ${className}`} onClick={report}>
       <Flag size={16} aria-hidden="true" /> {t.feedback.reportButton}
     </button>
   );

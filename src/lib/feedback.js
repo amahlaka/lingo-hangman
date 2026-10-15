@@ -60,7 +60,8 @@ export function describeQuestion(question, depth = 0) {
 export function itemRefFor(question, answer) {
   const id = question?.itemId || question?.target?.id || question?.id;
   if (typeof id === "string" && id) return id.slice(0, 200);
-  return `answer:${String(answer || question?.learning || "").slice(0, 180)}`;
+  const asked = answer || question?.learning || question?.target?.learning || question?.text || question?.sentence || question?.word?.text;
+  return `answer:${String(asked || "").slice(0, 180)}`;
 }
 
 export function pendingFeedback(storage = window.localStorage) {

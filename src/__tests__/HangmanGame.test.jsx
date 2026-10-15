@@ -67,6 +67,16 @@ describe("HangmanGame", () => {
     expect(screen.getByText("Round 2 / 2")).toBeInTheDocument();
   });
 
+  it("skips a word: shows it and brings it back later", () => {
+    renderApp(CAT_LINK);
+    fireEvent.click(screen.getByRole("button", { name: "Skip this word" }));
+    expect(screen.getByTestId("guessed")).toHaveTextContent('Not this time. The word was "cat".');
+    expect(screen.queryByRole("button", { name: "Skip this word" })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Next word" }));
+    expect(screen.getByText("Round 2 / 2")).toBeInTheDocument();
+    expect(screen.queryByTestId("guessed")).not.toBeInTheDocument();
+  });
+
   it("plays a multi-word phrase with fixed punctuation", () => {
     const link = `/play?words=${encodeWords([{ learning: "I'm lost", native: "Olen eksynyt" }])}`;
     renderApp(link);

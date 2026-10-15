@@ -19,6 +19,7 @@ import {
   isPhraseCandidate,
   practicePool,
 } from "../practice/practiceLogic";
+import { useQuestionControls } from "../practice/questionControls";
 
 const PHRASE_ROUND = 6;
 
@@ -89,6 +90,7 @@ export function PhraseQuestion({ puzzle, done, onDone, p, learningLang, nativeLa
       meaning: puzzle.target.native,
     });
   };
+  useQuestionControls({ skip: () => !done && finish(false, misses) });
 
   const add = (chip) => {
     if (done) return;

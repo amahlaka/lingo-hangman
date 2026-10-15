@@ -128,8 +128,22 @@ test("the settings menu reports the hangman word and links to suggestions", asyn
   renderApp(`/play?words=${encodeWords(words)}&learningLang=en&nativeLang=fi`);
   fireEvent.click(screen.getByRole("button", { name: "Settings" }));
   expect(await screen.findByRole("link", { name: "Suggest a word or sentence" })).toBeInTheDocument();
-  fireEvent.click(screen.getByRole("button", { name: "Report a problem" }));
+  fireEvent.click(within(screen.getByRole("dialog", { name: "Settings" })).getByRole("button", { name: "Report a problem" }));
   expect(screen.getByRole("dialog", { name: "Report a problem" })).toBeInTheDocument();
+});
+
+test("every question can be reported before it is answered", async () => {
+  const calls = mockApi({ "GET /health": health, "POST /reports": { status: 201, body: { id: 1 } } });
+  renderApp(meaningLink);
+  const asked = byNative[screen.getByTestId("prompt-word").textContent];
+  fireEvent.click(await screen.findByRole("button", { name: "Report a problem" }));
+  const dialog = screen.getByRole("dialog", { name: "Report a problem" });
+  fireEvent.click(within(dialog).getByRole("button", { name: "Typo" }));
+  fireEvent.click(within(dialog).getByRole("button", { name: "Send" }));
+  expect(await within(dialog).findByText("Thanks, it's sent")).toBeInTheDocument();
+  const sent = calls.find((c) => c.path === "/reports").body;
+  expect(sent.itemRef).toBe(`answer:${asked}`);
+  expect(sent.context.solved).toBeUndefined();
 });
 
 test("suggesting a word", async () => {

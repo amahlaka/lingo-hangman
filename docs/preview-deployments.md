@@ -54,6 +54,28 @@ For production, additionally:
 - A proxy host for the live address (`lingo.bololoo.com`) forwarding to the nginx container. Set its `server_name` in `nginx.conf` if you use another address.
 - The `/content/` location from `deploy/preview/nginx.conf` in the live site's server block, so word bank changes published to the [lingo-wordbase](https://github.com/amahlaka/lingo-wordbase) repository reach visitors without a release. The **Content publish** workflow (`.github/workflows/content.yml`) checks that repository every 10 minutes, uses the same production user and secrets, and uploads to `content/` in the production folder.
 
+## Config deploys
+
+*Production deploy* also puts `deploy/preview/nginx.conf` live. The deploy key can only rsync, so the workflow uploads the file to `nginx/nginx.conf` in the production folder, and a root timer on the server picks it up:
+
+1. `apply-nginx-conf.sh` checks the upload with `nginx -t` in a throwaway container with the same image and mounts.
+2. If it passes, the script backs up the live config (`nginx.conf.auto-<date>`, newest ten kept), writes the new one over it and reloads nginx. If it fails, nothing changes.
+3. The outcome goes to `nginx-status/result.txt`, which the deploy user can read but not write. The workflow waits for it and fails the run, before switching the release, if the config was rejected.
+
+Rolling back a release with an older commit rolls the config back too. Settings that differ per server belong in the repo copy, so check `diff` against the live file before the first deploy.
+
+Install once, as root:
+
+```bash
+install -m 755 deploy/preview/apply-nginx-conf.sh /usr/local/sbin/lingo-apply-nginx-conf
+install -m 644 deploy/preview/lingo-nginx-conf.service deploy/preview/lingo-nginx-conf.timer /etc/systemd/system/
+install -d -o prod-deploy -g prod-deploy -m 755 /srv/lingo-prod/nginx   # the deploy user's upload folder
+install -d -o root -g root -m 755 /srv/lingo-prod/nginx-status          # results, read-only for it
+systemctl daemon-reload && systemctl enable --now lingo-nginx-conf.timer
+```
+
+The paths, container name and image are variables at the top of the script; override them in a drop-in (`systemctl edit lingo-nginx-conf.service`, `Environment=LIVE=...`) if yours differ.
+
 ## GitHub settings
 
 Repository → Settings → Secrets and variables → Actions (or the `preview` environment):

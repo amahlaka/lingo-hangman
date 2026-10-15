@@ -1,0 +1,10 @@
+# Applies the nginx config uploaded by the Production deploy workflow.
+# See apply-nginx-conf.sh and docs/preview-deployments.md.
+[Unit]
+Description=Apply the uploaded Lingo nginx config
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/lingo-apply-nginx-conf

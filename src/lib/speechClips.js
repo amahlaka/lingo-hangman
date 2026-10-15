@@ -11,11 +11,12 @@
 export const AUDIO_BASE = "/content/audio/";
 
 // The recorded voices, picked under Settings. `speaker` is the Kokoro voice
-// (https://huggingface.co/hexgrad/Kokoro-82M). Changing a voice or the model
-// needs a new folder name, so every clip is made again.
+// (https://huggingface.co/hexgrad/Kokoro-82M). Changing a voice, the model or
+// how scripts/speech-audio.py makes clips needs a new folder name, so every
+// clip is made again (v2: clips start where the word starts, see that script).
 export const VOICES = [
-  { id: "female", folder: "kokoro-1.0-bf_emma", speaker: "bf_emma" },
-  { id: "male", folder: "kokoro-1.0-bm_george", speaker: "bm_george" },
+  { id: "female", folder: "kokoro-1.0-v2-bf_emma", speaker: "bf_emma" },
+  { id: "male", folder: "kokoro-1.0-v2-bm_george", speaker: "bm_george" },
 ];
 export const DEFAULT_VOICE = "female";
 

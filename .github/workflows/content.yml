@@ -108,7 +108,7 @@ jobs:
           SHARD: ${{ matrix.shard }}
         run: |
           command -v ffmpeg >/dev/null || { sudo apt-get update -qq && sudo apt-get install -y -qq --no-install-recommends ffmpeg >/dev/null; }
-          python -m pip install --quiet kokoro-onnx==0.6.1 soundfile==0.14.0
+          python -m pip install --quiet kokoro-onnx==0.6.1 onnx==1.23.2 soundfile==0.14.0
           python scripts/speech-audio.py audio-build/todo.json --model ~/kokoro --shard "$SHARD/6"
 
       - if: steps.plan.outputs.count != '0'

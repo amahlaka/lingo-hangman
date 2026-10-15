@@ -43,8 +43,8 @@ describe('speak', () => {
     };
   }
 
-  const EMMA = 'kokoro-1.0-bf_emma';
-  const GEORGE = 'kokoro-1.0-bm_george';
+  const EMMA = 'kokoro-1.0-v2-bf_emma';
+  const GEORGE = 'kokoro-1.0-v2-bm_george';
   const fetchImpl = (keys, male = keys) =>
     jest.fn(async () => ({ ok: true, json: async () => ({ voices: { [EMMA]: keys, [GEORGE]: male } }) }));
   const flush = () => new Promise((r) => setTimeout(r, 0));

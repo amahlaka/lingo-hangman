@@ -2,7 +2,7 @@
 
     python scripts/speech-audio.py audio-build/todo.json --model DIR [--shard I/N]
 
-Reads todo.json ({ items: [{ key, text, lang, folder, speaker }] }) and
+Reads todo.json ({ items: [{ key, text, lang, folder, speaker, ipa? }] }) and
 writes <folder of todo.json>/<folder>/<key>.mp3 for each item in the Kokoro
 voice `speaker`, with the open Kokoro
 voice model (https://huggingface.co/hexgrad/Kokoro-82M, Apache-2.0) running
@@ -16,6 +16,9 @@ that starts with a vowel came out wrong ("eat" sounded like "late", "ask" like
 "lask"), and George added a vowel after some words ("fish" like "fishy"). So
 each text is said inside a short frame ("say <text> now") that is cut off
 again where the model's own timings say the text starts and ends.
+
+An item with `ipa` (the word base's British IPA) is read from that instead of
+the phonemizer's guess, which matters for words like "live".
 """
 
 import argparse
@@ -32,7 +35,7 @@ import soundfile
 from kokoro_onnx import Kokoro
 
 # Speaking speed: 1 is the model's own pace, lower is slower and calmer.
-SPEED = 0.9
+SPEED = 0.8
 
 # Phonemes said before and after every text, then cut off ("say", "now").
 LEAD = "sˈeɪ "
@@ -51,6 +54,48 @@ MAX_TOKENS = 500
 
 # Phonemizer language for each learning language.
 PHONEMES = {"en-GB": "en-gb"}
+
+# The word base writes IPA the way dictionaries do; the model learned espeak's
+# British spelling of it.
+IPA_TO_MODEL = [("æ", "a"), ("r", "ɹ"), ("g", "ɡ")]
+VOWELS = set("aeiouæɑɒɔəɛɜɪʊʌɐ")
+
+
+def ipa_phonemes(ipa):
+    """The word base's IPA for one word ("/ˈwɔːtə/") as the model's phonemes ("wˈɔːtə")."""
+    text = ipa.strip().strip("/").strip()
+    for old, new in IPA_TO_MODEL:
+        text = text.replace(old, new)
+    # Syllable dots and brackets around optional sounds go; the sounds stay.
+    text = "".join(c for c in text if c not in ".()")
+    out = []
+    for i, c in enumerate(text):
+        before, after = text[i - 1:i] if i else "", text[i + 1:i + 2]
+        if c == "e" and after not in ("ɪ", "ə"):
+            c = "ɛ"  # bed: bˈɛd, but day: dˈeɪ and hair: hˈeə
+        elif c == "ɪ" and after == "ə" and before not in VOWELS:
+            c = "i"  # here: hˈiə, but fire: fˈaɪə
+        out.append(c)
+    # A final n or l after a consonant is its own syllable, which espeak
+    # writes with a schwa: station stˈeɪʃən, apple ˈapəl.
+    for i in range(len(out) - 1, 0, -1):
+        if out[i] in "nl" and (i + 1 == len(out) or out[i + 1] == " ") and out[i - 1] not in VOWELS | set("ːlnɹjwŋ"):
+            out.insert(i, "ə")
+    text = "".join(out)
+    # Dictionaries mark stress before the syllable, the model before its
+    # vowel, and the model expects one even on a one-syllable word.
+    if "ˈ" not in text:
+        text = "ˈ" + text
+    out, mark = [], ""
+    for c in text:
+        if c in "ˈˌ":
+            mark = c
+        elif mark and c in VOWELS:
+            out += [mark, c]
+            mark = ""
+        else:
+            out.append(c)
+    return "".join(out)
 
 
 def timed_kokoro(model_dir, tmp):
@@ -72,15 +117,16 @@ def timed_kokoro(model_dir, tmp):
     return kokoro
 
 
-def say(kokoro, text, speaker, lang):
+def say(kokoro, text, speaker, lang, ipa=None):
     """The text as 24 kHz samples, without the frame around it."""
-    phonemes = " ".join(kokoro.tokenizer.phonemize(text, lang).split())
+    phonemes = ipa_phonemes(ipa) if ipa else kokoro.tokenizer.phonemize(text, lang)
+    phonemes = " ".join(phonemes.split())
     tokens = kokoro.tokenizer.tokenize(phonemes)
     lead = kokoro.tokenizer.tokenize(LEAD)
     tail = kokoro.tokenizer.tokenize(TAIL)
     every = lead + tokens + tail
     if not tokens or len(every) > MAX_TOKENS:
-        samples, _ = kokoro.create(text, voice=speaker, speed=SPEED, lang=lang)
+        samples, _ = kokoro.create(phonemes, voice=speaker, speed=SPEED, is_phonemes=True)
         return samples
     voice = kokoro.get_voice_style(speaker)
     samples, duration = kokoro._infer(every, kokoro._style_for(voice, len(every)), SPEED)
@@ -118,7 +164,7 @@ def main():
         wav = os.path.join(tmp, "clip.wav")
         for n, item in enumerate(items, 1):
             try:
-                samples = say(kokoro, item["text"], item["speaker"], PHONEMES[item["lang"]])
+                samples = say(kokoro, item["text"], item["speaker"], PHONEMES[item["lang"]], item.get("ipa"))
                 soundfile.write(wav, samples, 24000)
                 out = os.path.join(base, item["folder"])
                 os.makedirs(out, exist_ok=True)

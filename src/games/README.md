@@ -182,7 +182,10 @@ Content publish workflow, only for texts that have none yet, and served from
 `/content/audio/<voice folder>/<key>.mp3` with a list per voice in
 `/content/audio/index.json`. A new voice, or a new folder name for one, makes
 its clips from scratch. After a change to `spokenTexts()` or
-the voices, run Content publish by hand with "force" ticked.
+the voices, run Content publish by hand with "force" ticked. Single words read
+from their `ipa` in the word base, so a word the voice gets wrong on its own
+("live" as in "live music") is fixed by its IPA; a clip is only made once, so
+after correcting a word's IPA, rename the voice folders to make clips again.
 
 To make clips on your own computer: `pip install kokoro-onnx onnx soundfile`,
 download `kokoro-v1.0.onnx` and `voices-v1.0.bin` (see the workflow), then

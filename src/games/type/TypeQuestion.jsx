@@ -4,6 +4,7 @@ import { TriesMeter } from "../../components/lingo";
 import { fill } from "../../i18n";
 import { sounds } from "../../lib/sounds";
 import { RATE_SLOW, canSpeak, speak, stopSpeaking } from "../../lib/speech";
+import ListenMore from "../practice/ListenMore";
 import { PaidHints } from "../practice/RuleBox";
 import {
   MAX_TYPE_TRIES,
@@ -157,6 +158,7 @@ export default function TypeQuestion({ question, done, onDone, p, learningLang, 
               <button type="button" className="lg-btn lg-btn--quiet" onClick={() => speak(text, { lang: learningLang, rate: RATE_SLOW })}>
                 {p.listenSlowly}
               </button>
+              <ListenMore text={text} lang={learningLang} p={p} />
             </div>
             <p className="lg-caption ty-support" lang={nativeLang} data-testid="prompt-native">
               {nativeLabel}: {target.native}

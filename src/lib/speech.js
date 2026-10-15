@@ -6,7 +6,7 @@
 // Anything without a clip, or a clip that won't play (offline, say), falls
 // back to the browser's own speech synthesis.
 
-import { AUDIO_BASE, DEFAULT_VOICE, clipKey, voiceById } from "./speechClips";
+import { AUDIO_BASE, DEFAULT_VOICE, clipKey, voiceById, wordsKey } from "./speechClips";
 
 export const RATE_NORMAL = 0.9;
 export const RATE_SLOW = 0.6;
@@ -116,13 +116,30 @@ function speakWithBrowser(text, langTag, rate) {
   return true;
 }
 
-function playClip(key, text, langTag, rate) {
+// The browser voice can't pause between words on its own, so each word is
+// its own utterance.
+function speakWordsWithBrowser(text, langTag) {
+  const s = synth();
+  if (!s) return false;
+  const voice = pickVoice(s.getVoices(), langTag);
+  s.cancel();
+  for (const word of text.split(/\s+/).filter(Boolean)) {
+    const utterance = new window.SpeechSynthesisUtterance(word);
+    utterance.lang = langTag;
+    utterance.rate = RATE_SLOW;
+    if (voice) utterance.voice = voice;
+    s.speak(utterance);
+  }
+  return true;
+}
+
+function playClip(key, fallbackSpeech, rate) {
   const mine = turn;
   let fellBack = false;
   const fallback = () => {
     if (fellBack || mine !== turn) return;
     fellBack = true;
-    speakWithBrowser(text, langTag, rate);
+    fallbackSpeech();
   };
   const p = getPlayer();
   p.src = `${clips.base}${voiceById(voiceId).folder}/${key}.mp3`;
@@ -148,10 +165,23 @@ export function speak(text, { lang = "en-GB", rate = RATE_NORMAL } = {}) {
   const key = clipKey(text, langTag);
   stopSpeaking();
   if (clipKeys()?.has(key) && canPlayClips()) {
-    playClip(key, text, langTag, rate);
+    playClip(key, () => speakWithBrowser(text, langTag, rate), rate);
     return true;
   }
   return speakWithBrowser(text, langTag, rate);
+}
+
+// Say a sentence slowly, one word at a time with a pause after each.
+export function speakWords(text, { lang = "en-GB" } = {}) {
+  if (!text) return false;
+  const langTag = speechLang(lang);
+  const key = wordsKey(text, langTag);
+  stopSpeaking();
+  if (clipKeys()?.has(key) && canPlayClips()) {
+    playClip(key, () => speakWordsWithBrowser(text, langTag), RATE_NORMAL);
+    return true;
+  }
+  return speakWordsWithBrowser(text, langTag);
 }
 
 export function stopSpeaking() {

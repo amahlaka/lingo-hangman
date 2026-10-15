@@ -2,7 +2,7 @@
 
     python scripts/speech-audio.py audio-build/todo.json --model DIR [--shard I/N]
 
-Reads todo.json ({ items: [{ key, text, lang, folder, speaker, ipa? }] }) and
+Reads todo.json ({ items: [{ key, text, lang, folder, speaker, ipa?, words? }] }) and
 writes <folder of todo.json>/<folder>/<key>.mp3 for each item in the Kokoro
 voice `speaker`, with the open Kokoro
 voice model (https://huggingface.co/hexgrad/Kokoro-82M, Apache-2.0) running
@@ -18,7 +18,9 @@ each text is said inside a short frame ("say <text> now") that is cut off
 again where the model's own timings say the text starts and ends.
 
 An item with `ipa` (the word base's British IPA) is read from that instead of
-the phonemizer's guess, which matters for words like "live".
+the phonemizer's guess, which matters for words like "live". An item with
+`words` is the slow version of a sentence: each word said on its own with a
+pause after it, using the sounds the phonemizer gave it in the sentence.
 """
 
 import argparse
@@ -49,6 +51,8 @@ START_EARLY = 3
 END_EARLY = 2
 # Fade the cuts over this many samples (10 ms), so they don't click.
 FADE = 240
+# The pause after each word of a word-by-word clip, in seconds.
+WORD_GAP = 0.5
 # Longer texts are split by kokoro-onnx itself and get no frame.
 MAX_TOKENS = 500
 
@@ -117,28 +121,67 @@ def timed_kokoro(model_dir, tmp):
     return kokoro
 
 
-def say(kokoro, text, speaker, lang, ipa=None):
-    """The text as 24 kHz samples, without the frame around it."""
-    phonemes = ipa_phonemes(ipa) if ipa else kokoro.tokenizer.phonemize(text, lang)
-    phonemes = " ".join(phonemes.split())
-    tokens = kokoro.tokenizer.tokenize(phonemes)
+def say_parts(kokoro, parts, speaker):
+    """Each phoneme string in `parts` as 24 kHz samples, without the frame.
+
+    The parts are said in one go, with a full stop between them, and cut
+    apart again at the model's timings.
+    """
     lead = kokoro.tokenizer.tokenize(LEAD)
     tail = kokoro.tokenizer.tokenize(TAIL)
-    every = lead + tokens + tail
-    if not tokens or len(every) > MAX_TOKENS:
-        samples, _ = kokoro.create(phonemes, voice=speaker, speed=SPEED, is_phonemes=True)
-        return samples
+    stop = kokoro.tokenizer.tokenize(". ")
+    every, spans = list(lead), []
+    for i, part in enumerate(parts):
+        if i:
+            every += stop
+        tokens = kokoro.tokenizer.tokenize(part)
+        spans.append((len(every), len(every) + len(tokens)))
+        every += tokens
+    every += tail
     voice = kokoro.get_voice_style(speaker)
     samples, duration = kokoro._infer(every, kokoro._style_for(voice, len(every)), SPEED)
     # duration[0] is the padding before the first phoneme.
     edges = np.cumsum(duration)
-    start = max(0, int(edges[len(lead)]) - START_EARLY) * FRAME
-    end = (int(edges[len(lead) + len(tokens)]) - END_EARLY) * FRAME
-    samples = np.array(samples[start:end], dtype=np.float32)
-    fade = min(FADE, len(samples) // 2)
-    samples[:fade] *= np.linspace(0, 1, fade, dtype=np.float32)
-    samples[len(samples) - fade:] *= np.linspace(1, 0, fade, dtype=np.float32)
-    return samples
+    out = []
+    for first, last in spans:
+        start = max(0, int(edges[first]) - START_EARLY) * FRAME
+        end = (int(edges[last]) - END_EARLY) * FRAME
+        part = np.array(samples[start:end], dtype=np.float32)
+        fade = min(FADE, len(part) // 2)
+        part[:fade] *= np.linspace(0, 1, fade, dtype=np.float32)
+        part[len(part) - fade:] *= np.linspace(1, 0, fade, dtype=np.float32)
+        out.append(part)
+    return out
+
+
+def fits(kokoro, parts):
+    tokens = sum(len(kokoro.tokenizer.tokenize(p)) + 2 for p in parts)
+    return all(kokoro.tokenizer.tokenize(p) for p in parts) and tokens + 10 <= MAX_TOKENS
+
+
+def say(kokoro, text, speaker, lang, ipa=None):
+    """The text as 24 kHz samples."""
+    phonemes = ipa_phonemes(ipa) if ipa else kokoro.tokenizer.phonemize(text, lang)
+    phonemes = " ".join(phonemes.split())
+    if not fits(kokoro, [phonemes]):
+        samples, _ = kokoro.create(phonemes, voice=speaker, speed=SPEED, is_phonemes=True)
+        return samples
+    return say_parts(kokoro, [phonemes], speaker)[0]
+
+
+def say_words(kokoro, text, speaker, lang):
+    """The text one word at a time, with a pause after each word."""
+    # Phonemized as a whole, so each word keeps the reading the sentence gives
+    # it ("I live here": lˈɪv), then said word by word without punctuation.
+    words = [w.strip(".,!?;:\"“”…—") for w in kokoro.tokenizer.phonemize(text, lang).split()]
+    words = [w for w in words if w]
+    if not words or not fits(kokoro, words):
+        return say(kokoro, text, speaker, lang)
+    gap = np.zeros(int(WORD_GAP * 24000), dtype=np.float32)
+    out = []
+    for part in say_parts(kokoro, words, speaker):
+        out += [part, gap]
+    return np.concatenate(out[:-1])
 
 
 def main():
@@ -164,7 +207,11 @@ def main():
         wav = os.path.join(tmp, "clip.wav")
         for n, item in enumerate(items, 1):
             try:
-                samples = say(kokoro, item["text"], item["speaker"], PHONEMES[item["lang"]], item.get("ipa"))
+                lang = PHONEMES[item["lang"]]
+                if item.get("words"):
+                    samples = say_words(kokoro, item["text"], item["speaker"], lang)
+                else:
+                    samples = say(kokoro, item["text"], item["speaker"], lang, item.get("ipa"))
                 soundfile.write(wav, samples, 24000)
                 out = os.path.join(base, item["folder"])
                 os.makedirs(out, exist_ok=True)

@@ -4,7 +4,8 @@
 //   node scripts/speech-audio.mjs plan   [--live URL] [--out DIR]
 //   node scripts/speech-audio.mjs finish [--live URL] [--out DIR]
 //
-// plan    lists every text the games say (src/lib/speechClips.js) in every
+// plan    lists every text the games say (src/lib/speechClips.js), and the
+//         word-by-word version of each one longer than a word, in every
 //         voice, with the word base's IPA for words that have it, and writes
 //         DIR/todo.json with the ones that have no clip yet:
 //         none on the live site at URL (if given) and none already in
@@ -16,7 +17,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { CLIP_LANGS, VOICES, clipKey, spokenTexts } from "../src/lib/speechClips.js";
+import { CLIP_LANGS, VOICES, clipKey, spokenTexts, wordByWordTexts } from "../src/lib/speechClips.js";
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const args = process.argv.slice(2);
@@ -35,10 +36,11 @@ const content = {
   packs: index.packs.map((id) => readJson(`packs/${id}.json`)),
 };
 
-// key -> { text, lang, ipa? }
+// key -> { text, lang, ipa?, words? }
 const wanted = new Map();
 for (const lang of CLIP_LANGS) {
   for (const [key, text] of spokenTexts(content, lang)) wanted.set(key, { text, lang });
+  for (const [key, text] of wordByWordTexts(content, lang)) wanted.set(key, { text, lang, words: true });
 }
 
 // Single words with IPA in the word base are read from it, because on its own

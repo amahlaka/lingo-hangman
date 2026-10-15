@@ -50,6 +50,12 @@ export function clipKey(text, lang = "en-GB") {
   return hash53(`${lang}|${normalizeSpeech(text)}`).toString(36);
 }
 
+// The slow, word-by-word clip of a text (each word on its own, with a pause
+// after it) has its own key.
+export function wordsKey(text, lang = "en-GB") {
+  return clipKey(text, `${lang}+words`);
+}
+
 const MARKED = /^([^[\]]*)\[([^[\]]+)\]([^[\]]*)$/;
 
 // Everything the games can say in `lang`, from the raw word base
@@ -87,6 +93,16 @@ export function spokenTexts({ languages = [], packs = [] }, lang = "en-GB") {
         }
       }
     }
+  }
+  return out;
+}
+
+// The texts of more than one word, which also get a word-by-word clip:
+// Map(wordsKey -> text).
+export function wordByWordTexts(content, lang = "en-GB") {
+  const out = new Map();
+  for (const text of spokenTexts(content, lang).values()) {
+    if (text.split(" ").length > 1) out.set(wordsKey(text, lang), text);
   }
   return out;
 }

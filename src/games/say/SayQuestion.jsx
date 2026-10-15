@@ -6,6 +6,7 @@ import { getItem } from "../../lib/words";
 import { sounds } from "../../lib/sounds";
 import { isBlockingError, isOnDeviceFailure, listenOnce } from "../../lib/speechRecognition";
 import { RATE_SLOW, speak, stopSpeaking } from "../../lib/speech";
+import ListenMore from "../practice/ListenMore";
 import { PaidHints } from "../practice/RuleBox";
 import { MAX_SAY_TRIES, SAY_HINT_COST, checkSaid } from "./sayLogic";
 
@@ -156,6 +157,7 @@ export default function SayQuestion({
           <button type="button" className="lg-btn lg-btn--quiet" onClick={() => speak(text, { lang: learningLang, rate: RATE_SLOW })}>
             {p.listenSlowly}
           </button>
+          <ListenMore text={text} lang={learningLang} p={p} />
         </div>
       </div>
 

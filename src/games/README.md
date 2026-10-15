@@ -186,6 +186,10 @@ the voices, run Content publish by hand with "force" ticked. Single words read
 from their `ipa` in the word base, so a word the voice gets wrong on its own
 ("live" as in "live music") is fixed by its IPA; a clip is only made once, so
 after correcting a word's IPA, rename the voice folders to make clips again.
+Every text of more than one word also gets a slow word-by-word clip
+(`wordsKey()`, played by `speakWords()`), and `ListenMore` adds the "In a
+sentence" (a single word: `sentenceFor()` picks a word-base sentence with it)
+or "Word by word" button next to Listen and Listen slowly.
 
 To make clips on your own computer: `pip install kokoro-onnx onnx soundfile`,
 download `kokoro-v1.0.onnx` and `voices-v1.0.bin` (see the workflow), then

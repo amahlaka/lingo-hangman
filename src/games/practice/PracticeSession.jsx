@@ -119,7 +119,10 @@ export default function PracticeSession({
   const onScreen = finished ? null : questions[index];
   const reportSubject = useMemo(() => {
     if (!onScreen) return null;
-    const outcome = current && !current.board ? { answer: current.answer, meaning: current.meaning, solved: current.solved } : {};
+    const outcome =
+      current && !current.board
+        ? { answer: current.answer, meaning: current.meaning, solved: current.solved, ...(current.heard ? { heard: current.heard } : {}) }
+        : {};
     return {
       game: onScreen.gameId || gameId,
       itemRef: itemRefFor(onScreen, current?.answer),

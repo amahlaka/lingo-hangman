@@ -4,7 +4,7 @@ import { Flag } from "lucide-react";
 import { useSettings } from "./SettingsContext";
 import Feedback from "../components/lingo/Feedback";
 import { backendAvailable } from "../lib/backend";
-import { APP_VERSION, REPORT_REASONS, flushFeedback, queueFeedback } from "../lib/feedback";
+import { APP_VERSION, flushFeedback, queueFeedback, reportReasonsFor } from "../lib/feedback";
 
 // "Report a problem" for whatever question is on screen. A game names its
 // current question with useReportSubject({ game, itemRef, context }); the
@@ -57,13 +57,15 @@ export function FeedbackProvider({ children }) {
   );
 }
 
-// A quiet "Report a problem" button for the question on screen.
-export function ReportButton({ className = "" }) {
+// A quiet "Report a problem" button for the question on screen. `extra` is
+// added to the report's context (Say it adds what the microphone heard).
+export function ReportButton({ className = "", extra }) {
   const { t } = useSettings();
   const { subject, openReport, available } = useFeedback();
   if (!available || !subject) return null;
+  const about = extra ? { ...subject, context: { ...subject.context, ...extra } } : undefined;
   return (
-    <button type="button" className={`lg-btn lg-btn--quiet fb-report-btn ${className}`} onClick={() => openReport()}>
+    <button type="button" className={`lg-btn lg-btn--quiet fb-report-btn ${className}`} onClick={() => openReport(about)}>
       <Flag size={16} aria-hidden="true" /> {t.feedback.reportButton}
     </button>
   );
@@ -132,7 +134,7 @@ function ReportSheet({ subject, onClose }) {
             <fieldset className="fb-reasons">
               <legend className="lg-menu__label">{f.reasonLabel}</legend>
               <div className="lg-chips">
-                {REPORT_REASONS.map((r, i) => (
+                {reportReasonsFor(subject.game).map((r, i) => (
                   <button
                     key={r}
                     type="button"

@@ -126,3 +126,11 @@ test("deleting an account deletes its reports", async () => {
   assert.equal(t.db.prepare("SELECT COUNT(*) AS n FROM reports").get().n, 0);
   await t.close();
 });
+
+test("a Say it report can say the microphone heard the learner wrong", async () => {
+  const t = setup();
+  await t.signIn();
+  const say = report({ game: "say", reason: "misheard", context: { heard: ["hello there"] } });
+  assert.equal((await t.call("POST", "/api/reports", say)).statusCode, 201);
+  await t.close();
+});

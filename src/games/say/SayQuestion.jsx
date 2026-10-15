@@ -9,6 +9,7 @@ import { RATE_SLOW, speak, stopSpeaking } from "../../lib/speech";
 import ListenMore from "../practice/ListenMore";
 import { PaidHints } from "../practice/RuleBox";
 import { MAX_SAY_TRIES, SAY_HINT_COST, checkSaid } from "./sayLogic";
+import { ReportButton } from "../../app/FeedbackContext";
 
 // What the recogniser heard, with the target's words marked as heard or not.
 function HeardLine({ result, done, p }) {
@@ -55,6 +56,9 @@ export default function SayQuestion({
   const [showSay, setShowSay] = useState(false);
   const session = useRef(null);
   const alive = useRef(true);
+  // What the microphone heard on each try, for problem reports.
+  const heardNow = useRef([]);
+  const [heard, setHeard] = useState([]);
   const text = word.learning;
 
   // Play the model first, so the learner hears it before they speak.
@@ -78,6 +82,7 @@ export default function SayQuestion({
       triesLeft: Math.max(0, MAX_SAY_TRIES - missCount),
       answer: text,
       meaning: word.native,
+      heard: heardNow.current,
     });
 
   const listen = async () => {
@@ -117,6 +122,8 @@ export default function SayQuestion({
     }
     const checked = checkSaid(text, alternatives);
     setResult(checked);
+    heardNow.current = [...heardNow.current, checked.heard].slice(-MAX_SAY_TRIES);
+    setHeard(heardNow.current);
     if (checked.matched) {
       finish(true, misses);
       return;
@@ -186,6 +193,7 @@ export default function SayQuestion({
               <button type="button" className="lg-btn lg-btn--quiet" onClick={() => finish(false, misses)}>
                 {p.saySkip}
               </button>
+              <ReportButton extra={{ heard, recognition: privacy }} />
             </div>
           )}
           <p className="lg-caption sy-privacy">{privacy === "local" ? p.sayPrivacyLocal : p.sayPrivacyOnline}</p>

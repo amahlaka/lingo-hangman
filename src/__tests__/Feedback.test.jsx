@@ -198,3 +198,37 @@ test("the word bank editor opens an item from a link", async () => {
   await act(async () => {});
   expect(screen.getByRole("searchbox")).toHaveValue("koira");
 });
+
+test("a Say it miss can be reported with what the microphone heard", async () => {
+  const calls = mockApi({ "GET /health": health, "POST /reports": { status: 201, body: { id: 1 } } });
+  const script = [{ said: ["hello there"] }];
+  window.SpeechRecognition = function Fake() {
+    this.start = () => {
+      const next = script.shift();
+      Promise.resolve().then(() => {
+        this.onresult?.({ results: [next.said.map((transcript) => ({ transcript }))] });
+        this.onend?.();
+      });
+    };
+    this.stop = () => {};
+    this.abort = () => {};
+  };
+  try {
+    renderApp(`/say?words=${encodeWords(words)}&learningLang=en-GB&nativeLang=fi`);
+    const target = screen.getByTestId("prompt-word").textContent;
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /Tap and/ }));
+    });
+    fireEvent.click(await screen.findByRole("button", { name: "Report a problem" }));
+    const dialog = screen.getByRole("dialog", { name: "Report a problem" });
+    fireEvent.click(within(dialog).getByRole("button", { name: "It heard me wrong" }));
+    fireEvent.click(within(dialog).getByRole("button", { name: "Send" }));
+    expect(await within(dialog).findByText("Thanks, it's sent")).toBeInTheDocument();
+    const sent = calls.find((c) => c.path === "/reports").body;
+    expect(sent).toMatchObject({ game: "say", reason: "misheard", itemRef: `answer:${target}` });
+    expect(sent.context.heard).toEqual(["hello there"]);
+    expect(sent.context.recognition).toBeTruthy();
+  } finally {
+    delete window.SpeechRecognition;
+  }
+});

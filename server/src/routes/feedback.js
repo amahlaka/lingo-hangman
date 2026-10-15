@@ -5,7 +5,7 @@
 import { requireSession } from "../sessions.js";
 
 const DAY = 24 * 3600_000;
-export const REPORT_REASONS = ["wrong_answer", "typo", "bad_audio", "confusing", "other"];
+export const REPORT_REASONS = ["wrong_answer", "typo", "bad_audio", "confusing", "misheard", "other"];
 export const SUGGESTION_KINDS = ["word", "phrase", "sentence"];
 const REPORTS_PER_DAY = 30;
 const SUGGESTIONS_PER_DAY = 20;

@@ -13,12 +13,14 @@
 // - Daily streak: days in a row with the goal met. One rest day per week is
 //   used automatically so one busy day doesn't break the streak.
 // - A word counts as learned after it is solved on 3 different days.
+// - Gems, the shop currency, come from the daily goal, streak days and
+//   milestones, see gemsForEvents below.
 //
 // It also keeps answer statistics, all on this device, so Quick play can
 // adapt: how long answers take per game and per lesson, and for each word its
 // misses, answer time and last few results (see `recent` below).
 
-import { emptyShop } from "./cosmetics";
+import { addGems, emptyShop } from "./cosmetics";
 
 export const XP_PER_LEVEL = 250;
 export const DAILY_GOAL_OPTIONS = [5, 10, 20];
@@ -263,6 +265,53 @@ function unlockAchievements(state, day, ctx) {
   return { state: { ...state, achievements }, unlocked };
 }
 
+// ---- Gems ----
+// Gems pay for the shop (src/lib/cosmetics.js). A learner who reaches the
+// daily goal earns about 10 a day, plus more for milestones.
+
+export const GEMS = {
+  goal: 5, // reaching the daily goal
+  streakDayMax: 5, // +1 per day of the streak, up to this, when the goal is reached
+  achievement: 15, // each new achievement
+  levelUp: 10,
+  wordLearned: 1,
+};
+// Streak length -> bonus gems on the day the streak reaches it.
+export const STREAK_MILESTONE_GEMS = { 3: 10, 7: 20, 14: 30, 30: 50, 60: 75, 100: 100 };
+
+// Gems for one recorded word, from what it unlocked. Returns
+// { gems, reasons: [{ id, n }] } with id goal | streak | milestone |
+// achievement | level | learned.
+export function gemsForEvents(events, streakDays = 0) {
+  const reasons = [];
+  if (events.goalReached) {
+    reasons.push({ id: "goal", n: GEMS.goal });
+    if (streakDays > 0) reasons.push({ id: "streak", n: Math.min(streakDays, GEMS.streakDayMax) });
+    if (STREAK_MILESTONE_GEMS[streakDays]) reasons.push({ id: "milestone", n: STREAK_MILESTONE_GEMS[streakDays] });
+  }
+  if (events.newAchievements?.length) reasons.push({ id: "achievement", n: GEMS.achievement * events.newAchievements.length });
+  if (events.levelUp) reasons.push({ id: "level", n: GEMS.levelUp });
+  if (events.wordLearned) reasons.push({ id: "learned", n: GEMS.wordLearned });
+  return { gems: reasons.reduce((sum, r) => sum + r.n, 0), reasons };
+}
+
+// Gems for everything done before gems existed, for saves from older versions:
+// every day the goal was met, achievements, levels, learned words and streak
+// milestones reached. Streak-day bonuses are counted at the full rate.
+export function backfillGems(state) {
+  const goalDays = Object.values(state.days || {}).filter((d) => d.goalMet).length;
+  const milestones = Object.entries(STREAK_MILESTONE_GEMS)
+    .filter(([days]) => (state.streak?.best || 0) >= Number(days))
+    .reduce((sum, [, n]) => sum + n, 0);
+  return (
+    goalDays * (GEMS.goal + GEMS.streakDayMax) +
+    Object.keys(state.achievements || {}).length * GEMS.achievement +
+    (levelInfo(state.xp || 0).level - 1) * GEMS.levelUp +
+    learnedWordCount({ words: state.words || {} }) * GEMS.wordLearned +
+    milestones
+  );
+}
+
 // ---- Recording a round ----
 
 // Record one finished word. Returns the new state and what happened, so the
@@ -348,18 +397,19 @@ export function recordWord(state, result, { day = dayKey(), gameIds = [] } = {})
     word && solved && words[wordKey(word, lang)].days.length === LEARNED_AFTER_DAYS &&
     (state.words[wordKey(word, lang)]?.days.length || 0) < LEARNED_AFTER_DAYS;
 
-  return {
-    state: next,
-    events: {
-      xpGained,
-      levelUp: levelAfter > levelBefore ? levelAfter : null,
-      goalReached,
-      streakChange,
-      newAchievements: unlocked.unlocked,
-      wordLearned: Boolean(learnedNow),
-      slow,
-    },
+  const events = {
+    xpGained,
+    levelUp: levelAfter > levelBefore ? levelAfter : null,
+    goalReached,
+    streakChange,
+    newAchievements: unlocked.unlocked,
+    wordLearned: Boolean(learnedNow),
+    slow,
   };
+  const { gems, reasons } = gemsForEvents(events, goalReached ? next.streak.current : 0);
+  next = addGems(next, gems);
+
+  return { state: next, events: { ...events, gemsGained: gems, gemReasons: reasons } };
 }
 
 export function setDailyGoal(state, goal) {
@@ -376,7 +426,7 @@ export function loadProgress(storage = globalThis.localStorage) {
     if (!raw) return emptyProgress();
     const parsed = JSON.parse(raw);
     const base = emptyProgress();
-    return {
+    const loaded = {
       ...base,
       ...parsed,
       streak: { ...base.streak, ...parsed.streak },
@@ -384,6 +434,13 @@ export function loadProgress(storage = globalThis.localStorage) {
       stats: { ...base.stats, ...parsed.stats },
       shop: { ...base.shop, ...parsed.shop, equipped: { ...base.shop.equipped, ...parsed.shop?.equipped } },
     };
+    // Saves from before gems: items already bought stay, and the learner gets
+    // the gems they would have earned so far. (The old `spent` was XP.)
+    if (typeof parsed.shop?.gems !== "number") {
+      const { spent, ...shop } = loaded.shop;
+      loaded.shop = { ...shop, gems: backfillGems(loaded) };
+    }
+    return loaded;
   } catch {
     return emptyProgress();
   }

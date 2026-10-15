@@ -1,4 +1,4 @@
-import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { useSettings } from "../../app/SettingsContext";
 import { useProgress } from "../../app/ProgressContext";
@@ -8,6 +8,8 @@ import { DailyProgress, Feedback, GameScreen, ScorePill, WordRecap, useConfetti 
 import { sounds } from "../../lib/sounds";
 import { RULE_PEEK_COST, addResult, emptyTally } from "./practiceLogic";
 import { RuleContext } from "./RuleBox";
+import { ReportButton, useReportSubject } from "../../app/FeedbackContext";
+import { describeQuestion, itemRefFor } from "../../lib/feedback";
 
 // Below this screen height the bottom bar has no room for the rule, so it gets
 // its own view after "Next" instead.
@@ -111,6 +113,20 @@ export default function PracticeSession({
   const shownAt = useRef(Date.now());
 
   const finished = questions.length > 0 && index >= questions.length;
+
+  // What "Report a problem" is about: the question on screen and, once
+  // answered, how it went.
+  const onScreen = finished ? null : questions[index];
+  const reportSubject = useMemo(() => {
+    if (!onScreen) return null;
+    const outcome = current && !current.board ? { answer: current.answer, meaning: current.meaning, solved: current.solved } : {};
+    return {
+      game: onScreen.gameId || gameId,
+      itemRef: itemRefFor(onScreen, current?.answer),
+      context: { question: describeQuestion(onScreen), ...outcome },
+    };
+  }, [onScreen, current, gameId]);
+  useReportSubject(reportSubject);
 
   useEffect(() => () => clearTimeout(timer.current), []);
 
@@ -344,6 +360,7 @@ export default function PracticeSession({
             <button type="button" ref={nextRef} className="lg-btn lg-btn--primary lg-btn--hero" onClick={goNext}>
               {isLast ? p.seeResults : p.next}
             </button>
+            {!ruleStep && <ReportButton />}
           </div>
         </div>
       )}

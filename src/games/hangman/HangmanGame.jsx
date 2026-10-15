@@ -10,6 +10,8 @@ import { DailyProgress, Feedback, GameScreen, ScorePill, TriesMeter, WordRecap, 
 import HangmanDrawing from "./HangmanDrawing";
 import HangmanKeyboard from "./HangmanKeyboard";
 import HintButtons, { HINT_COSTS } from "./HintButtons";
+import { ReportButton, useReportSubject } from "../../app/FeedbackContext";
+import { describeQuestion, itemRefFor } from "../../lib/feedback";
 
 export const MAX_MISSES = 6;
 
@@ -78,6 +80,13 @@ export default function HangmanGame() {
   const isLost = misses.length >= MAX_MISSES;
   const roundOver = isWon || isLost;
   const lastGuess = guesses[guesses.length - 1];
+
+  // What "Report a problem" is about: the word on screen.
+  const reportSubject = useMemo(
+    () => (current ? { game: "hangman", itemRef: itemRefFor(current, answer), context: { question: describeQuestion(current), answer, meaning } } : null),
+    [current, answer, meaning]
+  );
+  useReportSubject(reportSubject);
   const lastMiss = lastGuess && !inWord(lastGuess) ? lastGuess : null;
 
   // When this word appeared, for the answer time in the shared statistics.
@@ -334,6 +343,7 @@ export default function HangmanGame() {
             <button type="button" className="lg-btn lg-btn--primary lg-btn--hero" onClick={handleNext} autoFocus>
               {t.nextWord}
             </button>
+            <ReportButton />
           </div>
         ) : (
           <HangmanKeyboard

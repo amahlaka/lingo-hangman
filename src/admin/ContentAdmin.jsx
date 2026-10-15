@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import { Plus, Trash2 } from "lucide-react";
 import { GameScreen } from "../components/lingo";
 import { getContent } from "../lib/content";
@@ -69,6 +70,39 @@ export default function ContentAdmin() {
     document.querySelector(".wb-editor")?.scrollIntoView?.({ block: "start", behavior: "smooth" });
   }, [selected, packId]);
 
+  // Links from the report queue (AdminReports): ?item=<id> opens an item,
+  // ?q=<text> searches for it, ?new=word&en=..&fi=.. starts a suggested word.
+  const [params, setParams] = useSearchParams();
+  useEffect(() => {
+    const id = params.get("item");
+    const q = params.get("q");
+    const type = params.get("new");
+    if (!id && !q && !type) return;
+    if (type === "word") {
+      const ids = new Set(draft.packs.flatMap((p) => p.items.map((i) => i.id)));
+      const item = blankItem("word", ids);
+      item.text = { en: params.get("en") || "", fi: params.get("fi") || "" };
+      const target = draft.packs.find((p) => p.id === packId) || draft.packs[0];
+      setDraft((d) => ({ ...d, packs: d.packs.map((p) => (p.id === target.id ? { ...p, items: [...p.items, item] } : p)) }));
+      setPackId(target.id);
+      setSelected(target.items.length);
+    } else {
+      const needle = (id || q).toLowerCase();
+      const match = (item) => (id ? item.id === id : JSON.stringify(item).toLowerCase().includes(needle));
+      const found = draft.packs.find((p) => p.items.some(match));
+      if (found) {
+        setPackId(found.id);
+        setTypeFilter("");
+        if (id) setSelected(found.items.findIndex(match));
+        else {
+          setQuery(q);
+          setSelected(null);
+        }
+      } else setQuery(id || q);
+    }
+    setParams({}, { replace: true });
+  }, [params]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const pack = draft.packs.find((p) => p.id === packId) || draft.packs[0];
   const allItems = draft.packs.flatMap((p) => p.items);
   const takenIds = new Set(allItems.map((i) => i.id));
@@ -131,6 +165,7 @@ export default function ContentAdmin() {
       <main className="lg-board lg-page wb-page">
         <p className="lg-body-lg">
           Add and edit words, sentences, grammar rules and languages. Changes stay on this device until you publish them.
+          {" "}<Link to="/admin/reports">Reports from learners</Link>
         </p>
         {restored && changes.length > 0 && (
           <p className="lg-note lg-note--info wb-note">Your unpublished changes from last time are still here.</p>

@@ -2,12 +2,15 @@ import React from "react";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { SettingsProvider } from "./app/SettingsContext";
 import { ProgressProvider } from "./app/ProgressContext";
+import { FeedbackProvider } from "./app/FeedbackContext";
 import Home from "./app/Home";
 import Profile from "./app/Profile";
 import Preferences from "./app/Preferences";
 import Shop from "./app/Shop";
 import Account from "./app/Account";
 import Privacy from "./app/Privacy";
+import Suggest from "./app/Suggest";
+import AdminReports from "./admin/AdminReports";
 import ContentAdmin from "./admin/ContentAdmin";
 import { GAMES, PLAYABLE_GAME_IDS } from "./games/registry";
 
@@ -21,8 +24,10 @@ export function AppRoutes() {
       <Route path="/shop" element={<Shop />} />
       <Route path="/account" element={<Account />} />
       <Route path="/privacy" element={<Privacy />} />
+      <Route path="/suggest" element={<Suggest />} />
       {/* Word bank editor; not linked from the app, see the lingo-wordbase README. */}
       <Route path="/admin" element={<ContentAdmin />} />
+      <Route path="/admin/reports" element={<AdminReports />} />
       {GAMES.flatMap((game) =>
         (game.routes || []).map(({ path, Component }) => (
           <Route key={path} path={path} element={<Component />} />
@@ -37,7 +42,7 @@ export function AppProviders({ children, storage, initialLang }) {
   return (
     <SettingsProvider initialLang={initialLang}>
       <ProgressProvider storage={storage} gameIds={PLAYABLE_GAME_IDS}>
-        {children}
+        <FeedbackProvider>{children}</FeedbackProvider>
       </ProgressProvider>
     </SettingsProvider>
   );

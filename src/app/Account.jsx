@@ -6,6 +6,7 @@ import { GameScreen, Feedback } from "../components/lingo";
 import { fill } from "../i18n";
 import { api, backendAvailable } from "../lib/backend";
 import { addPasskey, passkeysSupported, signInWithPasskey } from "../lib/passkeys";
+import { flushFeedback } from "../lib/feedback";
 
 // /account: optional sign-in with a passkey or an emailed code, and the
 // signed-in learner's passkeys, devices and data. Reached from Settings only
@@ -174,6 +175,41 @@ function OfferPasskey({ t, onDone }) {
   );
 }
 
+// Reports and suggestions sent from this account, with whether they're fixed.
+function MyFeedback({ t, me }) {
+  const f = t.feedback;
+  const list = me.feedback
+    ? [
+        ...me.feedback.reports.map((r) => ({
+          key: `r${r.id}`,
+          title: `${f.reasons[r.reason] || r.reason}: ${r.context?.answer || r.itemRef.replace(/^answer:/, "")}`,
+          status: r.status,
+          at: r.createdAt,
+        })),
+        ...me.feedback.suggestions.map((s) => ({ key: `s${s.id}`, title: `${f.kinds[s.kind] || s.kind}: ${s.text}`, status: s.status, at: s.createdAt })),
+      ].sort((a, b) => b.at.localeCompare(a.at))
+    : [];
+  return (
+    <section className="lg-section">
+      <h2 className="lg-heading">{f.mineTitle}</h2>
+      {me.waiting > 0 && <p className="lg-caption">{fill(f.waiting, { n: me.waiting })}</p>}
+      {list.length === 0 ? (
+        <p className="lg-caption">{f.mineEmpty}</p>
+      ) : (
+        <ul className="ac-list">
+          {list.map((item) => (
+            <li key={item.key} className="ac-item">
+              <span className="ac-item__name">{item.title}</span>
+              <span className="fb-status">{f.status[item.status] || item.status}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+      <Link to="/suggest" className="lg-btn lg-btn--quiet">{f.suggestLink}</Link>
+    </section>
+  );
+}
+
 function SignedIn({ t, lang, me, reload, onSignedOut }) {
   const a = t.account;
   const [error, setError] = useState(null);
@@ -270,6 +306,14 @@ function SignedIn({ t, lang, me, reload, onSignedOut }) {
         </ul>
       </section>
 
+      <MyFeedback t={t} me={me} />
+
+      {me.user.role === "admin" && (
+        <section className="lg-section">
+          <Link to="/admin/reports" className="lg-btn lg-btn--secondary">{a.adminQueue}</Link>
+        </section>
+      )}
+
       <section className="lg-section">
         <h2 className="lg-heading">{a.dataTitle}</h2>
         <p className="lg-caption">{a.dataText}</p>
@@ -305,7 +349,10 @@ export default function Account() {
     if (!(await backendAvailable())) return setView("unavailable");
     const res = await api("/me");
     if (res.ok) {
-      setMe(res.data);
+      // Reports written while signed out go now, then the list shows them.
+      const flushed = await flushFeedback();
+      const feedback = await api("/me/feedback");
+      setMe({ ...res.data, feedback: feedback.ok ? feedback.data : null, waiting: flushed.waiting });
       setView((v) => (v === "offerPasskey" ? v : "signedIn"));
     } else setView(res.status === 401 ? "signedOut" : "unavailable");
   }, []);

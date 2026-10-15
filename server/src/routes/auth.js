@@ -22,8 +22,16 @@ const pickLang = (lang) => (lang === "fi" ? "fi" : "en");
 
 export function findOrCreateUser(db, config, email, lang) {
   const existing = db.prepare("SELECT * FROM users WHERE email = ?").get(email);
-  if (existing) return { user: existing, created: false };
-  const role = config.adminEmails.includes(email) ? "admin" : "learner";
+  const admin = config.adminEmails.includes(email);
+  if (existing) {
+    // ADMIN_EMAILS can be set after the account was made.
+    if (admin && existing.role !== "admin") {
+      db.prepare("UPDATE users SET role = 'admin' WHERE id = ?").run(existing.id);
+      existing.role = "admin";
+    }
+    return { user: existing, created: false };
+  }
+  const role = admin ? "admin" : "learner";
   db.prepare("INSERT INTO users (email, role, webauthn_id, lang) VALUES (?, ?, ?, ?)").run(email, role, randomToken(32), lang);
   return { user: db.prepare("SELECT * FROM users WHERE email = ?").get(email), created: true };
 }

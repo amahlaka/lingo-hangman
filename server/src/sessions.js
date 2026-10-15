@@ -48,3 +48,15 @@ export function deleteExpired(db, now = Date.now()) {
   db.prepare("DELETE FROM login_codes WHERE expires_at <= ?").run(now);
   db.prepare("DELETE FROM webauthn_challenges WHERE expires_at <= ?").run(now);
 }
+
+// A preHandler for routes that need a session: puts it on req.session, or
+// answers 401.
+export function requireSession(db) {
+  return async (req, reply) => {
+    req.session = findSession(db, req.cookies[COOKIE]);
+    if (!req.session) {
+      reply.clearCookie(COOKIE, { path: "/api" });
+      return reply.code(401).send({ error: "signed_out" });
+    }
+  };
+}

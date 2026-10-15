@@ -83,7 +83,35 @@ Accounts are optional and the app never asks for one. The Account page
   checks on.
 - **Your data:** learners can download what the account holds and delete it,
   confirming with their email. The privacy page (`/privacy`) says what is kept.
-- **Admins** are the accounts whose email is in `ADMIN_EMAILS`.
+- **Admins** are the accounts whose email is in `ADMIN_EMAILS` (also an
+  account made before its email was added). Admin routes also need a sign-in
+  from the last day.
+
+## Reports and suggestions
+
+Learners with an account can report a problem with a question and suggest
+words, phrases and sentences. Without an account the form still opens and
+keeps what was typed until they sign in; with the API unreachable the buttons
+are hidden.
+
+- **In the app:** a game names the question on screen with
+  `useReportSubject({ game, itemRef, context })` (`src/app/FeedbackContext.jsx`);
+  `PracticeSession` and hangman already do. "Report a problem" then shows under
+  the Next button and in the settings menu. `itemRef` is the word base item id
+  when the question has one, else `answer:<answer>`; `context` is a short copy
+  of what the question showed (`describeQuestion`) plus the app version.
+  Suggestions are made at `/suggest` (linked from Settings and Account).
+- **Outbox:** both go through a small queue in localStorage
+  (`src/lib/feedback.js`) with an id per entry, so a report resent after a
+  dropped connection or after signing in is stored once.
+- **Limits:** 30 reports and 20 suggestions a day per account; comments up to
+  1000 characters.
+- **Queue:** `/admin/reports` groups open reports by question. "Open in
+  editor" opens the item in the word bank editor (`/admin?item=<id>` or
+  `/admin?q=<text>`); "Add in editor" starts a suggested word
+  (`/admin?new=word&en=..&fi=..`). Marking a report fixed shows "Fixed, thanks"
+  to the learner on their Account page. Reports are never posted to GitHub:
+  the repositories are public and reports can hold personal text.
 
 ## Deploying the API
 

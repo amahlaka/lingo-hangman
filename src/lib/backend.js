@@ -11,7 +11,9 @@ let health = null; // { at, ok, promise }
 export function backendAvailable() {
   const now = Date.now();
   if (health && (health.ok || now - health.at < RETRY_AFTER_MS)) return health.promise;
-  const promise = fetch("/api/health", { signal: AbortSignal.timeout(HEALTH_TIMEOUT_MS), credentials: "same-origin" })
+  // Started inside a promise, so a browser (or test) without fetch just gets false.
+  const promise = Promise.resolve()
+    .then(() => fetch("/api/health", { signal: AbortSignal.timeout(HEALTH_TIMEOUT_MS), credentials: "same-origin" }))
     .then(async (res) => res.ok && (await res.json()).ok === true)
     .catch(() => false)
     .then((ok) => {

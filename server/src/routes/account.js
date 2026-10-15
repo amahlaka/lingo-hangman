@@ -6,6 +6,7 @@ import { describeDevice } from "../lib/userAgent.js";
 import { enqueueMail } from "../mail/queue.js";
 import { COOKIE, requireSession } from "../sessions.js";
 import { reportView, suggestionView } from "./feedback.js";
+import { accountProgress } from "./sync.js";
 
 const CHALLENGE_MS = 5 * 60_000;
 const MAX_PASSKEYS = 20;
@@ -141,6 +142,7 @@ export default async function accountRoutes(app, { db, config }) {
       }),
       reports: db.prepare("SELECT * FROM reports WHERE user_id = ? ORDER BY id").all(s.user_id).map(reportView),
       suggestions: db.prepare("SELECT * FROM suggestions WHERE user_id = ? ORDER BY id").all(s.user_id).map(suggestionView),
+      progress: accountProgress(db, s.user_id),
     };
   });
 

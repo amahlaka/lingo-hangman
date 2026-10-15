@@ -10,7 +10,7 @@ import { MAX_MISSES, buildPairBoards, isPairCandidate, practicePool } from "../p
 // One board: English words on one side, meanings on the other. Tap one from
 // each side to make a pair. A found pair stays where it is, with the meaning
 // shown under the English word, so the board never jumps around.
-function PairsBoard({ board, done, onItem, onDone, p, learningLang, nativeLang, learningLabel, nativeLabel }) {
+export function PairsBoard({ board, done, onItem, onDone, p, learningLang, nativeLang, learningLabel, nativeLabel }) {
   const [selected, setSelected] = useState(null); // { side, id }
   const [matched, setMatched] = useState([]);
   const [misses, setMisses] = useState({});

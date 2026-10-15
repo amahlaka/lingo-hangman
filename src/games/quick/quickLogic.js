@@ -2,7 +2,9 @@
 // what the learner already knows. A few easy wins (words they answer quickly
 // and right), a few challenges (words they missed lately or think long about,
 // and lessons that take them longer) and the rest new or still-practising
-// words, spread over words, sentences, grammar and sounds.
+// words, spread over words, sentences, grammar and sounds. Every game can ask:
+// hangman and Word Pairs (a four-pair board) too, and Say it when the browser
+// can listen.
 // Pure helpers, no React.
 
 import { wordKey } from "../../lib/progress";
@@ -12,9 +14,11 @@ import { sentenceLesson } from "../../lib/wordTypes";
 import {
   buildChoiceQuestion,
   buildGapQuestion,
+  buildPairBoards,
   buildPhrasePuzzle,
   gapItemQuestion,
   isGapCandidate,
+  isPairCandidate,
   isPhraseCandidate,
   shuffle,
   usableWords,
@@ -23,6 +27,8 @@ import {
 import { gapQuestions } from "../gap/gapLogic";
 import { BY_EAR, lessonQuestions } from "../sounds/soundsLogic";
 import { isDictationSentence, isTypeWord, typeQuestion } from "../type/typeLogic";
+import { MAX_SAY_WORDS } from "../say/sayLogic";
+import { isHangmanWord } from "../hangman/hangmanWords";
 
 export const QUICK_ROUND = 10;
 export const QUICK_QUOTA = { easy: 3, challenge: 3 };
@@ -33,7 +39,20 @@ const GROUP_CAP = { sounds: 3, other: 4 };
 const MAX_LISTEN_WORDS = 4;
 
 // Games whose question already shows the meaning or its own explanation.
-const NO_MEANING_IN_FEEDBACK = ["grammar", "mixed-up", "sounds"];
+const NO_MEANING_IN_FEEDBACK = ["grammar", "mixed-up", "sounds", "say", "hangman", "word-pairs"];
+// A Word Pairs board in Quick play: the word asked and three more.
+const QUICK_PAIRS = 4;
+
+// A small pairs board with `pair` on it, the rest picked from `pool` so that
+// no two pairs share their text in either language.
+export function pairBoardWith(pair, pool, random = Math.random) {
+  const others = pool.filter((p) => p !== pair && isPairCandidate(p));
+  // A random() just under 1 keeps buildPairBoards' shuffle in order, so `pair`
+  // is always picked; the sides are shuffled below.
+  const [board] = buildPairBoards([pair, ...shuffle(others, random)], { boards: 1, size: QUICK_PAIRS }, () => 0.999999);
+  if (!board || !board.items.some((i) => i.pair === pair)) return null;
+  return { ...board, learning: shuffle(board.learning, random), native: shuffle(board.native, random), target: pair };
+}
 
 // Everything Quick play can ask, one target per word or sentence (by progress
 // word key), each with the games that can ask it:
@@ -52,6 +71,7 @@ export function quickTargets({
   learningLang = "en",
   nativeLang = "fi",
   withSound = true,
+  withMic = false,
 }) {
   const byKey = new Map();
   const add = (text, group, kind, source = {}) => {
@@ -76,6 +96,11 @@ export function quickTargets({
         add(pair.learning, group, { game: "listening", make: (r) => buildChoiceQuestion(pair, pool, r) }, pair);
       }
       if (isTypeWord(pair)) add(pair.learning, group, { game: "type-it", make: () => typeQuestion(pair, pool, "word") }, pair);
+      if (isHangmanWord(pair, learningLang)) add(pair.learning, group, { game: "hangman", make: () => ({ target: pair }) }, pair);
+      if (isPairCandidate(pair)) add(pair.learning, group, { game: "word-pairs", make: (r) => pairBoardWith(pair, pool, r) }, pair);
+      if (withMic && withSound && wordCount(pair.learning) <= MAX_SAY_WORDS) {
+        add(pair.learning, group, { game: "say", make: () => ({ ...pair }) }, pair);
+      }
     }
   }
 

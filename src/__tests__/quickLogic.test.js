@@ -204,3 +204,35 @@ describe("quick play round", () => {
     expect(targets.filter(preferenceFilter(targets, { focus: [], difficulty: "any" }))).toHaveLength(targets.length);
   });
 });
+
+describe("every game in Quick play", () => {
+  const build = (extra = {}) =>
+    quickTargets({
+      pairs: filterCommonWords({ learningLang: "en", nativeLang: "fi" }),
+      sentences: getSentences(),
+      gapItems: getGapItems(),
+      topics: { rule: getTopics("rule"), confusable: getTopics("confusable") },
+      lessons: getSoundLessons(),
+      groups: getWordGroups(),
+      ...extra,
+    });
+  const games = (targets) => new Set(targets.flatMap((t) => t.kinds.map((k) => k.game)));
+
+  it("can ask every game, Say it only when the browser can listen", () => {
+    expect([...games(build({ withMic: true }))].sort()).toEqual(
+      ["fill-the-gap", "grammar", "hangman", "listening", "meaning", "mixed-up", "phrase", "say", "sounds", "type-it", "word-pairs"]
+    );
+    expect(games(build()).has("say")).toBe(false);
+  });
+
+  it("makes a hangman word and a small pairs board with the word on it", () => {
+    const targets = build();
+    const dog = targets.find((t) => t.key === wordKey("dog", "en"));
+    const hangman = dog.kinds.find((k) => k.game === "hangman").make(Math.random);
+    expect(hangman.target.learning).toBe("dog");
+    const board = dog.kinds.find((k) => k.game === "word-pairs").make(Math.random);
+    expect(board.items).toHaveLength(4);
+    expect(board.items.map((i) => i.pair.learning)).toContain("dog");
+    expect(new Set(board.items.map((i) => i.pair.native)).size).toBe(4);
+  });
+});

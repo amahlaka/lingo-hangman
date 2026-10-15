@@ -4,6 +4,7 @@
 
 import { DEFAULT_LEARNING_LANG, DEFAULT_NATIVE_LANG, decodeWords, filterCommonWords, getWordGroups } from "../../lib/words";
 import { sentenceWords } from "../../lib/contentSchema";
+import { gapItemChoices } from "../../lib/decoys";
 
 export const ROUND_LENGTH = 10;
 // After this many misses on one question the answer is shown, so nobody gets stuck.
@@ -276,14 +277,14 @@ export function buildGapQuestion(target, pool, random = Math.random, groups = ge
 }
 
 // A question from a hand-written gap item in the word bank (`type: "gap"`):
-// its own wrong options, and its explanation for after the answer. Items with
-// one distractor (a / an, borrow / lend) stay two-way choices.
+// its own wrong options, topped up from its `decoyPool` when it has one
+// (src/lib/decoys.js), and its explanation for after the answer. Items with
+// one distractor and no pool stay two-way choices.
 export function gapItemQuestion(item, nativeLang = DEFAULT_NATIVE_LANG, random = Math.random) {
   const [before, after] = item.sentence.split("___");
-  const answer = item.answers[0];
   const native = item.translation?.[nativeLang];
   if (after === undefined || !native) return null;
-  const options = [answer, ...item.distractors.filter((d) => !item.answers.includes(d))].slice(0, 4);
+  const { answer, options } = gapItemChoices(item, null, { random });
   return {
     target: { learning: `${before}${answer}${after}`, native, id: item.id },
     answer,

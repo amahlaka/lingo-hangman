@@ -128,6 +128,18 @@ function checkWordList(value, name, problems, { min = 1, allowNone = false } = {
   return true;
 }
 
+// `decoyPool`: words that fill the free option slots of gap questions
+// (src/lib/decoys.js). Optional; [] on a gap item turns its topic's pool off.
+function checkDecoyPool(value, problems) {
+  if (value === undefined) return;
+  if (!Array.isArray(value) || !value.every(isText)) return problems.push("decoyPool must be a list of filled-in words");
+  const seen = new Set();
+  for (const w of value) {
+    if (seen.has(norm(w))) problems.push(`decoyPool: "${w}" is listed twice`);
+    seen.add(norm(w));
+  }
+}
+
 // `wordTypes`: one valid entry per word of every English text in `texts`.
 function checkWordTypes(value, texts, name, problems) {
   if (value === undefined) return;
@@ -185,6 +197,7 @@ const CHECKS = {
       const both = item.distractors.filter((d) => answers.has(norm(d)));
       if (both.length) problems.push(`"${both.join('", "')}" is both an answer and a wrong option`);
     }
+    checkDecoyPool(item.decoyPool, problems);
     checkTextMap(item.translation, "translation", problems, { required: false });
     checkTextMap(item.explanation, "explanation", problems, { required: false });
     if (item.topic !== undefined && !(isText(item.topic) && (!ctx.topicIds || ctx.topicIds.has(item.topic)))) {
@@ -196,6 +209,7 @@ const CHECKS = {
     checkTextMap(item.title, "title", problems, { mustHave: ["en"] });
     checkTextMap(item.explanation, "explanation", problems);
     checkExamples(item.examples, problems);
+    checkDecoyPool(item.decoyPool, problems);
   },
 
   confusable(item, problems) {
@@ -213,6 +227,7 @@ const CHECKS = {
       });
     }
     checkTextMap(item.explanation, "explanation", problems);
+    checkDecoyPool(item.decoyPool, problems);
   },
 
   group(item, problems) {
@@ -249,6 +264,14 @@ const CHECKS = {
     if (!Array.isArray(item.words) || item.words.length < 3) {
       problems.push("words needs at least three words");
       return;
+    }
+    if (item.kind === "sound" && Array.isArray(item.sounds)) {
+      // An option shows an example word with its sound, never the word asked,
+      // so every sound needs two words: one to ask and one to show.
+      for (const s of item.sounds) {
+        const n = item.words.filter((w) => isObject(w) && w.sound === s?.id).length;
+        if (isObject(s) && isText(s.id) && n < 2) problems.push(`sound "${s.id}" needs at least two words, so its example is never the word asked`);
+      }
     }
     const seen = new Set();
     const texts = new Set(item.words.filter((w) => isObject(w) && isText(w.text)).map((w) => norm(w.text)));

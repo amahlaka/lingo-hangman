@@ -27,6 +27,22 @@ function TextInput({ value, onChange, ...rest }) {
 
 // Comma-separated list kept as typed until the field loses focus, so typing
 // "a, " doesn't jump.
+// Extra wrong options that fill a gap question's free slots (src/lib/decoys.js).
+// An empty field removes the pool.
+const POOL_HINT =
+  "Comma separated. Optional. Gap sentences on this topic fill their free option slots (up to four) from these, after their own wrong options. Only words that are wrong in every sentence of the topic; a sentence can set its own list instead.";
+
+function DecoyPoolField({ item, set, hint }) {
+  return (
+    <Field label="More wrong options to pick from" hint={hint}>
+      <ListInput
+        value={item.decoyPool || []}
+        onChange={(list) => set({ decoyPool: list.filter((w) => w.trim()).length ? list.filter((w) => w.trim()) : undefined })}
+      />
+    </Field>
+  );
+}
+
 function ListInput({ value, onChange, ...rest }) {
   const [text, setText] = React.useState(listText(value));
   const outside = listText(value);
@@ -162,7 +178,7 @@ function SoundLesson({ item, set }) {
               <Field label="Short id" hint='Like "s" or "k". Words point at it.'>
                 <TextInput value={s.id} onChange={(id) => change({ ...s, id: id.trim() })} spellCheck={false} />
               </Field>
-              <Field label="English"><TextInput value={s.label?.en} onChange={(en) => change({ ...s, label: { ...s.label, en } })} /></Field>
+              <Field label="English" hint='Just the sound, like "s" or "Quiet th". The game adds "as in" and a word from this lesson that has the sound.'><TextInput value={s.label?.en} onChange={(en) => change({ ...s, label: { ...s.label, en } })} /></Field>
               <Field label="Finnish"><TextInput value={s.label?.fi} onChange={(fi) => change({ ...s, label: { ...s.label, fi } })} /></Field>
             </>
           )}
@@ -355,6 +371,11 @@ export default function ItemForm({ item, onChange, languages, topics, categories
             <Field label="Wrong options" hint="Comma separated. Must really be wrong in this sentence.">
               <ListInput value={item.distractors} onChange={(distractors) => set({ distractors })} />
             </Field>
+            <DecoyPoolField
+              item={item}
+              set={set}
+              hint="Comma separated. Optional. Questions show the wrong options above first and fill up to four from these (or else from the rule's list). None may fit this sentence."
+            />
             <Field label="Practises" hint="The grammar rule or mixed-up words this sentence is for. Optional.">
               <select className="lg-input" value={item.topic ?? ""} onChange={(e) => set({ topic: e.target.value || undefined })}>
                 <option value="">Nothing in particular</option>
@@ -374,6 +395,7 @@ export default function ItemForm({ item, onChange, languages, topics, categories
           <TextMap label="Title" value={item.title} langs={EN_FI} onChange={(title) => set({ title })} />
           <TextMap label="Explanation" hint={EXAMPLE_HINT} value={item.explanation} langs={EN_FI} multiline onChange={(explanation) => set({ explanation })} />
           <Examples item={item} set={set} />
+          <DecoyPoolField item={item} set={set} hint={POOL_HINT} />
         </>
       )}
 
@@ -395,6 +417,7 @@ export default function ItemForm({ item, onChange, languages, topics, categories
             )}
           />
           <TextMap label="How to tell them apart" value={item.explanation} langs={EN_FI} multiline onChange={(explanation) => set({ explanation })} />
+          <DecoyPoolField item={item} set={set} hint={POOL_HINT} />
         </>
       )}
 

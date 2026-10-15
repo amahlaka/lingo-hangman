@@ -47,9 +47,41 @@ export function maxMissesFor(optionCount) {
   return Math.max(1, Math.min(MAX_MISSES, optionCount - 1));
 }
 
+// How an option names its example word, per language of the label.
+const AS_IN = { en: "as in", fi: "kuten sanassa" };
+
+// The name of a sound without an example word. Labels are written as the bare
+// name ("d", "Quiet th"); older content wrote one example into the label
+// ("d, as in played"), which is cut off here.
+export function soundName(label = {}) {
+  const out = {};
+  for (const [lang, text] of Object.entries(label)) {
+    if (typeof text === "string") out[lang] = text.replace(/,\s*(as in|kuten(\s+sanassa)?)\s.*$/i, "").trim();
+  }
+  return out;
+}
+
+// The options of a "sound" question: each sound's name with an example word
+// that has that sound. The example is never the word being asked, so the
+// option doesn't give the answer away, and it changes from question to
+// question when the lesson has more words with that sound.
+export function soundOptions(lesson, words, asked, random = Math.random) {
+  return lesson.sounds.map((s) => {
+    const name = soundName(s.label);
+    const pool = words.filter((w) => w.sound === s.id && w.text.toLowerCase() !== asked.text.toLowerCase());
+    const example = pool.length ? pool[Math.floor(random() * pool.length)].text : null;
+    const label = {};
+    for (const [lang, text] of Object.entries(name)) {
+      label[lang] = example && AS_IN[lang] ? `${text}, ${AS_IN[lang]} ${example}` : text;
+    }
+    return { id: s.id, label, example };
+  });
+}
+
 // Every word of a lesson as a question.
 //   silent:  tap the letter you don't hear (`letters` are the word's letters)
-//   sound:   pick the sound the marked letters make (`options` are the lesson's sounds)
+//   sound:   pick the sound the marked letters make (`options` are the lesson's
+//            sounds, each with an example word other than the one asked)
 //   pairs:   hear a word and pick it or the word it sounds like (`options` are the two)
 //   letters: hear a letter name and pick the letter (`options` are letters of the lesson)
 export function lessonQuestions(lesson, random = Math.random) {
@@ -65,7 +97,7 @@ export function lessonQuestions(lesson, random = Math.random) {
     };
     if (lesson.kind === "silent") return { ...base, letters: word.text.split("") };
     if (lesson.kind === "sound") {
-      return { ...base, options: lesson.sounds.map((s) => ({ id: s.id, label: s.label })), answer: word.sound };
+      return { ...base, options: soundOptions(lesson, words, word, random), answer: word.sound };
     }
     const others =
       lesson.kind === "pairs"

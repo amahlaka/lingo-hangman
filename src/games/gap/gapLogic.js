@@ -4,6 +4,7 @@
 // point at a topic. No React here so the rules are easy to test.
 
 import { MAX_MISSES, ROUND_LENGTH, shuffle } from "../practice/practiceLogic";
+import { gapItemChoices } from "../../lib/decoys";
 
 export const GAP = "___";
 
@@ -27,14 +28,16 @@ export function maxMissesFor(options) {
 }
 
 // The gap sentences of `topics` as questions, each with its topic's title and
-// explanation. Sentences on other topics are left out.
-export function gapQuestions({ topics = [], gaps = [] } = {}) {
+// explanation. Sentences on other topics are left out. Options are the item's
+// own decoys, topped up from the topic's decoy pool (src/lib/decoys.js), so
+// they can differ each time the questions are made.
+export function gapQuestions({ topics = [], gaps = [] } = {}, random = Math.random) {
   const byId = new Map(topics.map((t) => [t.id, t]));
   return gaps
     .filter((g) => byId.has(g.topic) && g.answers?.length)
     .map((item) => {
       const topic = byId.get(item.topic);
-      const answer = item.answers[0];
+      const { answer, options } = gapItemChoices(item, topic, { random });
       return {
         id: item.id,
         setId: topic.id,
@@ -43,7 +46,7 @@ export function gapQuestions({ topics = [], gaps = [] } = {}) {
         rule: topic.explanation,
         text: item.sentence,
         answer,
-        options: [answer, ...(item.distractors || [])],
+        options,
         fi: item.translation?.fi || "",
         why: item.explanation?.en && item.explanation?.fi ? item.explanation : null,
         sentence: fillGap(item.sentence, answer),
@@ -55,7 +58,7 @@ export function gapQuestions({ topics = [], gaps = [] } = {}) {
 // round of Mixed-up words isn't ten borrow-or-lend sentences. `setId` limits
 // the round to one set (a `?set=` link). Options come in random order.
 export function buildGapRound(content, { count = ROUND_LENGTH, setId = null, random = Math.random } = {}) {
-  let all = gapQuestions(content);
+  let all = gapQuestions(content, random);
   if (setId) {
     const one = all.filter((q) => q.setId === setId);
     if (one.length) all = one;

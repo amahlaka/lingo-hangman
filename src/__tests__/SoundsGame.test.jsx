@@ -6,7 +6,7 @@ import bundled from '../lib/bundledContent';
 import { setContent } from '../lib/content';
 import { validateItem } from '../lib/contentSchema';
 import { blankItem, tidyItem } from '../admin/adminDraft';
-import { buildSoundRound, lessonProgress, lessonQuestions, lessonWord, markedIndexes } from '../games/sounds/soundsLogic';
+import { buildSoundRound, lessonProgress, lessonQuestions, lessonWord, markedIndexes, soundName } from '../games/sounds/soundsLogic';
 
 // Lessons of their own, so the tests don't depend on what the word base holds.
 const silentK = {
@@ -23,11 +23,12 @@ const cSounds = {
   id: 'test-c', type: 'sound', kind: 'sound',
   title: { en: 'Test c', fi: 'Testi c' },
   explanation: { en: 'c before e, i or y is s.', fi: 'c ennen e, i tai y on s.' },
-  sounds: [{ id: 's', label: { en: 's, as in sun', fi: 's, kuten sun' } }, { id: 'k', label: { en: 'k, as in key', fi: 'k, kuten key' } }],
+  sounds: [{ id: 's', label: { en: 's', fi: 's' } }, { id: 'k', label: { en: 'k', fi: 'k' } }],
   words: [
     { text: '[c]ity', say: { fi: 'siti' }, meaning: { fi: 'kaupunki' }, sound: 's' },
     { text: '[c]at', say: { fi: 'kät' }, meaning: { fi: 'kissa' }, sound: 'k' },
     { text: 'i[c]e', say: { fi: 'ais' }, meaning: { fi: 'jää' }, sound: 's' },
+    { text: '[c]up', say: { fi: 'kap' }, meaning: { fi: 'kuppi' }, sound: 'k' },
   ],
 };
 const letters = {
@@ -122,6 +123,30 @@ describe('soundsLogic', () => {
     expect(q.options.map((o) => o.id)).toContain(q.answer);
   });
 
+  it('never shows the asked word as the example of a sound', () => {
+    for (let i = 0; i < 20; i++) {
+      for (const q of lessonQuestions(cSounds)) {
+        const labels = q.options.map((o) => o.label.en);
+        expect(labels.some((l) => l.endsWith(` ${q.word.text}`))).toBe(false);
+        expect(labels.every((l) => /^[sk], as in (city|cat|ice|cup)$/.test(l))).toBe(true);
+        expect(q.options.map((o) => o.label.fi)).toContain(`${q.answer}, kuten sanassa ${q.options.find((o) => o.id === q.answer).example}`);
+      }
+    }
+  });
+
+  it('cuts the example out of labels written the old way', () => {
+    expect(soundName({ en: 'd, as in played', fi: 'd, kuten sanassa played' })).toEqual({ en: 'd', fi: 'd' });
+    expect(soundName({ en: 'Quiet th', fi: 'Soinniton th' })).toEqual({ en: 'Quiet th', fi: 'Soinniton th' });
+    const old = { ...cSounds, sounds: [{ id: 's', label: { en: 's, as in city' } }, { id: 'k', label: { en: 'k, as in cat' } }] };
+    const q = lessonQuestions(old).find((x) => x.word.text === 'city');
+    expect(q.options[0].label.en).toBe('s, as in ice');
+  });
+
+  it('wants two words for every sound', () => {
+    const one = { ...cSounds, words: cSounds.words.filter((w) => w.text !== '[c]up') };
+    expect(validateItem(one).join(' ')).toMatch(/sound "k" needs at least two words/);
+  });
+
   it('asks a sound-alike word against its own pair', () => {
     const q = lessonQuestions(shipSheep).find((x) => x.answer === 'sit');
     expect(q.options.map((o) => o.id).sort()).toEqual(['seat', 'sit']);
@@ -182,7 +207,7 @@ describe('Sounds of English', () => {
     fakeSpeech();
     renderApp('/sounds?set=test-c&practise=1');
     const group = screen.getByRole('group', { name: 'Sounds to choose from' });
-    expect(within(group).getByText('s, kuten sun')).toHaveAttribute('lang', 'fi');
+    expect(within(group).getByText(/^s, kuten sanassa (city|ice)$/)).toHaveAttribute('lang', 'fi');
     const word = screen.getByText((_, el) => el?.classList?.contains('snd-word-big')).textContent;
     const answer = cSounds.words.find((w) => w.text.replace(/[[\]]/g, '') === word).sound;
     fireEvent.click(within(group).getByRole('button', { name: new RegExp(`^${answer}, as in`) }));

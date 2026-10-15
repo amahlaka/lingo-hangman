@@ -106,14 +106,19 @@ export function quickTargets({
   const topicGames = [["grammar", topics.rule || []], ["mixed-up", topics.confusable || []]];
   for (const [game, list] of topicGames) {
     for (const q of gapQuestions({ topics: list, gaps: gapItems })) {
-      add(q.sentence, "grammar", { game, lesson: q.setId, make: (r) => ({ ...q, options: shuffle(q.options, r) }) }, gapById.get(q.id));
+      // Made fresh each time so pooled decoys change from round to round.
+      const make = (r) => {
+        const fresh = gapQuestions({ topics: list, gaps: [gapById.get(q.id)] }, r)[0];
+        return { ...fresh, options: shuffle(fresh.options, r) };
+      };
+      add(q.sentence, "grammar", { game, lesson: q.setId, make }, gapById.get(q.id));
     }
   }
 
   for (const lesson of lessons) {
     if (!withSound && BY_EAR.includes(lesson.kind)) continue;
     for (const q of lessonQuestions(lesson)) {
-      // Sound-alike and letter questions draw their options when made, so build them fresh each time.
+      // Sound, sound-alike and letter questions draw their options when made, so build them fresh each time.
       const make = (r) => lessonQuestions(lesson, r).find((x) => x.id === q.id) || null;
       add(q.word.text, "sounds", { game: "sounds", lesson: lesson.id, make }, lesson);
     }

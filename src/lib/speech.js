@@ -99,7 +99,7 @@ export function pickVoice(voices, langTag) {
 }
 
 // Word-list language code ("en-GB", "en", "fi" …) to a speech language tag.
-export function speechLang(code = "en-GB") {
+export function speechLang(code = "en") {
   return code === "en" ? "en-US" : code;
 }
 
@@ -159,10 +159,10 @@ function playClip(key, fallbackSpeech, rate) {
   }
 }
 
-export function speak(text, { lang = "en-GB", rate = RATE_NORMAL } = {}) {
+export function speak(text, { lang = "en", rate = RATE_NORMAL } = {}) {
   if (!text) return false;
   const langTag = speechLang(lang);
-  const key = clipKey(text, langTag);
+  const key = clipKey(text, lang);
   stopSpeaking();
   if (clipKeys()?.has(key) && canPlayClips()) {
     playClip(key, () => speakWithBrowser(text, langTag, rate), rate);
@@ -172,10 +172,10 @@ export function speak(text, { lang = "en-GB", rate = RATE_NORMAL } = {}) {
 }
 
 // Say a sentence slowly, one word at a time with a pause after each.
-export function speakWords(text, { lang = "en-GB" } = {}) {
+export function speakWords(text, { lang = "en" } = {}) {
   if (!text) return false;
   const langTag = speechLang(lang);
-  const key = wordsKey(text, langTag);
+  const key = wordsKey(text, lang);
   stopSpeaking();
   if (clipKeys()?.has(key) && canPlayClips()) {
     playClip(key, () => speakWordsWithBrowser(text, langTag), RATE_NORMAL);

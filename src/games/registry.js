@@ -132,7 +132,7 @@ export const GAMES = [
     id: "sounds",
     name: "Sounds of English",
     nameFi: "Englannin äänteet",
-    description: "Silent letters, tricky letters and letter names: hear the rule, then practise.",
+    description: "Silent letters, tricky letters and letter names: hear the rule, then practice.",
     art: "knife · naif",
     minutes: 4,
     skill: "Pronunciation",

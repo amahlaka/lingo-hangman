@@ -67,7 +67,7 @@ describe('Grammar check', () => {
       if (!screen.queryByRole('button', { name: /Next|See results/ })) fireEvent.click(options().find((b) => !b.disabled));
       fireEvent.click(screen.getByRole('button', { name: /Next|See results/ }));
     }
-    expect(screen.getByText('You practised 10 sentences.')).toBeInTheDocument();
+    expect(screen.getByText('You practiced 10 sentences.')).toBeInTheDocument();
     expect(screen.getByRole('region', { name: 'Sentences from this round' })).toBeInTheDocument();
   });
 });

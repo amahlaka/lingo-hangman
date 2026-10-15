@@ -67,7 +67,7 @@ describe('Pick the meaning', () => {
       fireEvent.click(screen.getByRole('button', { name: byNative[prompt()] }));
       fireEvent.click(screen.getByRole('button', { name: i === words.length - 1 ? 'See results' : 'Next' }));
     }
-    expect(screen.getByText('You practised 5 words.')).toBeInTheDocument();
+    expect(screen.getByText('You practiced 5 words.')).toBeInTheDocument();
     const recap = screen.getByRole('region', { name: 'Words from this round' });
     words.forEach((w) => {
       expect(recap).toHaveTextContent(w.learning);
@@ -171,7 +171,7 @@ describe('Word Pairs', () => {
     expect(screen.getByText('All pairs found.')).toBeInTheDocument();
     expect(screen.getByText(/Every pair on the first try\./)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'See results' }));
-    expect(screen.getByText('You practised 5 words.')).toBeInTheDocument();
+    expect(screen.getByText('You practiced 5 words.')).toBeInTheDocument();
   });
 });
 

@@ -8,7 +8,7 @@ import { RATE_SLOW, canSpeak, speak, stopSpeaking } from "../../lib/speech";
 import { BY_EAR, markedIndexes, maxMissesFor } from "./soundsLogic";
 import { RuleBox, RulePeek } from "../practice/RuleBox";
 
-const LEARNING_LANG = "en-GB";
+const LEARNING_LANG = "en";
 
 // The word with the lesson's letters picked out: "[k]nife" shows the k marked.
 export function MarkedWord({ word, silent = false, className = "" }) {

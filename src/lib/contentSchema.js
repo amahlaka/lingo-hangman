@@ -354,7 +354,7 @@ function checkList(value, name, allowed, problems) {
 // The optional metadata any item may carry.
 function checkMetadata(item, problems) {
   if (item.ipa !== undefined) {
-    if (!isObject(item.ipa) || !Object.keys(item.ipa).length) problems.push('ipa must be like { "en-GB": "/ˈwɔːtə/" }');
+    if (!isObject(item.ipa) || !Object.keys(item.ipa).length) problems.push('ipa must be like { "en": "/ˈwɑːt̬ɚ/" }');
     else {
       for (const [lang, v] of Object.entries(item.ipa)) {
         if (!(typeof v === "string" && IPA_PATTERN.test(v))) problems.push(`ipa.${lang} must be written between slashes, like /ˈwɔːtə/`);

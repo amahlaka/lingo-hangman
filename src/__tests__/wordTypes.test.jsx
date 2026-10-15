@@ -187,7 +187,7 @@ describe('Build the phrase hints', () => {
     setPreferences({ typeColors: true });
     renderApp('/phrase');
     expect(within(bank()).getAllByRole('button').every((b) => /lg-wt--/.test(b.className))).toBe(true);
-    expect(screen.getByRole('list', { name: 'Colours' })).toBeInTheDocument();
+    expect(screen.getByRole('list', { name: 'Colors' })).toBeInTheDocument();
   });
 
   it('opens the sentence rules over the round and comes back', () => {
@@ -205,7 +205,7 @@ describe('Build the phrase hints', () => {
 describe('Practice settings', () => {
   it('turns word colours on and automatic help off', () => {
     renderApp('/preferences');
-    fireEvent.click(screen.getByRole('button', { name: /Colour words by type/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Color words by type/ }));
     fireEvent.click(screen.getByRole('button', { name: /Help with easy sentences/ }));
     const saved = JSON.parse(localStorage.getItem('lingoPreferences'));
     expect(saved).toMatchObject({ typeColors: true, typeHelp: false });

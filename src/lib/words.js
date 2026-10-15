@@ -10,7 +10,7 @@
 import { getContent, onContentChange } from "./content";
 import { applyPreferences } from "./preferences";
 
-export const DEFAULT_LEARNING_LANG = "en-GB";
+export const DEFAULT_LEARNING_LANG = "en";
 export const DEFAULT_NATIVE_LANG = "fi";
 
 // Languages a word list can be built in: [{ code, label }], from

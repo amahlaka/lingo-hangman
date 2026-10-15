@@ -17,10 +17,10 @@ that starts with a vowel came out wrong ("eat" sounded like "late", "ask" like
 each text is said inside a short frame ("say <text> now") that is cut off
 again where the model's own timings say the text starts and ends.
 
-An item with `ipa` (the word base's British IPA) is read from that instead of
+An item with `ipa` (the word base's US IPA) is read from that instead of
 the phonemizer's guess, which matters for words like "live". An item with
-`words` is the slow version of a sentence: each word said on its own with a
-pause after it, using the sounds the phonemizer gave it in the sentence.
+`words` is the slow version of a sentence: each word said on its own, stressed,
+with a pause after it, using the sounds the phonemizer gave it in the sentence.
 """
 
 import argparse
@@ -56,19 +56,22 @@ WORD_GAP = 0.5
 # Longer texts are split by kokoro-onnx itself and get no frame.
 MAX_TOKENS = 500
 
-# Phonemizer language for each learning language.
-PHONEMES = {"en-GB": "en-gb"}
+# Phonemizer language for each word-base language with clips.
+PHONEMES = {"en": "en-us", "en-GB": "en-gb"}
 
 # The word base writes IPA the way dictionaries do; the model learned espeak's
-# British spelling of it.
-IPA_TO_MODEL = [("æ", "a"), ("r", "ɹ"), ("g", "ɡ")]
-VOWELS = set("aeiouæɑɒɔəɛɜɪʊʌɐ")
+# spelling of it, which differs a little between US and British English.
+IPA_TO_MODEL = {
+    "en": [("t̬", "ɾ"), ("ɝː", "ɜː"), ("ɝ", "ɜː"), ("r", "ɹ"), ("g", "ɡ")],
+    "en-GB": [("æ", "a"), ("r", "ɹ"), ("g", "ɡ")],
+}
+VOWELS = set("aeiouæɑɒɔəɛɜɪʊʌɐɚ")
 
 
-def ipa_phonemes(ipa):
-    """The word base's IPA for one word ("/ˈwɔːtə/") as the model's phonemes ("wˈɔːtə")."""
+def ipa_phonemes(ipa, lang="en"):
+    """The word base's IPA for one word ("/ˈwɑːt̬ɚ/") as the model's phonemes ("wˈɑːɾɚ")."""
     text = ipa.strip().strip("/").strip()
-    for old, new in IPA_TO_MODEL:
+    for old, new in IPA_TO_MODEL[lang]:
         text = text.replace(old, new)
     # Syllable dots and brackets around optional sounds go; the sounds stay.
     text = "".join(c for c in text if c not in ".()")
@@ -160,8 +163,8 @@ def fits(kokoro, parts):
 
 
 def say(kokoro, text, speaker, lang, ipa=None):
-    """The text as 24 kHz samples."""
-    phonemes = ipa_phonemes(ipa) if ipa else kokoro.tokenizer.phonemize(text, lang)
+    """The text as 24 kHz samples. `lang` is the word base's language code."""
+    phonemes = ipa_phonemes(ipa, lang) if ipa else kokoro.tokenizer.phonemize(text, PHONEMES[lang])
     phonemes = " ".join(phonemes.split())
     if not fits(kokoro, [phonemes]):
         samples, _ = kokoro.create(phonemes, voice=speaker, speed=SPEED, is_phonemes=True)
@@ -169,12 +172,26 @@ def say(kokoro, text, speaker, lang, ipa=None):
     return say_parts(kokoro, [phonemes], speaker)[0]
 
 
+def stressed(phonemes):
+    """A word's phonemes with main stress, as when it is said on its own."""
+    if "ˈ" in phonemes:
+        return phonemes
+    if "ˌ" in phonemes:
+        return phonemes.replace("ˌ", "ˈ", 1)
+    for i, c in enumerate(phonemes):
+        if c in VOWELS:
+            return phonemes[:i] + "ˈ" + phonemes[i:]
+    return phonemes
+
+
 def say_words(kokoro, text, speaker, lang):
     """The text one word at a time, with a pause after each word."""
     # Phonemized as a whole, so each word keeps the reading the sentence gives
-    # it ("I live here": lˈɪv), then said word by word without punctuation.
-    words = [w.strip(".,!?;:\"“”…—") for w in kokoro.tokenizer.phonemize(text, lang).split()]
-    words = [w for w in words if w]
+    # it ("I live here": lˈɪv), then every word is stressed, as when read from
+    # a list: unstressed, "the" and "a" were so short that cut out they
+    # sounded like "th".
+    words = [w.strip(".,!?;:\"“”…—") for w in kokoro.tokenizer.phonemize(text, PHONEMES[lang]).split()]
+    words = [stressed(w) for w in words if w]
     if not words or not fits(kokoro, words):
         return say(kokoro, text, speaker, lang)
     gap = np.zeros(int(WORD_GAP * 24000), dtype=np.float32)
@@ -207,7 +224,7 @@ def main():
         wav = os.path.join(tmp, "clip.wav")
         for n, item in enumerate(items, 1):
             try:
-                lang = PHONEMES[item["lang"]]
+                lang = item["lang"]
                 if item.get("words"):
                     samples = say_words(kokoro, item["text"], item["speaker"], lang)
                 else:

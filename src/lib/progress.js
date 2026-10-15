@@ -420,6 +420,35 @@ export function setDailyGoal(state, goal) {
 
 export const STORAGE_KEY = "lingo.progress.v1";
 
+// The games taught British English ("en-GB") before US English ("en"): words
+// practised then count for the same words now.
+export function mergeBritishWords(words = {}) {
+  const out = {};
+  const entries = Object.entries(words);
+  for (const [key, w] of entries) if (!key.startsWith("en-GB:")) out[key] = w;
+  for (const [key, w] of entries) {
+    if (!key.startsWith("en-GB:")) continue;
+    const us = `en:${key.slice("en-GB:".length)}`;
+    const prev = out[us];
+    if (!prev) {
+      out[us] = w;
+      continue;
+    }
+    const days = [...new Set([...(w.days || []), ...(prev.days || [])])].sort().slice(-LEARNED_AFTER_DAYS);
+    const [older, newer] = (w.last || "") > (prev.last || "") ? [prev, w] : [w, prev];
+    out[us] = {
+      solved: (prev.solved || 0) + (w.solved || 0),
+      lost: (prev.lost || 0) + (w.lost || 0),
+      days,
+      ms: (prev.ms || 0) + (w.ms || 0),
+      timed: (prev.timed || 0) + (w.timed || 0),
+      recent: ((older.recent || "") + (newer.recent || "")).slice(-RECENT_LENGTH),
+      last: newer.last ?? older.last,
+    };
+  }
+  return out;
+}
+
 export function loadProgress(storage = globalThis.localStorage) {
   try {
     const raw = storage?.getItem(STORAGE_KEY);
@@ -434,6 +463,7 @@ export function loadProgress(storage = globalThis.localStorage) {
       stats: { ...base.stats, ...parsed.stats },
       shop: { ...base.shop, ...parsed.shop, equipped: { ...base.shop.equipped, ...parsed.shop?.equipped } },
     };
+    loaded.words = mergeBritishWords(loaded.words);
     // Saves from before gems: items already bought stay, and the learner gets
     // the gems they would have earned so far. (The old `spent` was XP.)
     if (typeof parsed.shop?.gems !== "number") {

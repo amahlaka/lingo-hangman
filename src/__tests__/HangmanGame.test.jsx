@@ -43,7 +43,7 @@ describe("HangmanGame", () => {
     expect(JSON.parse(storage.data[STORAGE_KEY]).xp).toBe(27);
     expect(screen.getByText("New badge: First word.")).toBeInTheDocument();
     fireEvent.keyDown(window, { key: "Enter", code: "Enter" });
-    expect(screen.getByText("You've practised every word in this set.")).toBeInTheDocument();
+    expect(screen.getByText("You've practiced every word in this set.")).toBeInTheDocument();
   });
 
   it("shows the Finnish meaning under the word once it is done, and lists the set at the end", () => {

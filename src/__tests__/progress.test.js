@@ -4,6 +4,7 @@ import {
   emptyProgress,
   learnedWordCount,
   levelInfo,
+  loadProgress,
   recordWord,
   setDailyGoal,
   streakStatus,
@@ -90,5 +91,25 @@ describe("progress rules", () => {
   it("adds days across month ends", () => {
     expect(addDays("2026-10-31", 1)).toBe("2026-11-01");
     expect(addDays("2026-03-01", -1)).toBe("2026-02-28");
+  });
+});
+
+describe("saves from the British English days", () => {
+  it("counts words practised as en-GB for the same words in US English", () => {
+    const words = {
+      "en-GB:cat": { solved: 2, lost: 1, days: ["2026-10-01", "2026-10-02"], ms: 3000, timed: 2, recent: "11", last: "2026-10-02" },
+      "en:cat": { solved: 1, lost: 0, days: ["2026-10-14"], ms: 1000, timed: 1, recent: "0", last: "2026-10-14" },
+      "en-GB:dog": { solved: 1, lost: 0, days: ["2026-10-03"], recent: "1", last: "2026-10-03" },
+      "fi:kissa": { solved: 1, lost: 0, days: [] },
+    };
+    const store = { getItem: () => JSON.stringify({ ...emptyProgress(), words }) };
+    expect(loadProgress(store).words).toEqual({
+      "en:cat": {
+        solved: 3, lost: 1, days: ["2026-10-01", "2026-10-02", "2026-10-14"],
+        ms: 4000, timed: 3, recent: "110", last: "2026-10-14",
+      },
+      "en:dog": words["en-GB:dog"],
+      "fi:kissa": words["fi:kissa"],
+    });
   });
 });

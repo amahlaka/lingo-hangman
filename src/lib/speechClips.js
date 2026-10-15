@@ -51,9 +51,10 @@ export function clipKey(text, lang = "en-GB") {
 }
 
 // The slow, word-by-word clip of a text (each word on its own, with a pause
-// after it) has its own key.
+// after it) has its own key. The number changes when the way these clips are
+// made changes, so only they are made again (2: each word stressed).
 export function wordsKey(text, lang = "en-GB") {
-  return clipKey(text, `${lang}+words`);
+  return clipKey(text, `${lang}+words2`);
 }
 
 const MARKED = /^([^[\]]*)\[([^[\]]+)\]([^[\]]*)$/;

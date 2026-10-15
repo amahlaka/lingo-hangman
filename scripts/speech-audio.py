@@ -19,8 +19,8 @@ again where the model's own timings say the text starts and ends.
 
 An item with `ipa` (the word base's British IPA) is read from that instead of
 the phonemizer's guess, which matters for words like "live". An item with
-`words` is the slow version of a sentence: each word said on its own with a
-pause after it, using the sounds the phonemizer gave it in the sentence.
+`words` is the slow version of a sentence: each word said on its own, stressed,
+with a pause after it, using the sounds the phonemizer gave it in the sentence.
 """
 
 import argparse
@@ -169,12 +169,26 @@ def say(kokoro, text, speaker, lang, ipa=None):
     return say_parts(kokoro, [phonemes], speaker)[0]
 
 
+def stressed(phonemes):
+    """A word's phonemes with main stress, as when it is said on its own."""
+    if "ˈ" in phonemes:
+        return phonemes
+    if "ˌ" in phonemes:
+        return phonemes.replace("ˌ", "ˈ", 1)
+    for i, c in enumerate(phonemes):
+        if c in VOWELS:
+            return phonemes[:i] + "ˈ" + phonemes[i:]
+    return phonemes
+
+
 def say_words(kokoro, text, speaker, lang):
     """The text one word at a time, with a pause after each word."""
     # Phonemized as a whole, so each word keeps the reading the sentence gives
-    # it ("I live here": lˈɪv), then said word by word without punctuation.
+    # it ("I live here": lˈɪv), then every word is stressed, as when read from
+    # a list: unstressed, "the" and "a" were so short that cut out they
+    # sounded like "th".
     words = [w.strip(".,!?;:\"“”…—") for w in kokoro.tokenizer.phonemize(text, lang).split()]
-    words = [w for w in words if w]
+    words = [stressed(w) for w in words if w]
     if not words or not fits(kokoro, words):
         return say(kokoro, text, speaker, lang)
     gap = np.zeros(int(WORD_GAP * 24000), dtype=np.float32)

@@ -19,6 +19,9 @@ const i18n = {
     typeColorsHint: "Verbs green, nouns blue and so on, in every game that knows the word types.",
     typeHelpLabel: "Help with easy sentences",
     typeHelpHint: "When easy sentences have been hard lately, games show their word types for free.",
+    advancedTitle: "For testing",
+    micDebugLabel: "Microphone debug mode",
+    micDebugHint: "Shows the microphone's input level, what speech recognition hears, and lets you choose how and in which language it listens in \"Say it\".",
     // Word classes and sentence roles (src/lib/wordTypes.js)
     wordTypes: {
       noun: "noun", pronoun: "pronoun", verb: "verb", auxiliary: "helper verb", adjective: "adjective",
@@ -449,6 +452,9 @@ const i18n = {
     typeColorsHint: "Verbit vihreällä, substantiivit sinisellä ja niin edelleen kaikissa peleissä, jotka tuntevat sanaluokat.",
     typeHelpLabel: "Apua helppoihin lauseisiin",
     typeHelpHint: "Kun helpot lauseet ovat viime aikoina tuntuneet vaikeilta, pelit näyttävät niiden sanaluokat ilmaiseksi.",
+    advancedTitle: "Testaukseen",
+    micDebugLabel: "Mikrofonin vianetsintätila",
+    micDebugHint: "Näyttää \"Sano se\" -pelissä mikrofonin äänitason ja mitä puheentunnistus kuulee, ja antaa valita, miten ja millä kielellä se kuuntelee.",
     wordTypes: {
       noun: "substantiivi", pronoun: "pronomini", verb: "verbi", auxiliary: "apuverbi", adjective: "adjektiivi",
       adverb: "adverbi", article: "artikkeli", preposition: "prepositio", conjunction: "konjunktio",

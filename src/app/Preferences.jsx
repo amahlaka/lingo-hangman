@@ -4,6 +4,7 @@ import { useSettings } from "./SettingsContext";
 import { GameScreen, typeClass } from "../components/lingo";
 import { ALL_CATEGORIES, categoryLabels } from "../lib/words";
 import { DIFFICULTIES, getPreferences, onPreferencesChange, resetPreferences, setPreferences } from "../lib/preferences";
+import { setMicDebug, useMicDebug } from "../lib/micDebug";
 
 // Focus areas, difficulty and word-type settings for every game
 // (src/lib/preferences.js). All optional; games fall back to all words when
@@ -11,6 +12,7 @@ import { DIFFICULTIES, getPreferences, onPreferencesChange, resetPreferences, se
 export default function Preferences() {
   const { t, lang } = useSettings();
   const [prefs, setPrefs] = useState(getPreferences);
+  const micDebug = useMicDebug();
   useEffect(() => onPreferencesChange(setPrefs), []);
 
   const labels = categoryLabels(lang);
@@ -91,6 +93,22 @@ export default function Preferences() {
                 </button>
               );
             })}
+          </div>
+        </section>
+
+        <section className="lg-section">
+          <h2 className="lg-heading">{t.advancedTitle}</h2>
+          <div className="lg-pref">
+            <button
+              type="button"
+              className={`lg-chip ${micDebug.on ? "lg-chip--on" : ""}`}
+              aria-pressed={micDebug.on}
+              onClick={() => setMicDebug({ on: !micDebug.on })}
+            >
+              <span className="lg-chip__mark" aria-hidden="true">{micDebug.on ? "✓" : ""}</span>
+              {t.micDebugLabel}
+            </button>
+            <p className="lg-caption">{t.micDebugHint}</p>
           </div>
         </section>
 

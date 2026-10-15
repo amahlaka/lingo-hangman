@@ -48,9 +48,11 @@ export async function installOnDevice(lang) {
 // { alternatives: [text…], error } once the browser stops listening, where
 // error is the browser's code ("no-speech", "not-allowed", "audio-capture" …)
 // or null. `stop` ends listening early and keeps what was heard; `abort`
-// throws it away.
-export function listenOnce({ lang = "en-GB", onDevice = false, onSound } = {}) {
+// throws it away. `onEvent(type, detail)`, used by the mic debug panel,
+// hears every recogniser event.
+export function listenOnce({ lang = "en-GB", onDevice = false, onSound, onEvent } = {}) {
   const Ctor = recognitionCtor();
+  const log = (type, detail) => onEvent && onEvent(type, detail);
   if (!Ctor) return { done: Promise.resolve({ alternatives: [], error: "unsupported" }), stop() {}, abort() {} };
 
   const rec = new Ctor();
@@ -68,21 +70,37 @@ export function listenOnce({ lang = "en-GB", onDevice = false, onSound } = {}) {
       const results = Array.from(event.results || []);
       const last = results[results.length - 1];
       if (last) alternatives = Array.from(last).map((a) => a.transcript).filter(Boolean);
+      if (last) log("result", { alternatives: Array.from(last).map((a) => ({ transcript: a.transcript, confidence: a.confidence })) });
     };
     rec.onerror = (event) => {
       error = event.error || "unknown";
+      log("error", { error, message: event.message || "" });
     };
-    rec.onsoundstart = () => onSound && onSound();
+    rec.onsoundstart = () => {
+      log("soundstart");
+      if (onSound) onSound();
+    };
+    if (onEvent) {
+      ["audiostart", "speechstart", "speechend", "soundend", "audioend", "nomatch"].forEach((type) => {
+        rec[`on${type}`] = () => log(type);
+      });
+    }
     rec.onend = () => {
       clearTimeout(timer);
+      log("end", { alternatives, error: alternatives.length ? null : error });
       resolve({ alternatives, error: alternatives.length ? null : error });
     };
   });
 
   try {
+    log("start", { lang: rec.lang, onDevice });
     rec.start();
-    timer = setTimeout(() => rec.stop(), LISTEN_TIMEOUT_MS);
-  } catch {
+    timer = setTimeout(() => {
+      log("timeout");
+      rec.stop();
+    }, LISTEN_TIMEOUT_MS);
+  } catch (e) {
+    log("error", { error: "start-failed", message: e?.message || "" });
     return { done: Promise.resolve({ alternatives: [], error: "start-failed" }), stop() {}, abort() {} };
   }
   return {

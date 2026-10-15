@@ -60,7 +60,7 @@ For production, additionally:
 
 1. `apply-nginx-conf.sh` reads the upload as the deploy user (so it can't point at a root-only file), refuses any config that could reach beyond the static folders (`*_pass`, `include`, `upstream`, `resolver`, `mirror`, modules, or `root`/`alias` outside `/srv/`), then checks it with `nginx -t` in a throwaway container with the same image and mounts. The deploy key can already change the site's files; this keeps it from doing more, such as exposing other containers on the proxy network.
 2. If it passes, the script backs up the live config (`nginx.conf.auto-<date>`, newest ten kept), writes the new one over it and reloads nginx. If it fails, nothing changes.
-3. The outcome goes to `nginx-status/result.txt`, which the deploy user can read but not write. The workflow waits for it and fails the run, before switching the release, if the config was rejected.
+3. The outcome goes to `nginx-status/result.txt`, written as the deploy user: the folder is inside one that user owns, so a root write there could be redirected to any file. The workflow waits for it and fails the run, before switching the release, if the config was rejected.
 
 Rolling back a release with an older commit rolls the config back too. Settings that differ per server belong in the repo copy, so check `diff` against the live file before the first deploy.
 
@@ -70,7 +70,7 @@ Install once, as root:
 install -m 755 deploy/preview/apply-nginx-conf.sh /usr/local/sbin/lingo-apply-nginx-conf
 install -m 644 deploy/preview/lingo-nginx-conf.service deploy/preview/lingo-nginx-conf.timer /etc/systemd/system/
 install -d -o prod-deploy -g prod-deploy -m 755 /srv/lingo-prod/nginx   # the deploy user's upload folder
-install -d -o root -g root -m 755 /srv/lingo-prod/nginx-status          # results, read-only for it
+install -d -o prod-deploy -g prod-deploy -m 755 /srv/lingo-prod/nginx-status   # results
 systemctl daemon-reload && systemctl enable --now lingo-nginx-conf.timer
 ```
 

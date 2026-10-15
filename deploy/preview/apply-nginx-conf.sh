@@ -14,9 +14,11 @@
 # the static folders: no *_pass to other containers or hosts, no include,
 # upstream, resolver, mirror or modules, and root/alias only under /srv/.
 #
-# The outcome goes to $STATUS/result.txt (a folder the deploy user can read
-# but not write): "<sha256 of the uploaded file> ok" or "... failed", then
-# nginx's message. The workflow waits for the line with its file's checksum.
+# The outcome goes to $STATUS/result.txt: "<sha256 of the uploaded file> ok"
+# or "... failed", then nginx's message. The workflow waits for the line with
+# its file's checksum. It is read and written as the deploy user too: the
+# folder sits in one that user owns, so it can swap it for its own with links
+# in it, and a root write there could land on any file.
 #
 # Install: see docs/preview-deployments.md ("Config deploys").
 set -eu
@@ -40,15 +42,14 @@ runuser -u "$DEPLOY_USER" -- cat "$upload" > "$work/candidate.conf"
 sum=$(sha256sum "$work/candidate.conf" | cut -d' ' -f1)
 
 # Already handled this exact file.
-if [ -f "$STATUS/result.txt" ] && head -n1 "$STATUS/result.txt" | grep -q "^$sum "; then
+if runuser -u "$DEPLOY_USER" -- head -n1 "$STATUS/result.txt" 2>/dev/null | grep -q "^$sum "; then
   exit 0
 fi
 
 report() {
-  install -d -m 755 "$STATUS"
-  { echo "$sum $1"; shift; printf '%s\n' "$@"; } > "$STATUS/result.txt.tmp"
-  chmod 644 "$STATUS/result.txt.tmp"
-  mv -f "$STATUS/result.txt.tmp" "$STATUS/result.txt"
+  { echo "$sum $1"; shift; printf '%s\n' "$@"; } | runuser -u "$DEPLOY_USER" -- sh -c '
+    umask 022 && mkdir -p "$1" && cat > "$1/result.txt.tmp" && mv -f "$1/result.txt.tmp" "$1/result.txt"
+  ' sh "$STATUS"
 }
 
 if cmp -s "$work/candidate.conf" "$LIVE"; then

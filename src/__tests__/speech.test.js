@@ -5,12 +5,12 @@ import { clipKey, spokenTexts, wordByWordTexts, wordsKey } from '../lib/speechCl
 import { RATE_SLOW, loadSpeechClips, resetSpeechClips, setSpeechVoice, speak, speakWords, stopSpeaking } from '../lib/speech';
 
 describe('spokenTexts', () => {
-  const texts = new Set(spokenTexts(getContent().raw, 'en-GB').values());
+  const texts = new Set(spokenTexts(getContent().raw, 'en').values());
 
   it('has a clip for everything the games say from the word base', () => {
     const said = [
-      ...filterCommonWords({ learningLang: 'en-GB', nativeLang: 'fi' }).map((w) => w.learning),
-      ...getSentences({ learningLang: 'en-GB', nativeLang: 'fi' }).map((s) => s.learning),
+      ...filterCommonWords({ learningLang: 'en', nativeLang: 'fi' }).map((w) => w.learning),
+      ...getSentences({ learningLang: 'en', nativeLang: 'fi' }).map((s) => s.learning),
       ...getSoundLessons().flatMap((l) => lessonWords(l).map((w) => w.speak)),
     ];
     expect(said.length).toBeGreaterThan(100);
@@ -18,29 +18,29 @@ describe('spokenTexts', () => {
   });
 
   it('has a word-by-word clip for every text of more than one word', () => {
-    const slow = wordByWordTexts(getContent().raw, 'en-GB');
+    const slow = wordByWordTexts(getContent().raw, 'en');
     const long = [...texts].filter((t) => t.includes(' '));
     expect(long.length).toBeGreaterThan(50);
-    expect(long.filter((t) => !slow.has(wordsKey(t, 'en-GB')))).toEqual([]);
+    expect(long.filter((t) => !slow.has(wordsKey(t, 'en')))).toEqual([]);
     expect([...slow.values()].some((t) => !t.includes(' '))).toBe(false);
     expect(wordsKey('bus stop')).not.toBe(clipKey('bus stop'));
   });
 
   it('keys ignore spacing but not the accent', () => {
-    expect(clipKey(' knife  ', 'en-GB')).toBe(clipKey('knife', 'en-GB'));
-    expect(clipKey('knife', 'en-GB')).not.toBe(clipKey('knife', 'en-US'));
+    expect(clipKey(' knife  ', 'en')).toBe(clipKey('knife', 'en'));
+    expect(clipKey('knife', 'en')).not.toBe(clipKey('knife', 'en-GB'));
     expect(clipKey('knife')).toMatch(/^[0-9a-z]+$/);
   });
 });
 
 describe('sentenceFor', () => {
   it('gives a recorded sentence that uses the word', () => {
-    const word = filterCommonWords({ learningLang: 'en-GB', nativeLang: 'fi' })
+    const word = filterCommonWords({ learningLang: 'en', nativeLang: 'fi' })
       .map((w) => w.learning)
       .find((w) => !w.includes(' ') && sentenceFor(w));
     const sentence = sentenceFor(word);
     expect(sentence.toLowerCase()).toContain(word.toLowerCase());
-    expect(spokenTexts(getContent().raw, 'en-GB').has(clipKey(sentence))).toBe(true);
+    expect(spokenTexts(getContent().raw, 'en').has(clipKey(sentence))).toBe(true);
   });
 
   it('has nothing for phrases or unknown words', () => {
@@ -53,7 +53,7 @@ describe('sentenceFor', () => {
 describe('speak', () => {
   let spoken;
   let players;
-  const knife = clipKey('knife', 'en-GB');
+  const knife = clipKey('knife', 'en');
 
   function install({ play = () => Promise.resolve() } = {}) {
     spoken = [];
@@ -69,10 +69,10 @@ describe('speak', () => {
     };
   }
 
-  const EMMA = 'kokoro-1.0-v3-bf_emma';
-  const GEORGE = 'kokoro-1.0-v3-bm_george';
+  const NOVA = 'kokoro-1.0-v4-af_nova';
+  const LIAM = 'kokoro-1.0-v4-am_liam';
   const fetchImpl = (keys, male = keys) =>
-    jest.fn(async () => ({ ok: true, json: async () => ({ voices: { [EMMA]: keys, [GEORGE]: male } }) }));
+    jest.fn(async () => ({ ok: true, json: async () => ({ voices: { [NOVA]: keys, [LIAM]: male } }) }));
   const flush = () => new Promise((r) => setTimeout(r, 0));
 
   afterEach(() => {
@@ -89,7 +89,7 @@ describe('speak', () => {
     expect(fetch).toHaveBeenCalledWith('/content/audio/index.json', { cache: 'no-cache' });
     expect(speak('knife')).toBe(true);
     await flush();
-    expect(players[0].played).toEqual([`/content/audio/${EMMA}/${knife}.mp3`]);
+    expect(players[0].played).toEqual([`/content/audio/${NOVA}/${knife}.mp3`]);
     expect(players[0].playbackRate).toBe(1);
     expect(spoken).toEqual([]);
 
@@ -103,7 +103,7 @@ describe('speak', () => {
     await loadSpeechClips({ fetchImpl: fetchImpl([knife], [knife]) });
     setSpeechVoice('male');
     speak('knife');
-    expect(players[0].played).toEqual([`/content/audio/${GEORGE}/${knife}.mp3`]);
+    expect(players[0].played).toEqual([`/content/audio/${LIAM}/${knife}.mp3`]);
   });
 
   it('uses the browser voice when the picked voice has no clip yet', async () => {
@@ -119,8 +119,8 @@ describe('speak', () => {
     install();
     await loadSpeechClips({ fetchImpl: fetchImpl([knife]) });
     speak('fork');
-    speak('knife', { lang: 'en' });
-    expect(spoken.map((u) => [u.text, u.lang])).toEqual([['fork', 'en-GB'], ['knife', 'en-US']]);
+    speak('knife', { lang: 'en-GB' });
+    expect(spoken.map((u) => [u.text, u.lang])).toEqual([['fork', 'en-US'], ['knife', 'en-GB']]);
     expect(players).toEqual([]);
   });
 
@@ -152,10 +152,10 @@ describe('speak', () => {
 
   it('plays the word-by-word clip of a sentence', async () => {
     install();
-    const slow = wordsKey('I live here.', 'en-GB');
+    const slow = wordsKey('I live here.', 'en');
     await loadSpeechClips({ fetchImpl: fetchImpl([slow]) });
     expect(speakWords('I live here.')).toBe(true);
-    expect(players[0].played).toEqual([`/content/audio/${EMMA}/${slow}.mp3`]);
+    expect(players[0].played).toEqual([`/content/audio/${NOVA}/${slow}.mp3`]);
     expect(players[0].playbackRate).toBe(1);
   });
 

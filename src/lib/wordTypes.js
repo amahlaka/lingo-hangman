@@ -217,7 +217,7 @@ function buildLexicon() {
       for (const ex of typedExamples(item)) ex.words.forEach((w, i) => count(w, ex.types[i].cls));
     }
     if (item.type !== "word") continue;
-    const en = item.text?.["en-GB"] || item.text?.en;
+    const en = item.text?.en || item.text?.["en-GB"];
     if (!en) continue;
     const words = sentenceWords(en);
     const cls = POS_CLASS[item.pos] || item.pos;

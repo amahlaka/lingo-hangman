@@ -49,7 +49,7 @@ export function quickTargets({
   topics = { rule: [], confusable: [] },
   lessons = [],
   groups = [],
-  learningLang = "en-GB",
+  learningLang = "en",
   nativeLang = "fi",
   withSound = true,
 }) {

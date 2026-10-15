@@ -128,9 +128,9 @@ export default function SayQuestion({
   };
 
   // The word bank's IPA, always shown, and its reading in the learner's own
-  // language ("wooter"), shown once paid for or answered.
+  // language ("waader"), shown once paid for or answered.
   const item = getItem(word.id);
-  const ipa = item?.ipa?.[learningLang] || item?.ipa?.["en-GB"];
+  const ipa = item?.ipa?.[learningLang] || item?.ipa?.en;
   const reading = item?.say?.[nativeLang];
   const isPhrase = text.trim().includes(" ");
   const listening = state === "listening";

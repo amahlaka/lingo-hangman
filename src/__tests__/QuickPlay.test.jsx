@@ -63,7 +63,7 @@ describe("Profile", () => {
     expect(screen.getByRole("heading", { name: "Skills" })).toBeInTheDocument();
     expect(screen.getAllByText("Vocabulary").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Strong").length).toBeGreaterThan(0);
-    expect(screen.getByRole("heading", { name: "Worth practising" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Worth practicing" })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Use this difficulty" }));
     expect(screen.getByRole("status")).toHaveTextContent("Saved.");
   });

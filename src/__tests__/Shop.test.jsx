@@ -12,7 +12,7 @@ describe("Shop", () => {
   it("links from home with the balance", () => {
     renderApp("/", { storage: saved(120) });
     fireEvent.click(screen.getByRole("link", { name: /120 gems to spend/ }));
-    expect(screen.getByRole("heading", { name: "Colour" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Color" })).toBeInTheDocument();
   });
 
   it("buys an accent colour and applies it", () => {

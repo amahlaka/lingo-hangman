@@ -128,7 +128,7 @@ export function buildSoundRound(lessons, { setId = null, count = ROUND_LENGTH, w
 
 // How many words of a lesson have been solved at least once, from progress
 // state (src/lib/progress.js).
-export function lessonProgress(lesson, progressState, lang = "en-GB") {
+export function lessonProgress(lesson, progressState, lang = "en") {
   const words = lessonWords(lesson);
   const solved = words.filter((w) => (progressState?.words?.[wordKey(w.text, lang)]?.solved || 0) > 0).length;
   return { solved, total: words.length };

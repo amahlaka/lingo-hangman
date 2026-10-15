@@ -49,7 +49,7 @@ export async function installOnDevice(lang) {
 // error is the browser's code ("no-speech", "not-allowed", "audio-capture" …)
 // or null. `stop` ends listening early and keeps what was heard; `abort`
 // throws it away.
-export function listenOnce({ lang = "en-GB", onDevice = false, onSound } = {}) {
+export function listenOnce({ lang = "en", onDevice = false, onSound } = {}) {
   const Ctor = recognitionCtor();
   if (!Ctor) return { done: Promise.resolve({ alternatives: [], error: "unsupported" }), stop() {}, abort() {} };
 

@@ -13,11 +13,10 @@ export const AUDIO_BASE = "/content/audio/";
 // The recorded voices, picked under Settings. `speaker` is the Kokoro voice
 // (https://huggingface.co/hexgrad/Kokoro-82M). Changing a voice, the model or
 // how scripts/speech-audio.py makes clips needs a new folder name, so every
-// clip is made again (v3: clips start where the word starts, slower, words read
-// from their IPA; see that script).
+// clip is made again (v4: US English voices; see that script).
 export const VOICES = [
-  { id: "female", folder: "kokoro-1.0-v3-bf_emma", speaker: "bf_emma" },
-  { id: "male", folder: "kokoro-1.0-v3-bm_george", speaker: "bm_george" },
+  { id: "female", folder: "kokoro-1.0-v4-af_nova", speaker: "af_nova" },
+  { id: "male", folder: "kokoro-1.0-v4-am_liam", speaker: "am_liam" },
 ];
 export const DEFAULT_VOICE = "female";
 
@@ -25,8 +24,9 @@ export function voiceById(id) {
   return VOICES.find((v) => v.id === id) || VOICES.find((v) => v.id === DEFAULT_VOICE);
 }
 
-// The only accent recorded so far. Other learning languages use the browser.
-export const CLIP_LANGS = ["en-GB"];
+// The word-base languages with recorded clips: US English, the games' default.
+// Others, British English included, use the browser.
+export const CLIP_LANGS = ["en"];
 
 export function normalizeSpeech(text) {
   return typeof text === "string" ? text.trim().replace(/\s+/g, " ") : "";
@@ -46,14 +46,14 @@ function hash53(str) {
   return 4294967296 * (2097151 & h2) + (h1 >>> 0);
 }
 
-export function clipKey(text, lang = "en-GB") {
+export function clipKey(text, lang = "en") {
   return hash53(`${lang}|${normalizeSpeech(text)}`).toString(36);
 }
 
 // The slow, word-by-word clip of a text (each word on its own, with a pause
 // after it) has its own key. The number changes when the way these clips are
 // made changes, so only they are made again (2: each word stressed).
-export function wordsKey(text, lang = "en-GB") {
+export function wordsKey(text, lang = "en") {
   return clipKey(text, `${lang}+words2`);
 }
 
@@ -65,7 +65,7 @@ const MARKED = /^([^[\]]*)\[([^[\]]+)\]([^[\]]*)$/;
 //   - dictation sentences: examples, dialogue lines and filled-in gap
 //     sentences (Type it, as getSentences in ./words.js builds them)
 //   - the words of pronunciation lessons (Sounds of English)
-export function spokenTexts({ languages = [], packs = [] }, lang = "en-GB") {
+export function spokenTexts({ languages = [], packs = [] }, lang = "en") {
   const fallback = languages.find((l) => l.code === lang)?.fallback;
   const out = new Map();
   const add = (text) => {
@@ -100,7 +100,7 @@ export function spokenTexts({ languages = [], packs = [] }, lang = "en-GB") {
 
 // The texts of more than one word, which also get a word-by-word clip:
 // Map(wordsKey -> text).
-export function wordByWordTexts(content, lang = "en-GB") {
+export function wordByWordTexts(content, lang = "en") {
   const out = new Map();
   for (const text of spokenTexts(content, lang).values()) {
     if (text.split(" ").length > 1) out.set(wordsKey(text, lang), text);

@@ -44,10 +44,10 @@ describe('pickDistractors', () => {
 });
 
 describe('practicePool', () => {
-  it('uses every built-in word in British English by default and drops "My name is..."', () => {
+  it('uses every built-in word in US English by default and drops "My name is..."', () => {
     const { pairs, learningLang } = practicePool(new URLSearchParams());
-    expect(learningLang).toBe('en-GB');
-    expect(pairs.some((p) => p.learning === 'Where is the toilet?')).toBe(true);
+    expect(learningLang).toBe('en');
+    expect(pairs.some((p) => p.learning === 'Where is the bathroom?')).toBe(true);
     expect(pairs.some((p) => p.learning.includes('...'))).toBe(false);
     expect(pairs.length).toBeGreaterThan(50);
   });

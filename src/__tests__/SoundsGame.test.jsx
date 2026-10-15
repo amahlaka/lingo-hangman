@@ -161,7 +161,7 @@ describe('soundsLogic', () => {
   });
 
   it('counts lesson words solved in any game', () => {
-    const state = { words: { 'en-GB:knife': { solved: 1 }, 'en-GB:knee': { solved: 0, lost: 1 } } };
+    const state = { words: { 'en:knife': { solved: 1 }, 'en:knee': { solved: 0, lost: 1 } } };
     expect(lessonProgress(silentK, state)).toEqual({ solved: 1, total: 3 });
   });
 });
@@ -172,7 +172,7 @@ describe('Sounds of English', () => {
     fireEvent.click(screen.getByRole('link', { name: /Sounds of English/ }));
     expect(screen.getByRole('heading', { name: 'Silent letters' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Tricky letters' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /Test silent k/ })).toHaveTextContent('0 of 3 words practised');
+    expect(screen.getByRole('link', { name: /Test silent k/ })).toHaveTextContent('0 of 3 words practiced');
   });
 
   it('shows the rule in English and Finnish and reads a word aloud', () => {
@@ -200,7 +200,7 @@ describe('Sounds of English', () => {
     const lessonWordFor = silentK.words.map((w) => lessonWord(silentK, w)).find((w) => w.text === word);
     expect(screen.getByText(lessonWordFor.say)).toHaveAttribute('lang', 'fi');
     expect(screen.getByText(lessonWordFor.fi)).toHaveAttribute('lang', 'fi');
-    expect(JSON.stringify(storage.data)).toContain(`en-GB:${word}`);
+    expect(JSON.stringify(storage.data)).toContain(`en:${word}`);
   });
 
   it('practises tricky letters: pick the sound, with Finnish under each option', () => {

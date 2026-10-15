@@ -84,7 +84,7 @@ const { recordWord } = useProgress();
 const events = recordWord({
   gameId: "word-pairs",
   word: "cat",          // the English word practised
-  lang: "en-GB",        // language of `word`
+  lang: "en",           // language of `word`
   solved: true,         // false for a missed item (still earns 2 XP)
   triesLeft: 2,         // +2 XP each; use 0 if your game has no tries
   perfect: true,        // first try, no miss: +5 XP
@@ -171,10 +171,11 @@ app change. `?set=<topic id>` practises one topic, e.g.
 `stopSpeaking()`. Check `canSpeak()` and keep the game usable, or explain,
 when the browser has no voices.
 
-British English texts from the word base play recorded clips, so every device
-hears the same voice; anything else uses the browser's speech synthesis. The
-learner picks a woman's or a man's voice under Settings (`VOICES` in
-`src/lib/speechClips.js`: Kokoro "Emma" and "George").
+The games teach US English (`DEFAULT_LEARNING_LANG` "en"). Its texts from the
+word base play recorded clips, so every device hears the same voice; anything
+else, British English ("en-GB") included, uses the browser's speech synthesis.
+The learner picks a woman's or a man's voice under Settings (`VOICES` in
+`src/lib/speechClips.js`: Kokoro "Nova" and "Liam").
 `spokenTexts()` in `src/lib/speechClips.js` lists what the games can say. A
 game that reads a new kind of text aloud adds it there, or that text keeps the
 browser voice. The clips are made with the open Kokoro voice model by the
@@ -183,7 +184,7 @@ Content publish workflow, only for texts that have none yet, and served from
 `/content/audio/index.json`. A new voice, or a new folder name for one, makes
 its clips from scratch. After a change to `spokenTexts()` or
 the voices, run Content publish by hand with "force" ticked. Single words read
-from their `ipa` in the word base, so a word the voice gets wrong on its own
+from their US `ipa.en` in the word base, so a word the voice gets wrong on its own
 ("live" as in "live music") is fixed by its IPA; a clip is only made once, so
 after correcting a word's IPA, rename the voice folders to make clips again.
 Every text of more than one word also gets a slow word-by-word clip

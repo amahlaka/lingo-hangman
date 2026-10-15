@@ -15,7 +15,7 @@ describe("word sets", () => {
   it("loads a word set from URL params", () => {
     const query = buildWordsQuery({ pairs: [{ learning: "cat", native: "kissa" }], swap: true });
     const set = loadWordSet(new URLSearchParams(query));
-    expect(set).toMatchObject({ learningLang: "en-GB", nativeLang: "fi", swap: true, fromLink: true });
+    expect(set).toMatchObject({ learningLang: "en", nativeLang: "fi", swap: true, fromLink: true });
     expect(set.pairs).toEqual([{ learning: "cat", native: "kissa" }]);
   });
 
@@ -23,12 +23,13 @@ describe("word sets", () => {
     expect(loadWordSet(new URLSearchParams("words=%%%")).pairs.length).toBeGreaterThan(0);
   });
 
-  it("filters built-in words by category and uses British spelling for en-GB", () => {
+  it("filters built-in words by category, in US spelling by default and British for en-GB", () => {
     const food = filterCommonWords({ include: ["food"] });
     expect(food.length).toBeGreaterThan(0);
     expect(food.every((w) => w.categories.includes("food"))).toBe(true);
     expect(filterCommonWords({ exclude: ["food"] }).some((w) => w.categories.includes("food"))).toBe(false);
-    expect(filterCommonWords().some((w) => w.learning === "colour")).toBe(true);
+    expect(filterCommonWords().some((w) => w.learning === "color")).toBe(true);
+    expect(filterCommonWords({ learningLang: "en-GB" }).some((w) => w.learning === "colour")).toBe(true);
     expect(pickCommonWords({ count: 3 })).toHaveLength(3);
   });
 });

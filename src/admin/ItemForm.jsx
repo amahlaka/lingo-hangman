@@ -245,6 +245,11 @@ function Metadata({ item, set }) {
       <legend>Details for games and statistics (optional)</legend>
       <div className="wb-grid">
         {item.type === "word" && (
+          <Field label="IPA, US" hint="Between slashes, like /ˈwɑːt̬ɚ/.">
+            <TextInput value={item.ipa?.en} onChange={(v) => set({ ipa: { ...item.ipa, en: v } })} spellCheck={false} />
+          </Field>
+        )}
+        {item.type === "word" && (
           <Field label="IPA, British" hint="Between slashes, like /ˈwɔːtə/.">
             <TextInput value={item.ipa?.["en-GB"]} onChange={(v) => set({ ipa: { ...item.ipa, "en-GB": v } })} spellCheck={false} />
           </Field>

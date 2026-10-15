@@ -184,7 +184,7 @@ Content publish workflow, only for texts that have none yet, and served from
 its clips from scratch. After a change to `spokenTexts()` or
 the voices, run Content publish by hand with "force" ticked.
 
-To make clips on your own computer: `pip install kokoro-onnx soundfile`,
+To make clips on your own computer: `pip install kokoro-onnx onnx soundfile`,
 download `kokoro-v1.0.onnx` and `voices-v1.0.bin` (see the workflow), then
 `node scripts/speech-audio.mjs plan`, `python scripts/speech-audio.py
 audio-build/todo.json --model <folder>` and `node scripts/speech-audio.mjs

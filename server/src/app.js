@@ -4,6 +4,7 @@
 
 import Fastify from "fastify";
 import cookie from "@fastify/cookie";
+import rateLimit from "@fastify/rate-limit";
 import { schemaVersion } from "./db.js";
 import { createRateLimiter } from "./lib/rateLimit.js";
 import authRoutes from "./routes/auth.js";
@@ -23,6 +24,15 @@ export function buildApp({ db, config, logger = true, limiter = createRateLimite
   });
 
   app.register(cookie);
+
+  // A ceiling on every route per client address, under the tighter limits
+  // that sign-in and mail routes add themselves (routes/auth.js).
+  app.register(rateLimit, {
+    global: true,
+    max: config.rateLimitPerMinute,
+    timeWindow: "1 minute",
+    errorResponseBuilder: () => ({ statusCode: 429, code: "too_many_requests", message: "Too many requests" }),
+  });
 
   // Requests that change something must come from the app itself: the custom
   // header can't be sent cross-site without a CORS preflight, which this API

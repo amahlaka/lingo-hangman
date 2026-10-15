@@ -20,6 +20,8 @@ export function loadConfig(env = process.env) {
     // Requests reach the API only through the reverse proxy on the Docker
     // network, so its X-Forwarded-For is trusted from private addresses only.
     trustProxy: env.TRUST_PROXY || "loopback, linklocal, uniquelocal",
+    // Requests per minute from one address, on any route.
+    rateLimitPerMinute: Number(env.RATE_LIMIT_PER_MINUTE || 120),
 
     // Passkeys: the app's address. RP_ID is its host name, ORIGINS the full
     // https://... origins the app is served from (comma separated).

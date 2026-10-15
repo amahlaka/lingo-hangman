@@ -199,3 +199,12 @@ test("passkey registration options ask for a discoverable credential", async () 
   assert.equal(again.json().error, "challenge_expired");
   await t.close();
 });
+
+test("every route has a per-address ceiling", async () => {
+  const t = setup({ RATE_LIMIT_PER_MINUTE: "5" });
+  for (let i = 0; i < 5; i++) assert.equal((await t.call("GET", "/api/me")).statusCode, 401);
+  const res = await t.call("GET", "/api/me");
+  assert.equal(res.statusCode, 429);
+  assert.equal(res.json().error, "too_many_requests");
+  await t.close();
+});

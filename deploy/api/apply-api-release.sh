@@ -91,7 +91,13 @@ if docker inspect "$CONTAINER" >/dev/null 2>&1; then
 fi
 
 start() {
-  API_IMAGE=$IMAGE API_TAG=$1 docker compose --project-directory "$DIR" -f "$DIR/docker-compose.yml" \
+  # Server-only settings (for example extra_hosts for the mail server) live
+  # in an optional docker-compose.override.yml next to the compose file.
+  set -- "$1" -f "$DIR/docker-compose.yml"
+  [ -f "$DIR/docker-compose.override.yml" ] && set -- "$@" -f "$DIR/docker-compose.override.yml"
+  start_tag=$1
+  shift
+  API_IMAGE=$IMAGE API_TAG=$start_tag docker compose --project-directory "$DIR" "$@" \
     up -d --pull never --remove-orphans >"$work/up.log" 2>&1
 }
 

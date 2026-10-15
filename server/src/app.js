@@ -3,17 +3,36 @@
 // path of the app's own address here, so the app calls it same-origin.
 
 import Fastify from "fastify";
+import cookie from "@fastify/cookie";
 import { schemaVersion } from "./db.js";
+import { createRateLimiter } from "./lib/rateLimit.js";
+import authRoutes from "./routes/auth.js";
+import accountRoutes from "./routes/account.js";
 
-export function buildApp({ db, config, logger = true }) {
+const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
+
+export function buildApp({ db, config, logger = true, limiter = createRateLimiter() }) {
   const app = Fastify({
     logger: logger && {
       level: config.logLevel,
-      // Never log cookies or auth headers; later phases add codes and tokens.
-      redact: ["req.headers.cookie", "req.headers.authorization", "req.headers['x-api-key']"],
+      // Never log cookies or auth headers.
+      redact: ["req.headers.cookie", "req.headers.authorization", "req.headers['x-api-key']", 'res.headers["set-cookie"]'],
     },
     trustProxy: config.trustProxy,
     bodyLimit: 64 * 1024,
+  });
+
+  app.register(cookie);
+
+  // Requests that change something must come from the app itself: the custom
+  // header can't be sent cross-site without a CORS preflight, which this API
+  // never allows, and a browser's Origin must be one of the app's.
+  app.addHook("onRequest", async (req, reply) => {
+    if (SAFE_METHODS.has(req.method)) return;
+    const origin = req.headers.origin;
+    if (req.headers["x-lingo"] !== "1" || (origin && !config.origins.includes(origin))) {
+      return reply.code(403).send({ error: "forbidden" });
+    }
   });
 
   app.addHook("onSend", async (req, reply) => {
@@ -35,6 +54,9 @@ export function buildApp({ db, config, logger = true }) {
     reply.code(dbOk ? 200 : 503);
     return { ok: dbOk, version: config.version, schema };
   });
+
+  app.register(authRoutes, { db, config, limiter });
+  app.register(accountRoutes, { db, config });
 
   app.setNotFoundHandler((req, reply) => {
     reply.code(404).send({ error: "not_found" });

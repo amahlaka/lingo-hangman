@@ -1,8 +1,8 @@
 import { getContent } from '../lib/content';
-import { getSentences, getSoundLessons, filterCommonWords } from '../lib/words';
+import { getSentences, getSoundLessons, filterCommonWords, sentenceFor } from '../lib/words';
 import { lessonWords } from '../games/sounds/soundsLogic';
-import { clipKey, spokenTexts } from '../lib/speechClips';
-import { RATE_SLOW, loadSpeechClips, resetSpeechClips, setSpeechVoice, speak, stopSpeaking } from '../lib/speech';
+import { clipKey, spokenTexts, wordByWordTexts, wordsKey } from '../lib/speechClips';
+import { RATE_SLOW, loadSpeechClips, resetSpeechClips, setSpeechVoice, speak, speakWords, stopSpeaking } from '../lib/speech';
 
 describe('spokenTexts', () => {
   const texts = new Set(spokenTexts(getContent().raw, 'en-GB').values());
@@ -17,10 +17,36 @@ describe('spokenTexts', () => {
     expect(said.filter((t) => !texts.has(t.trim().replace(/\s+/g, ' ')))).toEqual([]);
   });
 
+  it('has a word-by-word clip for every text of more than one word', () => {
+    const slow = wordByWordTexts(getContent().raw, 'en-GB');
+    const long = [...texts].filter((t) => t.includes(' '));
+    expect(long.length).toBeGreaterThan(50);
+    expect(long.filter((t) => !slow.has(wordsKey(t, 'en-GB')))).toEqual([]);
+    expect([...slow.values()].some((t) => !t.includes(' '))).toBe(false);
+    expect(wordsKey('bus stop')).not.toBe(clipKey('bus stop'));
+  });
+
   it('keys ignore spacing but not the accent', () => {
     expect(clipKey(' knife  ', 'en-GB')).toBe(clipKey('knife', 'en-GB'));
     expect(clipKey('knife', 'en-GB')).not.toBe(clipKey('knife', 'en-US'));
     expect(clipKey('knife')).toMatch(/^[0-9a-z]+$/);
+  });
+});
+
+describe('sentenceFor', () => {
+  it('gives a recorded sentence that uses the word', () => {
+    const word = filterCommonWords({ learningLang: 'en-GB', nativeLang: 'fi' })
+      .map((w) => w.learning)
+      .find((w) => !w.includes(' ') && sentenceFor(w));
+    const sentence = sentenceFor(word);
+    expect(sentence.toLowerCase()).toContain(word.toLowerCase());
+    expect(spokenTexts(getContent().raw, 'en-GB').has(clipKey(sentence))).toBe(true);
+  });
+
+  it('has nothing for phrases or unknown words', () => {
+    expect(sentenceFor('bus stop')).toBeNull();
+    expect(sentenceFor('zzzqx')).toBeNull();
+    expect(sentenceFor('')).toBeNull();
   });
 });
 
@@ -43,8 +69,8 @@ describe('speak', () => {
     };
   }
 
-  const EMMA = 'kokoro-1.0-v2-bf_emma';
-  const GEORGE = 'kokoro-1.0-v2-bm_george';
+  const EMMA = 'kokoro-1.0-v3-bf_emma';
+  const GEORGE = 'kokoro-1.0-v3-bm_george';
   const fetchImpl = (keys, male = keys) =>
     jest.fn(async () => ({ ok: true, json: async () => ({ voices: { [EMMA]: keys, [GEORGE]: male } }) }));
   const flush = () => new Promise((r) => setTimeout(r, 0));
@@ -122,6 +148,22 @@ describe('speak', () => {
     document.dispatchEvent(new Event('pointerdown'));
     document.dispatchEvent(new Event('pointerdown'));
     expect(players[0].played).toEqual(['/silence.mp3']);
+  });
+
+  it('plays the word-by-word clip of a sentence', async () => {
+    install();
+    const slow = wordsKey('I live here.', 'en-GB');
+    await loadSpeechClips({ fetchImpl: fetchImpl([slow]) });
+    expect(speakWords('I live here.')).toBe(true);
+    expect(players[0].played).toEqual([`/content/audio/${EMMA}/${slow}.mp3`]);
+    expect(players[0].playbackRate).toBe(1);
+  });
+
+  it('says each word on its own with the browser voice when there is no word-by-word clip', async () => {
+    install();
+    await loadSpeechClips({ fetchImpl: fetchImpl([]) });
+    speakWords('I live  here.');
+    expect(spoken.map((u) => [u.text, u.rate])).toEqual([['I', RATE_SLOW], ['live', RATE_SLOW], ['here.', RATE_SLOW]]);
   });
 
   it('keeps the browser voice when the clip list is missing', async () => {

@@ -271,5 +271,24 @@ export function getSentences({
   return preferences ? applyPreferences(out, { textOf: (s) => s.learning }) : out;
 }
 
+// A sentence from the word bank that uses `word`, to hear it in context: one
+// of the word's own examples when it has any, otherwise any sentence with the
+// word in it. A different one each call when there are several; null when
+// there are none (or `word` is more than one word).
+export function sentenceFor(word, learningLang = DEFAULT_LEARNING_LANG) {
+  const target = typeof word === "string" ? word.trim().toLowerCase() : "";
+  if (!target || /\s/.test(target)) return null;
+  const item = wordItems().find((w) => wordIn(w, learningLang)?.trim().toLowerCase() === target);
+  const own = (item?.examples || [])
+    .map((ex) => ex[learningLang] || (learningLang.startsWith("en") ? ex.en : undefined))
+    .filter(Boolean);
+  const pool = own.length
+    ? own
+    : getSentences({ learningLang })
+        .map((s) => s.learning)
+        .filter((s) => s.toLowerCase().split(/[^\p{L}'’-]+/u).includes(target));
+  return pool.length ? pool[Math.floor(Math.random() * pool.length)] : null;
+}
+
 refresh(getContent());
 onContentChange(refresh);

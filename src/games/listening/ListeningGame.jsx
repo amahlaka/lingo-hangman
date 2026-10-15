@@ -6,6 +6,7 @@ import i18n from "../../i18n";
 import { Feedback, GameScreen } from "../../components/lingo";
 import PracticeSession from "../practice/PracticeSession";
 import ChoiceQuestion from "../practice/ChoiceQuestion";
+import ListenMore from "../practice/ListenMore";
 import { buildChoiceQuestion, buildRound, practicePool, wordCount } from "../practice/practiceLogic";
 import { RATE_SLOW, canSpeak, speak, stopSpeaking } from "../../lib/speech";
 
@@ -26,6 +27,7 @@ export function ListenPrompt({ text, lang, p }) {
       <button type="button" className="lg-btn lg-btn--quiet" onClick={() => speak(text, { lang, rate: RATE_SLOW })}>
         {p.listenSlowly}
       </button>
+      <ListenMore text={text} lang={lang} p={p} />
     </div>
   );
 }

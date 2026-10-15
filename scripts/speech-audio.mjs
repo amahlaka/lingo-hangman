@@ -4,8 +4,10 @@
 //   node scripts/speech-audio.mjs plan   [--live URL] [--out DIR]
 //   node scripts/speech-audio.mjs finish [--live URL] [--out DIR]
 //
-// plan    lists every text the games say (src/lib/speechClips.js) in every
-//         voice and writes DIR/todo.json with the ones that have no clip yet:
+// plan    lists every text the games say (src/lib/speechClips.js), and the
+//         word-by-word version of each one longer than a word, in every
+//         voice, with the word base's IPA for words that have it, and writes
+//         DIR/todo.json with the ones that have no clip yet:
 //         none on the live site at URL (if given) and none already in
 //         DIR/<voice folder>/.
 // finish  writes DIR/index.json: per voice, the keys of every clip that is now
@@ -15,7 +17,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { CLIP_LANGS, VOICES, spokenTexts } from "../src/lib/speechClips.js";
+import { CLIP_LANGS, VOICES, clipKey, spokenTexts, wordByWordTexts } from "../src/lib/speechClips.js";
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const args = process.argv.slice(2);
@@ -34,10 +36,37 @@ const content = {
   packs: index.packs.map((id) => readJson(`packs/${id}.json`)),
 };
 
-// key -> { text, lang }
+// key -> { text, lang, ipa?, words? }
 const wanted = new Map();
 for (const lang of CLIP_LANGS) {
   for (const [key, text] of spokenTexts(content, lang)) wanted.set(key, { text, lang });
+  for (const [key, text] of wordByWordTexts(content, lang)) wanted.set(key, { text, lang, words: true });
+}
+
+// Single words with IPA in the word base are read from it, because on its own
+// a word can be ambiguous to the voice ("live" alone comes out as in "live
+// music"). Phrases and sentences give the voice context (and IPA would drop
+// their punctuation, so a question wouldn't sound like one). A word two
+// entries give different IPA for keeps the voice's own guess.
+for (const lang of CLIP_LANGS) {
+  const fallback = content.languages.find((l) => l.code === lang)?.fallback;
+  const clash = new Set();
+  for (const pack of content.packs) {
+    for (const item of pack.items || []) {
+      const ipa = item.type === "word" ? item.ipa?.[lang] : undefined;
+      const text = item.text?.[lang] || (fallback ? item.text?.[fallback] : undefined);
+      const word = typeof ipa === "string" && typeof text === "string" && !/\s/.test(text.trim());
+      const entry = word ? wanted.get(clipKey(text, lang)) : undefined;
+      if (!entry || clash.has(entry)) continue;
+      if (entry.ipa && entry.ipa !== ipa) {
+        console.warn(`"${entry.text}" has two IPA readings (${entry.ipa}, ${ipa}); the voice picks one.`);
+        delete entry.ipa;
+        clash.add(entry);
+      } else {
+        entry.ipa = ipa;
+      }
+    }
+  }
 }
 
 // Keys of the clips on the live site. A missing list means none; any other

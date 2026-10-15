@@ -13,10 +13,11 @@ export const AUDIO_BASE = "/content/audio/";
 // The recorded voices, picked under Settings. `speaker` is the Kokoro voice
 // (https://huggingface.co/hexgrad/Kokoro-82M). Changing a voice, the model or
 // how scripts/speech-audio.py makes clips needs a new folder name, so every
-// clip is made again (v2: clips start where the word starts, see that script).
+// clip is made again (v3: clips start where the word starts, slower, words read
+// from their IPA; see that script).
 export const VOICES = [
-  { id: "female", folder: "kokoro-1.0-v2-bf_emma", speaker: "bf_emma" },
-  { id: "male", folder: "kokoro-1.0-v2-bm_george", speaker: "bm_george" },
+  { id: "female", folder: "kokoro-1.0-v3-bf_emma", speaker: "bf_emma" },
+  { id: "male", folder: "kokoro-1.0-v3-bm_george", speaker: "bm_george" },
 ];
 export const DEFAULT_VOICE = "female";
 
@@ -47,6 +48,12 @@ function hash53(str) {
 
 export function clipKey(text, lang = "en-GB") {
   return hash53(`${lang}|${normalizeSpeech(text)}`).toString(36);
+}
+
+// The slow, word-by-word clip of a text (each word on its own, with a pause
+// after it) has its own key.
+export function wordsKey(text, lang = "en-GB") {
+  return clipKey(text, `${lang}+words`);
 }
 
 const MARKED = /^([^[\]]*)\[([^[\]]+)\]([^[\]]*)$/;
@@ -86,6 +93,16 @@ export function spokenTexts({ languages = [], packs = [] }, lang = "en-GB") {
         }
       }
     }
+  }
+  return out;
+}
+
+// The texts of more than one word, which also get a word-by-word clip:
+// Map(wordsKey -> text).
+export function wordByWordTexts(content, lang = "en-GB") {
+  const out = new Map();
+  for (const text of spokenTexts(content, lang).values()) {
+    if (text.split(" ").length > 1) out.set(wordsKey(text, lang), text);
   }
   return out;
 }

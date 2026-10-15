@@ -58,7 +58,7 @@ For production, additionally:
 
 *Production deploy* also puts `deploy/preview/nginx.conf` live. The deploy key can only rsync, so the workflow uploads the file to `nginx/nginx.conf` in the production folder, and a root timer on the server picks it up:
 
-1. `apply-nginx-conf.sh` checks the upload with `nginx -t` in a throwaway container with the same image and mounts.
+1. `apply-nginx-conf.sh` reads the upload as the deploy user (so it can't point at a root-only file), refuses any config that could reach beyond the static folders (`*_pass`, `include`, `upstream`, `resolver`, `mirror`, modules, or `root`/`alias` outside `/srv/`), then checks it with `nginx -t` in a throwaway container with the same image and mounts. The deploy key can already change the site's files; this keeps it from doing more, such as exposing other containers on the proxy network.
 2. If it passes, the script backs up the live config (`nginx.conf.auto-<date>`, newest ten kept), writes the new one over it and reloads nginx. If it fails, nothing changes.
 3. The outcome goes to `nginx-status/result.txt`, which the deploy user can read but not write. The workflow waits for it and fails the run, before switching the release, if the config was rejected.
 

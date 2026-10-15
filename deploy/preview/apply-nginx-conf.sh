@@ -8,6 +8,12 @@
 # with the same image and mounts, and only then copies it over the live
 # config and reloads nginx. A config that fails the check never goes live.
 #
+# The deploy key can already change the site's files; this must not let it do
+# more. So the file is read as the deploy user (a link it plants to a root-only
+# file can't be read), and a config is refused if it could reach anything but
+# the static folders: no *_pass to other containers or hosts, no include,
+# upstream, resolver, mirror or modules, and root/alias only under /srv/.
+#
 # The outcome goes to $STATUS/result.txt (a folder the deploy user can read
 # but not write): "<sha256 of the uploaded file> ok" or "... failed", then
 # nginx's message. The workflow waits for the line with its file's checksum.
@@ -21,6 +27,7 @@ LIVE=${LIVE:-/srv/lingo-previews/nginx.conf}
 CONTAINER=${CONTAINER:-lingo-previews}
 IMAGE=${IMAGE:-nginx:1.27-alpine}
 MOUNTS=${MOUNTS:-"-v /srv/previews:/srv/previews:ro -v /srv/lingo-prod:/srv/lingo-prod:ro"}
+DEPLOY_USER=${DEPLOY_USER:-prod-deploy}
 
 upload="$INBOX/nginx.conf"
 # Only a plain file the deploy user put there; never follow a link it made.
@@ -29,7 +36,7 @@ upload="$INBOX/nginx.conf"
 
 work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
-cat < "$upload" > "$work/candidate.conf"
+runuser -u "$DEPLOY_USER" -- cat "$upload" > "$work/candidate.conf"
 sum=$(sha256sum "$work/candidate.conf" | cut -d' ' -f1)
 
 # Already handled this exact file.
@@ -46,6 +53,18 @@ report() {
 
 if cmp -s "$work/candidate.conf" "$LIVE"; then
   report ok "Already live."
+  exit 0
+fi
+
+# Directives that reach beyond the static folders. Comments are ignored.
+code=$(sed 's/#.*//' "$work/candidate.conf")
+banned=$(printf '%s\n' "$code" | grep -noE '\b([a-z_]+_pass|include|upstream|resolver|mirror|load_module|perl[a-z_]*|js_[a-z_]+|lua[a-z_]*|proxy_[a-z_]+|fastcgi_[a-z_]+|uwsgi_[a-z_]+|scgi_[a-z_]+|grpc_[a-z_]+)\b' || true)
+# One statement per line, then every root/alias must point under /srv/.
+outside=$(printf '%s\n' "$code" | tr '{};' '\n\n\n' | grep -E '^[[:space:]]*(root|alias)[[:space:]]' \
+  | grep -vE '^[[:space:]]*(root|alias)[[:space:]]+/srv/[^.[:space:]]*[[:space:]]*$' || true)
+if [ -n "$banned$outside" ]; then
+  report failed "Refused: only static files under /srv/ may be served. Lines:" "$banned" "$outside"
+  logger -t lingo-nginx-conf "refused config $sum"
   exit 0
 fi
 

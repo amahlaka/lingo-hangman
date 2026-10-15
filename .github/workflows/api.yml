@@ -1,0 +1,43 @@
+# Checks the API (server/) on pull requests and pushes that change it: its
+# tests, and that the image builds. Publishing happens in "Production deploy".
+
+name: API checks
+
+on:
+  pull_request:
+    paths: ["server/**", "deploy/api/**", ".github/workflows/api.yml"]
+  push:
+    branches: [master]
+    paths: ["server/**", "deploy/api/**", ".github/workflows/api.yml"]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+      - run: npm ci && npm test
+        working-directory: server
+      - name: Check the release script
+        run: shellcheck deploy/api/apply-api-release.sh
+      - name: Build the image and check its health
+        run: |
+          docker build -f server/Dockerfile --build-arg LINGO_VERSION="$GITHUB_SHA" -t lingo-api:ci .
+          docker run -d --name api --read-only --tmpfs /tmp -v api-data:/data lingo-api:ci
+          for i in $(seq 1 30); do
+            state=$(docker inspect -f '{{.State.Health.Status}}' api)
+            [ "$state" = healthy ] && break
+            sleep 2
+          done
+          docker logs api
+          [ "$state" = healthy ]
+          docker exec api node src/healthcheck.js

@@ -1,0 +1,10 @@
+# Starts the API release uploaded by the Production deploy workflow.
+# See apply-api-release.sh and docs/backend.md.
+[Unit]
+Description=Apply the uploaded Lingo API release
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/lingo-apply-api-release

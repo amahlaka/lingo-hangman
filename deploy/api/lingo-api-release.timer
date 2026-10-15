@@ -1,0 +1,11 @@
+# Checks for an uploaded Lingo API release every 15 seconds.
+[Unit]
+Description=Check for an uploaded Lingo API release
+
+[Timer]
+OnBootSec=1min
+OnUnitActiveSec=15s
+AccuracySec=1s
+
+[Install]
+WantedBy=timers.target

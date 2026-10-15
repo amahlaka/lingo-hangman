@@ -1,0 +1,33 @@
+# The Lingo API container. On the server this file sits next to a .env with
+# the API's settings and secrets, and lingo-api-release (apply-api-release.sh)
+# sets API_TAG to the commit to run; see docs/backend.md.
+#
+# Server-only additions (for example extra_hosts for the mail server) go in a
+# docker-compose.override.yml beside it, not in this public file.
+services:
+  lingo-api:
+    image: ${API_IMAGE:-ghcr.io/amahlaka/lingo-hangman-api}:${API_TAG:?API_TAG must be set}
+    container_name: lingo-api
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      - DB_PATH=/data/lingo.db
+    volumes:
+      - ./data:/data
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    cpus: 1
+    mem_limit: 512m
+    # No published port: the reverse proxy reaches it on the proxy network.
+    networks:
+      - proxy
+
+networks:
+  proxy:
+    external: true
+    name: ${PROXY_NETWORK:?PROXY_NETWORK must be set}

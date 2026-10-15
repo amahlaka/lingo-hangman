@@ -47,6 +47,11 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
+      workbox: {
+        // /api/ belongs to the backend (server/); the service worker must not
+        // answer those addresses with the app's index.html.
+        navigateFallbackDenylist: [/^\/api\//],
+      },
       manifest: {
         name: 'Lingo',
         short_name: 'Lingo',
@@ -76,6 +81,13 @@ export default defineConfig({
       }
     })
   ],
+  // `npm run dev` forwards /api to the backend when it runs locally
+  // (cd server && npm run dev); without it the app works as usual.
+  server: {
+    proxy: {
+      '/api': 'http://localhost:3000',
+    },
+  },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),

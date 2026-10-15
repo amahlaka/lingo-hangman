@@ -54,6 +54,8 @@ For production, additionally:
 - A proxy host for the live address (`lingo.bololoo.com`) forwarding to the nginx container. Set its `server_name` in `nginx.conf` if you use another address.
 - The `/content/` location from `deploy/preview/nginx.conf` in the live site's server block, so word bank changes published to the [lingo-wordbase](https://github.com/amahlaka/lingo-wordbase) repository reach visitors without a release. The **Content publish** workflow (`.github/workflows/content.yml`) checks that repository every 10 minutes, uses the same production user and secrets, and uploads to `content/` in the production folder.
 
+The optional backend (`server/`) is deployed by the same workflow; see [backend.md](backend.md).
+
 ## Config deploys
 
 *Production deploy* also puts `deploy/preview/nginx.conf` live. The deploy key can only rsync, so the workflow uploads the file to `nginx/nginx.conf` in the production folder, and a root timer on the server picks it up:

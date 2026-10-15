@@ -56,8 +56,10 @@ if cmp -s "$work/candidate.conf" "$LIVE"; then
   exit 0
 fi
 
-# Directives that reach beyond the static folders. Comments are ignored.
-code=$(sed 's/#.*//' "$work/candidate.conf")
+# Directives that reach beyond the static folders. Comments are checked too:
+# nginx only starts a comment at a "#" that begins a word, so cutting at any
+# "#" would hide e.g. `add_header X a#; proxy_pass ...;` from this check.
+code=$(cat "$work/candidate.conf")
 banned=$(printf '%s\n' "$code" | grep -noE '\b([a-z_]+_pass|include|upstream|resolver|mirror|load_module|perl[a-z_]*|js_[a-z_]+|lua[a-z_]*|proxy_[a-z_]+|fastcgi_[a-z_]+|uwsgi_[a-z_]+|scgi_[a-z_]+|grpc_[a-z_]+)\b' || true)
 # One statement per line, then every root/alias must point under /srv/.
 outside=$(printf '%s\n' "$code" | tr '{};' '\n\n\n' | grep -E '^[[:space:]]*(root|alias)[[:space:]]' \

@@ -31,6 +31,9 @@ import onnx
 import soundfile
 from kokoro_onnx import Kokoro
 
+# Speaking speed: 1 is the model's own pace, lower is slower and calmer.
+SPEED = 0.9
+
 # Phonemes said before and after every text, then cut off ("say", "now").
 LEAD = "sˈeɪ "
 TAIL = " nˈaʊ"
@@ -77,10 +80,10 @@ def say(kokoro, text, speaker, lang):
     tail = kokoro.tokenizer.tokenize(TAIL)
     every = lead + tokens + tail
     if not tokens or len(every) > MAX_TOKENS:
-        samples, _ = kokoro.create(text, voice=speaker, speed=1.0, lang=lang)
+        samples, _ = kokoro.create(text, voice=speaker, speed=SPEED, lang=lang)
         return samples
     voice = kokoro.get_voice_style(speaker)
-    samples, duration = kokoro._infer(every, kokoro._style_for(voice, len(every)), 1.0)
+    samples, duration = kokoro._infer(every, kokoro._style_for(voice, len(every)), SPEED)
     # duration[0] is the padding before the first phoneme.
     edges = np.cumsum(duration)
     start = max(0, int(edges[len(lead)]) - START_EARLY) * FRAME

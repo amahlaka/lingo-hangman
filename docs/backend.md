@@ -113,6 +113,39 @@ are hidden.
   to the learner on their Account page. Reports are never posted to GitHub:
   the repositories are public and reports can hold personal text.
 
+## Progress sync
+
+While a learner is signed in, their progress follows them to every device.
+Signed out, nothing is sent and the app works as before.
+
+- **Events, not snapshots.** Every change (an answer, the daily goal, buying or
+  equipping an item) still updates the local state at once and is also kept in
+  an outbox in localStorage (`lingo.sync.v1`, `src/lib/sync.js`). The app sends
+  it to `POST /api/sync` a few seconds after a change, when it comes back
+  online and when it is hidden.
+- **One set of rules.** The account's progress is all its events applied in
+  time order by `src/lib/syncEvents.js`, which uses the same `progress.js` and
+  `cosmetics.js` as the app. The API image copies those three files
+  (`server/Dockerfile`), so a change to them is also an API change. The server
+  caches the result in `account_state`; an event older than the last one
+  applied (a device that was offline) makes it apply everything again from the
+  start. The reply is the account's progress, and the device's state becomes
+  that plus anything it recorded meanwhile. Gems are worked out from the
+  events, so an edited localStorage does not spread to other devices.
+- **First sign-in on a device.** An empty account takes the device's progress
+  (a `baseline` event, applied before all others). An empty device takes the
+  account's. When both have progress the learner chooses: *keep both*
+  (`merge`: points, days, words and statistics add up; streak and goal come
+  from the more recent), *use my account's* or *use this device's* (starts
+  the account over).
+- **Signing out** keeps the progress on the device. Changes made while signed
+  out wait in the outbox and are sent if the same account signs in again;
+  another account gets the choice above.
+- **Limits:** 500 events per request, 300 requests an hour per account, and
+  event times at most 10 minutes ahead of the server's clock.
+- Settings other than the daily goal (language, theme, voice, focus areas)
+  are not synced yet.
+
 ## Deploying the API
 
 *Production deploy* (`.github/workflows/production.yml`) also tests the API,

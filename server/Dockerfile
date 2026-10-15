@@ -11,6 +11,10 @@ COPY server/package.json server/package-lock.json ./
 RUN npm ci --omit=dev && npm cache clean --force
 COPY server/src ./src
 COPY server/migrations ./migrations
+# Progress rules shared with the app (server/src/routes/sync.js imports them
+# from ../../../src/lib, which is /srv/src/lib here).
+COPY src/lib/progress.js src/lib/cosmetics.js src/lib/syncEvents.js /srv/src/lib/
+RUN echo '{ "type": "module" }' > /srv/src/package.json
 
 ARG LINGO_VERSION=dev
 ENV LINGO_VERSION=$LINGO_VERSION

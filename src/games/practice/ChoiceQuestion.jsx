@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { sounds } from "../../lib/sounds";
 import { MAX_MISSES } from "./practiceLogic";
+import { useQuestionControls } from "./questionControls";
 
 // Four options in the learning language for one target word. A miss strikes that option out
 // and lets the learner try again; after MAX_MISSES the answer is shown. Once the question is
@@ -20,6 +21,7 @@ export default function ChoiceQuestion({ question, learningLang, nativeLang, don
       answer: target.learning,
       meaning: target.native,
     });
+  useQuestionControls({ skip: () => !done && finish(false, missed.length) });
 
   const choose = (option) => {
     if (done || picked || missed.includes(option)) return;

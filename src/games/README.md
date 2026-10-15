@@ -147,6 +147,13 @@ well: call `onItem(outcome)` for each word as it is finished (it records the
 word and plays the sound), then `onDone({ board: true })` when the whole
 question is done. The session shows one "All pairs found" banner for it.
 
+Under every question the session shows "Skip this one" and "Report a problem".
+Call `useQuestionControls({ skip, reportExtra })` (`practice/questionControls.js`)
+on every render: `skip()` should end the question unsolved with the answer
+shown, as when the tries run out, and `reportExtra()` may return extra report
+context (Say it adds what the microphone heard). Without `skip`, skipping just
+moves on to the next question, as a Word Pairs board does.
+
 Fill the Gap mixes the word bank's everyday gap sentences (`getGapItems` items
 without a `topic`; topic sentences belong to the gap games below) with every
 other sentence in it (`getSentences`), gapped automatically. For an

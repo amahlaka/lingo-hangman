@@ -14,6 +14,7 @@ import {
   revealNextLetter,
   revealNextWord,
 } from "./typeLogic";
+import { useQuestionControls } from "../practice/questionControls";
 
 // The answer as blanks, with the letters a hint has shown. Each word stays on one line.
 function Shape({ shape, label }) {
@@ -98,6 +99,7 @@ export default function TypeQuestion({ question, done, onDone, p, learningLang, 
       answer: text,
       meaning: target.native,
     });
+  useQuestionControls({ skip: () => !done && finish(false, misses) });
 
   const submit = (e) => {
     e.preventDefault();
@@ -218,9 +220,6 @@ export default function TypeQuestion({ question, done, onDone, p, learningLang, 
       {!done && misses > 0 && (
         <div className="sy-after-miss">
           <TriesMeter left={left} total={MAX_TYPE_TRIES} label={left === 1 ? p.sayTryLeft : fill(p.sayTriesLeft, { n: left })} />
-          <button type="button" className="lg-btn lg-btn--quiet" onClick={() => finish(false, misses)}>
-            {p.typeShowAnswer}
-          </button>
         </div>
       )}
 

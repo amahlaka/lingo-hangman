@@ -11,6 +11,7 @@ import authRoutes from "./routes/auth.js";
 import accountRoutes from "./routes/account.js";
 import feedbackRoutes from "./routes/feedback.js";
 import adminRoutes from "./routes/admin.js";
+import syncRoutes from "./routes/sync.js";
 
 const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
 
@@ -71,6 +72,7 @@ export function buildApp({ db, config, logger = true, limiter = createRateLimite
   app.register(accountRoutes, { db, config });
   app.register(feedbackRoutes, { db, limiter });
   app.register(adminRoutes, { db, config });
+  app.register(syncRoutes, { db, limiter });
 
   app.setNotFoundHandler((req, reply) => {
     reply.code(404).send({ error: "not_found" });

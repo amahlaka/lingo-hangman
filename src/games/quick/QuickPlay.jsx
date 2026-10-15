@@ -12,6 +12,7 @@ import {
   getWordGroups,
 } from "../../lib/words";
 import { canSpeak } from "../../lib/speech";
+import { canRecognise } from "../../lib/speechRecognition";
 import PracticeSession from "../practice/PracticeSession";
 import ChoiceQuestion from "../practice/ChoiceQuestion";
 import { ListenPrompt } from "../listening/ListeningGame";
@@ -20,6 +21,10 @@ import { GapQuestion as FillGapQuestion } from "../fill-gap/FillGapGame";
 import GapQuestion from "../gap/GapQuestion";
 import SoundQuestion from "../sounds/SoundQuestion";
 import TypeQuestion from "../type/TypeQuestion";
+import SayQuestion from "../say/SayQuestion";
+import useSayMic from "../say/useSayMic";
+import HangmanQuestion from "../hangman/HangmanQuestion";
+import { PairsBoard } from "../word-pairs/WordPairsGame";
 import { buildQuickRound, preferenceFilter, quickTargets } from "./quickLogic";
 
 const learningLang = DEFAULT_LEARNING_LANG;
@@ -37,14 +42,18 @@ function gameText(game, t) {
     "mixed-up": [p.mixedName, p.mixedIntro],
     sounds: [t.sounds.name, t.sounds.practiceIntro],
     "type-it": [p.typeName, p.typeIntroWords],
+    say: [p.sayName, p.sayIntro],
+    hangman: [t.hangmanName, p.hangmanIntro],
+    "word-pairs": [p.pairsName, p.pairsIntro],
   }[game];
 }
 
 // Which game this question comes from and what to do. Whether it is an easy
 // win or a challenge stays behind the scenes.
-function QuestionHeader({ question, t }) {
+function QuestionHeader({ question, t, selfCheck }) {
   const [name, gameIntro] = gameText(question.quick.game, t);
-  const intro = question.mode === "dictation" ? t.practice.typeIntroSentence : gameIntro;
+  const intro =
+    question.mode === "dictation" ? t.practice.typeIntroSentence : question.quick.game === "say" && selfCheck ? t.practice.sayIntroSelf : gameIntro;
   return (
     <div className="qp-head">
       <div className="qp-head__row">
@@ -55,7 +64,7 @@ function QuestionHeader({ question, t }) {
   );
 }
 
-function QuickQuestion({ question, done, onDone, t, lang }) {
+function QuickQuestion({ question, done, onDone, onItem, t, lang, mic }) {
   const p = t.practice;
   const game = question.quick.game;
   let body;
@@ -118,6 +127,39 @@ function QuickQuestion({ question, done, onDone, t, lang }) {
         nativeLabel={p.finnish}
       />
     );
+  } else if (game === "say") {
+    body = (
+      <SayQuestion
+        word={question}
+        learningLang={learningLang}
+        nativeLang={nativeLang}
+        done={done}
+        onDone={onDone}
+        p={p}
+        mode={mic.selfReason ? "self" : "mic"}
+        selfNote={mic.selfNote}
+        privacy={mic.privacy}
+        prepareOnDevice={mic.prepareOnDevice}
+        onBlocked={mic.setSelfReason}
+        onOnDeviceFailed={mic.onDeviceFailed}
+      />
+    );
+  } else if (game === "hangman") {
+    body = <HangmanQuestion question={question} done={done} onDone={onDone} learningLang={learningLang} nativeLang={nativeLang} />;
+  } else if (game === "word-pairs") {
+    body = (
+      <PairsBoard
+        board={question}
+        done={done}
+        onItem={onItem}
+        onDone={onDone}
+        p={p}
+        learningLang={learningLang}
+        nativeLang={nativeLang}
+        learningLabel={p.english}
+        nativeLabel={p.finnish}
+      />
+    );
   } else if (game === "grammar" || game === "mixed-up") {
     body = <GapQuestion question={question} done={done} onDone={onDone} />;
   } else {
@@ -125,7 +167,7 @@ function QuickQuestion({ question, done, onDone, t, lang }) {
   }
   return (
     <div className="lg-stack qp-question">
-      <QuestionHeader question={question} t={t} />
+      <QuestionHeader question={question} t={t} selfCheck={Boolean(mic.selfReason)} />
       {body}
     </div>
   );
@@ -150,10 +192,12 @@ export default function QuickPlay() {
         learningLang,
         nativeLang,
         withSound: canSpeak(),
+        withMic: canRecognise(),
       }),
     []
   );
   // Read progress when a round is built, not on every answer.
+  const mic = useSayMic(learningLang, t.practice);
   const stateRef = useRef(state);
   stateRef.current = state;
 
@@ -167,8 +211,8 @@ export default function QuickPlay() {
       endTitleKey="endTitleQuick"
       recapTitleKey="recapQuick"
       buildQuestions={() => buildQuickRound(targets, stateRef.current, { include: preferenceFilter(targets) })}
-      renderQuestion={({ question, done, onDone }) => (
-        <QuickQuestion question={question} done={done} onDone={onDone} t={t} lang={lang} />
+      renderQuestion={({ question, done, onDone, onItem }) => (
+        <QuickQuestion question={question} done={done} onDone={onDone} onItem={onItem} t={t} lang={lang} mic={mic} />
       )}
     />
   );

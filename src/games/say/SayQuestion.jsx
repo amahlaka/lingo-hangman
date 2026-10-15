@@ -9,6 +9,7 @@ import { RATE_SLOW, speak, stopSpeaking } from "../../lib/speech";
 import ListenMore from "../practice/ListenMore";
 import { PaidHints } from "../practice/RuleBox";
 import { MAX_SAY_TRIES, SAY_HINT_COST, checkSaid } from "./sayLogic";
+import { useQuestionControls } from "../practice/questionControls";
 
 // What the recogniser heard, with the target's words marked as heard or not.
 function HeardLine({ result, done, p }) {
@@ -55,6 +56,8 @@ export default function SayQuestion({
   const [showSay, setShowSay] = useState(false);
   const session = useRef(null);
   const alive = useRef(true);
+  // What the microphone heard on each try, for problem reports.
+  const heardNow = useRef([]);
   const text = word.learning;
 
   // Play the model first, so the learner hears it before they speak.
@@ -78,7 +81,12 @@ export default function SayQuestion({
       triesLeft: Math.max(0, MAX_SAY_TRIES - missCount),
       answer: text,
       meaning: word.native,
+      heard: heardNow.current,
     });
+  useQuestionControls({
+    skip: () => !done && finish(false, misses),
+    reportExtra: () => ({ heard: heardNow.current, recognition: mode === "self" ? "none" : privacy }),
+  });
 
   const listen = async () => {
     if (state === "listening") {
@@ -117,6 +125,7 @@ export default function SayQuestion({
     }
     const checked = checkSaid(text, alternatives);
     setResult(checked);
+    heardNow.current = [...heardNow.current, checked.heard].slice(-MAX_SAY_TRIES);
     if (checked.matched) {
       finish(true, misses);
       return;
@@ -183,9 +192,6 @@ export default function SayQuestion({
           {!done && misses > 0 && (
             <div className="sy-after-miss">
               <TriesMeter left={left} total={MAX_SAY_TRIES} label={left === 1 ? p.sayTryLeft : fill(p.sayTriesLeft, { n: left })} />
-              <button type="button" className="lg-btn lg-btn--quiet" onClick={() => finish(false, misses)}>
-                {p.saySkip}
-              </button>
             </div>
           )}
           <p className="lg-caption sy-privacy">{privacy === "local" ? p.sayPrivacyLocal : p.sayPrivacyOnline}</p>
@@ -197,9 +203,6 @@ export default function SayQuestion({
             <div className="sy-self">
               <button type="button" className="lg-btn lg-btn--primary lg-btn--hero" onClick={() => finish(true, 0)}>
                 {p.saySaidIt}
-              </button>
-              <button type="button" className="lg-btn lg-btn--quiet" onClick={() => finish(false, 0)}>
-                {p.saySkip}
               </button>
             </div>
           )}

@@ -48,6 +48,16 @@ describe('Pick the meaning', () => {
     expect(screen.getByText(/\+2 XP/)).toBeInTheDocument();
   });
 
+  it('skips a question: the answer is shown and the round moves on', () => {
+    renderApp(link('/meaning'));
+    const answer = byNative[prompt()];
+    fireEvent.click(screen.getByRole('button', { name: 'Skip this one' }));
+    expect(screen.getByText(`Not this time. The answer was "${answer}".`)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Skip this one' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+    expect(screen.getByText('2 of 5')).toBeInTheDocument();
+  });
+
   it('shows the Finnish meaning under every option once answered', () => {
     renderApp(link('/meaning'));
     const answer = byNative[prompt()];
@@ -190,6 +200,13 @@ describe('Word Pairs', () => {
     fireEvent.click(wrong);
     expect(screen.getByText('Not a pair. Try another one.')).toBeInTheDocument();
     expect(first).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  it('skips a board and moves on', () => {
+    renderApp(link('/word-pairs', [...words, { learning: 'cow', native: 'lehmä' }, { learning: 'duck', native: 'ankka' }, { learning: 'sheep', native: 'lammas' }, { learning: 'pig', native: 'sika' }, { learning: 'goat', native: 'vuohi' }]));
+    const before = tiles('learning').map((t) => t.textContent).join();
+    fireEvent.click(screen.getByRole('button', { name: 'Skip this one' }));
+    expect(tiles('learning').map((t) => t.textContent).join()).not.toBe(before);
   });
 
   it('finishes the board and reaches the end screen', () => {

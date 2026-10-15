@@ -7,6 +7,7 @@ import { sounds } from "../../lib/sounds";
 import { RATE_SLOW, canSpeak, speak, stopSpeaking } from "../../lib/speech";
 import { BY_EAR, markedIndexes, maxMissesFor } from "./soundsLogic";
 import { RuleBox, RulePeek } from "../practice/RuleBox";
+import { useQuestionControls } from "../practice/questionControls";
 
 const LEARNING_LANG = "en";
 
@@ -121,6 +122,7 @@ export default function SoundQuestion({ question, done, onDone, showRule = false
       answer: word.text,
       meaning: word.fi || (word.say ? `"${word.say}"` : ""),
     });
+  useQuestionControls({ skip: () => !done && finish(false, missed.length) });
 
   const choose = (key) => {
     if (done || picked !== null || missed.includes(key)) return;

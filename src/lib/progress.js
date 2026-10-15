@@ -20,7 +20,7 @@
 // adapt: how long answers take per game and per lesson, and for each word its
 // misses, answer time and last few results (see `recent` below).
 
-import { addGems, emptyShop } from "./cosmetics";
+import { addGems, emptyShop } from "./cosmetics.js";
 
 export const XP_PER_LEVEL = 250;
 export const DAILY_GOAL_OPTIONS = [5, 10, 20];
@@ -416,6 +416,81 @@ export function setDailyGoal(state, goal) {
   return { ...state, dailyGoal: DAILY_GOAL_OPTIONS.includes(goal) ? goal : DEFAULT_DAILY_GOAL };
 }
 
+// ---- Combining two devices ----
+
+const sumFields = (a = {}, b = {}) => {
+  const out = { ...a };
+  for (const [k, v] of Object.entries(b)) out[k] = typeof v === "number" ? (out[k] || 0) + v : out[k] ?? v;
+  return out;
+};
+
+function mergeWord(a, b) {
+  if (!a) return b;
+  if (!b) return a;
+  const [older, newer] = (a.last || "") > (b.last || "") ? [b, a] : [a, b];
+  return {
+    solved: (a.solved || 0) + (b.solved || 0),
+    lost: (a.lost || 0) + (b.lost || 0),
+    days: [...new Set([...(a.days || []), ...(b.days || [])])].sort().slice(-LEARNED_AFTER_DAYS),
+    ms: (a.ms || 0) + (b.ms || 0),
+    timed: (a.timed || 0) + (b.timed || 0),
+    recent: ((older.recent || "") + (newer.recent || "")).slice(-RECENT_LENGTH),
+    last: newer.last ?? older.last,
+  };
+}
+
+const mergeTallies = (a = {}, b = {}) => {
+  const out = { ...a };
+  for (const [k, t] of Object.entries(b)) out[k] = sumFields(out[k], t);
+  return out;
+};
+
+// Two learners' progress as one, for "keep both" when a device that already
+// has progress signs in to an account that has some too. Points, days, words
+// and answer statistics add up; the streak, goal and items in use come from
+// whichever was played more recently; owned items and badges join.
+export function mergeProgress(a, b) {
+  const lastPlayed = (s) => Object.keys(s.days).sort().at(-1) || "";
+  const [older, newer] = lastPlayed(a) > lastPlayed(b) ? [b, a] : [a, b];
+  const days = { ...older.days };
+  for (const [day, d] of Object.entries(newer.days)) {
+    days[day] = days[day] ? { ...sumFields(days[day], d), goalMet: Boolean(days[day].goalMet || d.goalMet) } : d;
+  }
+  const words = { ...older.words };
+  for (const [key, w] of Object.entries(newer.words)) words[key] = mergeWord(words[key], w);
+  const achievements = { ...newer.achievements };
+  for (const [id, day] of Object.entries(older.achievements)) {
+    if (!achievements[id] || day < achievements[id]) achievements[id] = day;
+  }
+  return {
+    ...newer,
+    xp: a.xp + b.xp,
+    days,
+    streak: { ...newer.streak, best: Math.max(a.streak.best, b.streak.best) },
+    words,
+    totals: sumFields(a.totals, b.totals),
+    games: sumFields(a.games, b.games),
+    achievements,
+    stats: { games: mergeTallies(a.stats.games, b.stats.games), lessons: mergeTallies(a.stats.lessons, b.stats.lessons) },
+    shop: {
+      ...newer.shop,
+      gems: (a.shop.gems || 0) + (b.shop.gems || 0),
+      owned: [...new Set([...(a.shop.owned || []), ...(b.shop.owned || [])])],
+    },
+  };
+}
+
+// A few numbers to tell two progress records apart.
+export function progressSummary(state) {
+  return {
+    xp: state.xp,
+    level: levelInfo(state.xp).level,
+    words: state.totals.words,
+    learned: learnedWordCount(state),
+    streakBest: state.streak.best,
+  };
+}
+
 // ---- Storage ----
 
 export const STORAGE_KEY = "lingo.progress.v1";
@@ -453,27 +528,48 @@ export function loadProgress(storage = globalThis.localStorage) {
   try {
     const raw = storage?.getItem(STORAGE_KEY);
     if (!raw) return emptyProgress();
-    const parsed = JSON.parse(raw);
-    const base = emptyProgress();
-    const loaded = {
-      ...base,
-      ...parsed,
-      streak: { ...base.streak, ...parsed.streak },
-      totals: { ...base.totals, ...parsed.totals },
-      stats: { ...base.stats, ...parsed.stats },
-      shop: { ...base.shop, ...parsed.shop, equipped: { ...base.shop.equipped, ...parsed.shop?.equipped } },
-    };
-    loaded.words = mergeBritishWords(loaded.words);
-    // Saves from before gems: items already bought stay, and the learner gets
-    // the gems they would have earned so far. (The old `spent` was XP.)
-    if (typeof parsed.shop?.gems !== "number") {
-      const { spent, ...shop } = loaded.shop;
-      loaded.shop = { ...shop, gems: backfillGems(loaded) };
-    }
-    return loaded;
+    return normalizeProgress(JSON.parse(raw));
   } catch {
     return emptyProgress();
   }
+}
+
+// A saved (or received) progress object made whole: missing parts filled in
+// and older formats brought up to date.
+export function normalizeProgress(parsed) {
+  const obj = (v) => (v && typeof v === "object" && !Array.isArray(v) ? v : {});
+  const num = (v) => (Number.isFinite(v) && v >= 0 ? v : 0);
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return emptyProgress();
+  const base = emptyProgress();
+  const streak = obj(parsed.streak);
+  const shop = obj(parsed.shop);
+  const loaded = {
+    ...base,
+    ...parsed,
+    xp: num(parsed.xp),
+    dailyGoal: DAILY_GOAL_OPTIONS.includes(parsed.dailyGoal) ? parsed.dailyGoal : DEFAULT_DAILY_GOAL,
+    days: obj(parsed.days),
+    words: obj(parsed.words),
+    games: obj(parsed.games),
+    achievements: obj(parsed.achievements),
+    streak: { ...base.streak, ...streak, restDays: Array.isArray(streak.restDays) ? streak.restDays : [] },
+    totals: { ...base.totals, ...obj(parsed.totals) },
+    stats: { games: obj(obj(parsed.stats).games), lessons: obj(obj(parsed.stats).lessons) },
+    shop: {
+      ...base.shop,
+      ...shop,
+      owned: Array.isArray(shop.owned) ? shop.owned : [],
+      equipped: { ...base.shop.equipped, ...obj(shop.equipped) },
+    },
+  };
+  loaded.words = mergeBritishWords(loaded.words);
+  // Saves from before gems: items already bought stay, and the learner gets
+  // the gems they would have earned so far. (The old `spent` was XP.)
+  if (typeof shop.gems !== "number") {
+    const { spent, ...rest } = loaded.shop;
+    loaded.shop = { ...rest, gems: backfillGems(loaded) };
+  }
+  return loaded;
 }
 
 export function saveProgress(state, storage = globalThis.localStorage) {

@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { KeyRound, Mail } from "lucide-react";
 import { useSettings } from "./SettingsContext";
+import { useProgress } from "./ProgressContext";
 import { GameScreen, Feedback } from "../components/lingo";
 import { fill } from "../i18n";
 import { api, backendAvailable } from "../lib/backend";
@@ -257,7 +258,7 @@ function SignedIn({ t, lang, me, reload, onSignedOut }) {
     <>
       <section className="lg-section">
         <p className="lg-body-lg">{fill(a.signedInAs, { email: me.user.email })}</p>
-        <p className="lg-caption">{a.comingSoon}</p>
+        <p className="lg-caption">{t.sync.linked}</p>
         <ErrorLine text={error} />
       </section>
 
@@ -339,6 +340,7 @@ function SignedIn({ t, lang, me, reload, onSignedOut }) {
 
 export default function Account() {
   const { t, lang } = useSettings();
+  const { sync } = useProgress();
   const a = t.account;
   // loading | unavailable | signedOut | offerPasskey | signedIn
   const [view, setView] = useState("loading");
@@ -366,8 +368,11 @@ export default function Account() {
     setMe(null);
     if (viaCode && passkeys === 0 && passkeysSupported()) setView("offerPasskey");
     await load();
+    sync.connect();
   };
   const signedOut = (message) => {
+    // The progress stays on this device; it just isn't sent any more.
+    sync.disconnect();
     setMe(null);
     setNotice(message);
     setView("signedOut");

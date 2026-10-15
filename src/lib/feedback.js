@@ -9,6 +9,9 @@ const OUTBOX_KEY = "lingo.feedback.outbox.v1";
 const MAX_WAITING = 50;
 
 export const REPORT_REASONS = ["wrong_answer", "typo", "bad_audio", "confusing", "other"];
+// Say it: the microphone check can be what went wrong.
+export const SAY_REPORT_REASONS = ["misheard", "bad_audio", "typo", "confusing", "other"];
+export const reportReasonsFor = (game) => (game === "say" ? SAY_REPORT_REASONS : REPORT_REASONS);
 export const SUGGESTION_KINDS = ["word", "phrase", "sentence"];
 
 /* global __APP_VERSION__ */
@@ -52,11 +55,13 @@ export function describeQuestion(question, depth = 0) {
   return out;
 }
 
-// The word base id a question is about, when it has one; else its answer.
+// The word base id a question is about, when it has one; else its answer
+// (before the learner has finished, the word they are asked to say or write).
 export function itemRefFor(question, answer) {
   const id = question?.itemId || question?.target?.id || question?.id;
   if (typeof id === "string" && id) return id.slice(0, 200);
-  return `answer:${String(answer || "").slice(0, 180)}`;
+  const asked = answer || question?.learning || question?.target?.learning || question?.text || question?.sentence || question?.word?.text;
+  return `answer:${String(asked || "").slice(0, 180)}`;
 }
 
 export function pendingFeedback(storage = window.localStorage) {

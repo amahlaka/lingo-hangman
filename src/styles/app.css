@@ -244,6 +244,10 @@ a { color: var(--lake); }
 .pg-meaning { display: flex; flex-direction: column; align-items: center; gap: var(--space-1); text-align: center; }
 .pg-meaning__text { margin: 0; font: 600 22px/28px var(--font-display); color: var(--ink); overflow-wrap: anywhere; }
 .hm-meaning { margin-top: var(--space-3); }
+/* A hangman word inside Quick play's question card. */
+.hq-question { align-items: center; text-align: center; }
+.hq-question .hm-drawing svg { height: clamp(96px, 16vh, 150px); }
+.hq-question .hm-keyboard { width: 100%; }
 .pg-phrase__ending { font: 600 24px/1 var(--font-display); }
 .pg-bank { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--space-2); min-height: var(--space-12); }
 .pg-chip { min-height: var(--space-12); padding: 0 var(--space-4); border-radius: var(--radius-sm); border: 2px solid var(--border); background: var(--surface-raised); color: var(--ink); font: 400 18px/28px var(--font-sans); cursor: pointer; transition: border-color .15s, background-color .15s; }
@@ -639,6 +643,7 @@ a { color: var(--lake); }
 .fb-sheet { width: min(480px, 100%); max-height: calc(100dvh - 2 * var(--space-4)); overflow-y: auto; display: flex; flex-direction: column; gap: var(--space-4); padding: var(--space-6) var(--space-4); border-radius: var(--radius-lg); background: var(--surface-raised); box-shadow: var(--shadow-dialog); box-sizing: border-box; }
 @media (min-width: 600px) { .fb-backdrop { align-items: center; } }
 .fb-reasons { border: 0; margin: 0; padding: 0; min-width: 0; }
+.pg-question-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: var(--space-2); }
 .fb-report-btn { gap: var(--space-2); align-self: center; font-size: 14px; min-height: 36px; }
 textarea.lg-input { padding: var(--space-2) var(--space-3); resize: vertical; }
 .fb-status { font-size: 13px; color: var(--ink-muted); white-space: nowrap; }

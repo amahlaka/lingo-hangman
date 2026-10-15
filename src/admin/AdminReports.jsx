@@ -9,7 +9,7 @@ import { api, backendAvailable } from "../lib/backend";
 // question; "Open in editor" jumps to the item in the word bank editor. Like
 // /admin, it is in English only and not linked from the games.
 
-const REASONS = { wrong_answer: "Wrong answer", typo: "Typo", bad_audio: "Bad audio", confusing: "Confusing", other: "Something else" };
+const REASONS = { misheard: "Heard wrong (Say it)", wrong_answer: "Wrong answer", typo: "Typo", bad_audio: "Bad audio", confusing: "Confusing", other: "Something else" };
 const GATES = {
   unavailable: "The backend can't be reached.",
   signed_out: "Sign in with an admin account first.",

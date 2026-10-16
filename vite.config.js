@@ -58,33 +58,9 @@ export default defineConfig({
         // Shows reminders sent by the backend (public/push-sw.js).
         importScripts: ['push-sw.js'],
       },
-      manifest: {
-        name: 'Lingo',
-        short_name: 'Lingo',
-        description: 'Short English word games for Finnish-speaking adults',
-        theme_color: '#1e5b80',
-        background_color: '#f4f6f4',
-        display: 'standalone',
-        start_url: '/',
-        icons: [
-          {
-            src: '/pwa-192x192.png',
-            sizes: '192x192',
-            type: 'image/png'
-          },
-          {
-            src: '/pwa-512x512.png',
-            sizes: '512x512',
-            type: 'image/png'
-          },
-          {
-            src: '/pwa-maskable-512x512.png',
-            sizes: '512x512',
-            type: 'image/png',
-            purpose: 'maskable'
-          }
-        ]
-      }
+      // The app's manifest is public/manifest.json (linked from index.html),
+      // so the plugin must not write a second one.
+      manifest: false,
     })
   ],
   // `npm run dev` forwards /api to the backend when it runs locally

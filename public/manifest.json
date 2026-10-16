@@ -28,16 +28,43 @@
   ],
   "shortcuts": [
     {
-    "name": "Lingo",
-    "short_name": "Home",
-    "description": "Choose a game",
-    "url": "."
+      "name": "Quick play",
+      "short_name": "Quick play",
+      "description": "A mix of games picked for you",
+      "url": "/quick",
+      "icons": [
+        {
+          "src": "/shortcuts/quick-play.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
     },
     {
-      "name": "Start a new quick game",
-      "short_name": "Quick play",
-      "url": "/play?learningLang=en-GB&nativeLang=fi",
-      "description": "Start a new game with default languages"
+      "name": "Daily word",
+      "short_name": "Daily word",
+      "description": "Guess today's five-letter word",
+      "url": "/daily",
+      "icons": [
+        {
+          "src": "/shortcuts/daily-word.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Word Hangman",
+      "short_name": "Hangman",
+      "description": "Guess the English word, one letter at a time",
+      "url": "/hangman",
+      "icons": [
+        {
+          "src": "/shortcuts/hangman.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
     }
   ]
 }

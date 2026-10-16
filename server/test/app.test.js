@@ -67,3 +67,9 @@ test("the database file and its folder are created", () => {
   db.close();
   fs.rmSync(dir, { recursive: true });
 });
+
+test("the speech cache sits next to the database unless set", () => {
+  assert.equal(loadConfig({ DB_PATH: "/data/lingo.db" }).ttsCacheDir, "/data/tts-cache");
+  assert.equal(loadConfig({}).ttsCacheDir, "data/tts-cache");
+  assert.equal(loadConfig({ DB_PATH: "/data/lingo.db", TTS_CACHE_DIR: "/cache" }).ttsCacheDir, "/cache");
+});

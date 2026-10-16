@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { useSettings } from "./SettingsContext";
 import { GameScreen, typeClass } from "../components/lingo";
 import { ALL_CATEGORIES, categoryLabels } from "../lib/words";
-import { DIFFICULTIES, getPreferences, onPreferencesChange, resetPreferences, setPreferences } from "../lib/preferences";
+import { DIFFICULTIES, RECOGNITION, getPreferences, onPreferencesChange, resetPreferences, setPreferences } from "../lib/preferences";
 
 // Focus areas, difficulty and word-type settings for every game
 // (src/lib/preferences.js). All optional; games fall back to all words when
@@ -71,6 +71,25 @@ export default function Preferences() {
               )}
             </div>
           )}
+        </section>
+
+        <section className="lg-section">
+          <h2 className="lg-heading">{t.recognitionTitle}</h2>
+          <p className="lg-caption">{t.recognitionHint}</p>
+          <div className="lg-chips">
+            {RECOGNITION.map((r) => (
+              <button
+                key={r}
+                type="button"
+                className={`lg-chip ${prefs.recognition === r ? "lg-chip--on" : ""}`}
+                aria-pressed={prefs.recognition === r}
+                onClick={() => setPreferences({ recognition: r })}
+              >
+                {t.recognition[r]}
+              </button>
+            ))}
+          </div>
+          <p className="lg-caption">{t.recognitionHints[prefs.recognition]}</p>
         </section>
 
         <section className="lg-section">

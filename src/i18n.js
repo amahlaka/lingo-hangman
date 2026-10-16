@@ -19,6 +19,14 @@ const i18n = {
     typeColorsHint: "Verbs green, nouns blue and so on, in every game that knows the word types.",
     typeHelpLabel: "Help with easy sentences",
     typeHelpHint: "When easy sentences have been hard lately, games show their word types for free.",
+    recognitionTitle: "Speech recognition in Say it",
+    recognitionHint: "Choose where your speech is turned into text when you say words aloud. Lingo never keeps recordings.",
+    recognition: { auto: "Automatic", local: "On this device", online: "Online" },
+    recognitionHints: {
+      auto: "On this device when your browser can, otherwise your browser's online service.",
+      local: "Your speech stays on this device. Needs a browser that can do it, such as a recent Chrome or Edge.",
+      online: "Your browser's own online speech service. Works in more browsers, and may hear you better.",
+    },
     // Word classes and sentence roles (src/lib/wordTypes.js)
     wordTypes: {
       noun: "noun", pronoun: "pronoun", verb: "verb", auxiliary: "helper verb", adjective: "adjective",
@@ -259,6 +267,7 @@ const i18n = {
       saySelfUnsupported: "This browser can't listen to speech, so you check yourself. Chrome, Edge and Safari can listen.",
       saySelfMicBlocked: "Lingo can't use the microphone, so you check yourself. You can allow it in your browser's site settings.",
       saySelfNoService: "Speech recognition isn't working right now, so you check yourself.",
+      saySelfNoLocal: "This browser can't recognize speech on this device, so you check yourself. You can choose online recognition in Practice settings.",
       typeName: "Type it",
       typeIntro: "Type the English word, or write down the sentence you hear.",
       typeIntroWords: "Type the English for this.",
@@ -683,6 +692,14 @@ const i18n = {
     typeColorsHint: "Verbit vihreällä, substantiivit sinisellä ja niin edelleen kaikissa peleissä, jotka tuntevat sanaluokat.",
     typeHelpLabel: "Apua helppoihin lauseisiin",
     typeHelpHint: "Kun helpot lauseet ovat viime aikoina tuntuneet vaikeilta, pelit näyttävät niiden sanaluokat ilmaiseksi.",
+    recognitionTitle: "Puheentunnistus Sano se -pelissä",
+    recognitionHint: "Valitse, missä puheesi muutetaan tekstiksi, kun sanot sanoja ääneen. Lingo ei koskaan tallenna äänitteitä.",
+    recognition: { auto: "Automaattinen", local: "Tällä laitteella", online: "Verkossa" },
+    recognitionHints: {
+      auto: "Tällä laitteella, kun selaimesi osaa, muuten selaimesi omalla verkkopalvelulla.",
+      local: "Puheesi pysyy tällä laitteella. Vaatii selaimen, joka osaa sen, kuten uuden Chromen tai Edgen.",
+      online: "Selaimesi oma verkkopalvelu puheentunnistukseen. Toimii useammissa selaimissa ja voi kuulla sinut paremmin.",
+    },
     wordTypes: {
       noun: "substantiivi", pronoun: "pronomini", verb: "verbi", auxiliary: "apuverbi", adjective: "adjektiivi",
       adverb: "adverbi", article: "artikkeli", preposition: "prepositio", conjunction: "konjunktio",
@@ -920,6 +937,7 @@ const i18n = {
       saySelfUnsupported: "Tämä selain ei osaa kuunnella puhetta, joten tarkistat itse. Chrome, Edge ja Safari osaavat kuunnella.",
       saySelfMicBlocked: "Lingo ei pääse käyttämään mikrofonia, joten tarkistat itse. Voit sallia sen selaimen sivustoasetuksista.",
       saySelfNoService: "Puheentunnistus ei toimi juuri nyt, joten tarkistat itse.",
+      saySelfNoLocal: "Tämä selain ei osaa tunnistaa puhetta tällä laitteella, joten tarkistat itse. Voit valita verkossa tunnistuksen harjoitusasetuksista.",
       typeName: "Kirjoita se",
       typeIntro: "Kirjoita sana englanniksi tai kirjoita kuulemasi lause.",
       typeIntroWords: "Kirjoita tämä englanniksi.",

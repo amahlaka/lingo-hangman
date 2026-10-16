@@ -11,6 +11,41 @@ import { speechLang } from "./speech";
 // Give up on one attempt after this long, in case the browser never ends it.
 const LISTEN_TIMEOUT_MS = 10000;
 
+// Phones switch audio to "call" mode (quiet, from the earpiece) while the
+// microphone is in use, and only switch back a moment after it is let go.
+// Playback waits this long after listening ends (see afterListening).
+const RELEASE_MS = 400;
+let lastEnded = 0;
+let listening = 0;
+
+// The language recognition listens in. All English is listened to as US
+// English, the variant the app teaches.
+export function recognitionLang(code = "en") {
+  return /^en(-|$)/i.test(code) ? "en-US" : speechLang(code);
+}
+
+// Safari's Audio Session API. After listening, "playback" sends speech and
+// sounds to the loudspeaker again instead of the quiet earpiece. Before
+// listening it goes back to "auto": forcing "play-and-record" there left the
+// iPhone's recogniser hearing nothing from the second word on, so WebKit picks
+// the recording mode itself. Elsewhere a no-op.
+function setAudioSession(type) {
+  try {
+    const session = typeof navigator !== "undefined" ? navigator.audioSession : null;
+    if (session && "type" in session) session.type = type;
+  } catch {
+    // not supported here
+  }
+}
+
+// Resolves once the microphone has had time to be let go, so playback that
+// follows listening isn't routed to the earpiece. Resolves at once when
+// nothing was listening lately.
+export function afterListening() {
+  const wait = listening ? RELEASE_MS : lastEnded + RELEASE_MS - Date.now();
+  return wait > 0 ? new Promise((resolve) => setTimeout(resolve, wait)) : Promise.resolve();
+}
+
 export function recognitionCtor() {
   if (typeof window === "undefined") return null;
   return window.SpeechRecognition || window.webkitSpeechRecognition || null;
@@ -27,7 +62,7 @@ export async function onDeviceStatus(lang) {
   const Ctor = recognitionCtor();
   if (!Ctor || typeof Ctor.available !== "function") return "unknown";
   try {
-    return await Ctor.available({ langs: [speechLang(lang)], processLocally: true });
+    return await Ctor.available({ langs: [recognitionLang(lang)], processLocally: true });
   } catch {
     return "unknown";
   }
@@ -38,23 +73,97 @@ export async function installOnDevice(lang) {
   const Ctor = recognitionCtor();
   if (!Ctor || typeof Ctor.install !== "function") return false;
   try {
-    return Boolean(await Ctor.install({ langs: [speechLang(lang)], processLocally: true }));
+    return Boolean(await Ctor.install({ langs: [recognitionLang(lang)], processLocally: true }));
   } catch {
     return false;
   }
 }
 
-// Listen for one utterance. Returns { done, stop }: `done` resolves to
+// Newer Chrome and Edge (the ones with on-device recognition) can listen to
+// a microphone track the page opened itself. Lingo then holds the microphone
+// and stops it when listening ends: left to itself, Chrome on Android can keep
+// the microphone open (and the phone in quiet earpiece "call" audio) until the
+// tab is closed. Other browsers would ignore the track and open a second
+// microphone, so they keep opening their own.
+function canListenToTrack(Ctor) {
+  return typeof Ctor.available === "function" && typeof navigator !== "undefined" && typeof navigator.mediaDevices?.getUserMedia === "function";
+}
+
+async function openMicrophone() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    return stream.getAudioTracks().length ? stream : (stream.getTracks().forEach((t) => t.stop()), null);
+  } catch {
+    // Denied or no microphone: the recogniser's own start reports why.
+    return null;
+  }
+}
+
+// Everything listening now, so leaving the page can let go of the microphone.
+const active = new Set();
+function releaseAll() {
+  Array.from(active).forEach((abort) => abort());
+}
+if (typeof window !== "undefined" && typeof document !== "undefined") {
+  window.addEventListener("pagehide", releaseAll);
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden") releaseAll();
+  });
+}
+
+// Whether listening to our own track has worked on this visit. Some phones
+// hear nothing from it after the first time (the recogniser listens but never
+// reports any sound), so after one such failure the browser opens its own
+// microphone again.
+let trackWorks = true;
+// An attempt that ends with nothing heard this soon after it began didn't
+// really listen.
+const QUICK_FAIL_MS = 1500;
+
+// Listen for one utterance. Returns { done, stop, abort }: `done` resolves to
 // { alternatives: [text…], error } once the browser stops listening, where
 // error is the browser's code ("no-speech", "not-allowed", "audio-capture" …)
 // or null. `stop` ends listening early and keeps what was heard; `abort`
-// throws it away.
-export function listenOnce({ lang = "en", onDevice = false, onSound } = {}) {
+// throws it away. Either way the microphone is let go.
+export function listenOnce(options = {}) {
   const Ctor = recognitionCtor();
   if (!Ctor) return { done: Promise.resolve({ alternatives: [], error: "unsupported" }), stop() {}, abort() {} };
+  const useTrack = trackWorks && canListenToTrack(Ctor);
+  const first = listenWith(Ctor, options, useTrack);
+  if (!useTrack) return first;
+
+  let current = first;
+  let ended = false;
+  const startedAt = Date.now();
+  const done = first.done.then((heard) => {
+    if (heard.alternatives.length || ["aborted", "not-allowed", "service-not-allowed"].includes(heard.error)) return heard;
+    // The recogniser heard sound and simply caught no words: a real miss.
+    if (heard.sound && heard.error === "no-speech" && Date.now() - startedAt > QUICK_FAIL_MS) return heard;
+    if (typeof console !== "undefined") console.warn(`Listening to Lingo's microphone track heard nothing (${heard.error}); the browser opens its own from now on.`);
+    trackWorks = false;
+    // Stopped by the learner: they see "didn't catch that" and the next tap
+    // uses the browser's microphone. Otherwise try again with it right away.
+    if (ended) return heard;
+    current = listenWith(Ctor, options, false);
+    return current.done;
+  });
+  return {
+    done,
+    stop: () => {
+      ended = true;
+      current.stop();
+    },
+    abort: () => {
+      ended = true;
+      current.abort();
+    },
+  };
+}
+
+function listenWith(Ctor, { lang = "en", onDevice = false, onSound } = {}, useTrack = false) {
 
   const rec = new Ctor();
-  rec.lang = speechLang(lang);
+  rec.lang = recognitionLang(lang);
   rec.continuous = false;
   rec.interimResults = false;
   rec.maxAlternatives = 5;
@@ -63,7 +172,40 @@ export function listenOnce({ lang = "en", onDevice = false, onSound } = {}) {
   let alternatives = [];
   let error = null;
   let timer = null;
+  let started = false;
+  let sound = false;
+  let released = false;
+  let stream = null;
+  let settle = () => {};
+  // Let go of the microphone completely: abort the recogniser (some browsers
+  // keep the microphone after a result until then) and stop our own track.
+  const release = () => {
+    if (released) return;
+    released = true;
+    active.delete(abort);
+    clearTimeout(timer);
+    listening = Math.max(0, listening - 1);
+    lastEnded = Date.now();
+    rec.onresult = null;
+    rec.onerror = null;
+    rec.onsoundstart = null;
+    rec.onspeechstart = null;
+    rec.onend = null;
+    try {
+      rec.abort();
+    } catch {
+      // already stopped
+    }
+    if (stream) stream.getTracks().forEach((t) => t.stop());
+    stream = null;
+    if (!listening) setAudioSession("playback");
+  };
+  const abort = () => {
+    release();
+    settle({ alternatives: [], error: "aborted" });
+  };
   const done = new Promise((resolve) => {
+    settle = resolve;
     rec.onresult = (event) => {
       const results = Array.from(event.results || []);
       const last = results[results.length - 1];
@@ -72,27 +214,54 @@ export function listenOnce({ lang = "en", onDevice = false, onSound } = {}) {
     rec.onerror = (event) => {
       error = event.error || "unknown";
     };
-    rec.onsoundstart = () => onSound && onSound();
+    rec.onsoundstart = () => {
+      sound = true;
+      if (onSound) onSound();
+    };
+    rec.onspeechstart = () => {
+      sound = true;
+    };
     rec.onend = () => {
-      clearTimeout(timer);
-      resolve({ alternatives, error: alternatives.length ? null : error });
+      const heard = { alternatives, error: alternatives.length ? null : error, sound };
+      release();
+      resolve(heard);
     };
   });
 
-  try {
-    rec.start();
-    timer = setTimeout(() => rec.stop(), LISTEN_TIMEOUT_MS);
-  } catch {
-    return { done: Promise.resolve({ alternatives: [], error: "start-failed" }), stop() {}, abort() {} };
+  const begin = () => {
+    if (released) return;
+    try {
+      const track = stream?.getAudioTracks()[0];
+      if (track) rec.start(track);
+      else rec.start();
+      started = true;
+      timer = setTimeout(() => rec.stop(), LISTEN_TIMEOUT_MS);
+    } catch {
+      release();
+      settle({ alternatives: [], error: "start-failed" });
+    }
+  };
+
+  listening += 1;
+  active.add(abort);
+  setAudioSession("auto");
+  if (useTrack) {
+    openMicrophone().then((s) => {
+      if (released) {
+        if (s) s.getTracks().forEach((t) => t.stop());
+        return;
+      }
+      stream = s;
+      begin();
+    });
+  } else {
+    begin();
   }
   return {
     done,
-    stop: () => rec.stop(),
-    abort: () => {
-      clearTimeout(timer);
-      rec.onresult = null;
-      rec.abort();
-    },
+    // Before the recogniser has started there is nothing to keep.
+    stop: () => (started ? rec.stop() : abort()),
+    abort,
   };
 }
 

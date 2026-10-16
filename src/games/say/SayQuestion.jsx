@@ -4,7 +4,7 @@ import { TriesMeter } from "../../components/lingo";
 import { fill } from "../../i18n";
 import { getItem } from "../../lib/words";
 import { sounds } from "../../lib/sounds";
-import { isBlockingError, isOnDeviceFailure, listenOnce } from "../../lib/speechRecognition";
+import { afterListening, isBlockingError, isOnDeviceFailure, listenOnce } from "../../lib/speechRecognition";
 import { RATE_SLOW, speak, stopSpeaking } from "../../lib/speech";
 import ListenMore from "../practice/ListenMore";
 import { PaidHints } from "../practice/RuleBox";
@@ -48,7 +48,7 @@ function HeardLine({ result, done, p }) {
 // One word to say. In "mic" mode the browser listens and checks it; in "self"
 // mode (no speech recognition, or no microphone) the learner checks themselves.
 export default function SayQuestion({
-  word, learningLang, nativeLang, done, onDone, p, mode, selfNote, privacy, prepareOnDevice, onBlocked, onOnDeviceFailed,
+  word, learningLang, nativeLang, done, onDone, p, mode, selfNote, privacy, onDeviceOnly = false, prepareOnDevice, onBlocked, onOnDeviceFailed,
 }) {
   const [misses, setMisses] = useState(0);
   const [state, setState] = useState("idle"); // idle | preparing | listening
@@ -60,11 +60,15 @@ export default function SayQuestion({
   const heardNow = useRef([]);
   const text = word.learning;
 
-  // Play the model first, so the learner hears it before they speak.
+  // Play the model first, so the learner hears it before they speak. Right
+  // after the last question's listening, wait for the microphone to be let
+  // go, or a phone plays it quietly from the earpiece.
   useEffect(() => {
     alive.current = true;
-    speak(text, { lang: learningLang });
+    let live = true;
+    afterListening().then(() => live && speak(text, { lang: learningLang }));
     return () => {
+      live = false;
       alive.current = false;
       stopSpeaking();
       const s = session.current;
@@ -102,6 +106,11 @@ export default function SayQuestion({
       setState("preparing");
       onDevice = await prepareOnDevice();
       if (!alive.current) return;
+      // On-device only, and it can't be had: the game switches to the self check.
+      if (onDevice === null) {
+        setState("idle");
+        return;
+      }
     }
     setResult(null);
     setState("listening");
@@ -112,7 +121,11 @@ export default function SayQuestion({
     // The browser said it could listen on the device but then couldn't: carry
     // on with its online service, for this tap and the rest of the round.
     if (onDevice && !alternatives.length && isOnDeviceFailure(error)) {
-      onOnDeviceFailed?.(error);
+      if (onOnDeviceFailed?.(error) === false) {
+        session.current = null;
+        setState("idle");
+        return;
+      }
       s = listenOnce({ lang: learningLang, onDevice: false });
       session.current = s;
       ({ alternatives, error } = await s.done);
@@ -196,7 +209,7 @@ export default function SayQuestion({
               <TriesMeter left={left} total={MAX_SAY_TRIES} label={left === 1 ? p.sayTryLeft : fill(p.sayTriesLeft, { n: left })} />
             </div>
           )}
-          <p className="lg-caption sy-privacy">{privacy === "local" ? p.sayPrivacyLocal : p.sayPrivacyOnline}</p>
+          <p className="lg-caption sy-privacy">{privacy === "local" || onDeviceOnly ? p.sayPrivacyLocal : p.sayPrivacyOnline}</p>
         </>
       ) : (
         <>

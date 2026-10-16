@@ -4,6 +4,7 @@ import { encodeWords } from '../lib/words';
 import bundled from '../lib/bundledContent';
 import { setContent } from '../lib/content';
 import { validateItem } from '../lib/contentSchema';
+import { setPreferences } from '../lib/preferences';
 
 const words = [
   { learning: 'dog', native: 'koira' },
@@ -19,7 +20,8 @@ function fakeRecognition(script) {
   const made = [];
   function Fake() {
     made.push(this);
-    this.start = () => {
+    this.start = (track) => {
+      this.track = track;
       const next = script.shift();
       Promise.resolve().then(() => {
         if (next.error) this.onerror?.({ error: next.error });
@@ -28,7 +30,10 @@ function fakeRecognition(script) {
       });
     };
     this.stop = () => {};
-    this.abort = () => {};
+    this.aborted = 0;
+    this.abort = () => {
+      this.aborted += 1;
+    };
   }
   window.SpeechRecognition = Fake;
   return made;
@@ -43,6 +48,7 @@ async function tapMic() {
 describe('Say it', () => {
   afterEach(() => {
     delete window.SpeechRecognition;
+    setPreferences({ recognition: 'auto' });
   });
 
   it('is listed on the home screen', () => {
@@ -65,7 +71,9 @@ describe('Say it', () => {
     const target = prompt();
     script.push({ said: ['um', `the ${target}`] });
     await tapMic();
-    expect(made[0].lang).toBe('en-GB');
+    expect(made[0].lang).toBe('en-US');
+    // The microphone is let go once the browser has finished listening.
+    expect(made[0].aborted).toBe(1);
     expect(screen.getByText(`Nicely said: "${target}".`)).toBeInTheDocument();
     expect(screen.getByText(/Clear on the first try\./)).toBeInTheDocument();
     expect(JSON.stringify(storage.data)).toContain(target);
@@ -131,6 +139,144 @@ describe('Say it', () => {
     expect(screen.getByText(`Nicely said: "${said}".`)).toBeInTheDocument();
     expect(screen.getByText(/online service/)).toBeInTheDocument();
     warn.mockRestore();
+  });
+
+  it('opens and stops the microphone itself where the browser can listen to it', async () => {
+    const script = [];
+    const made = fakeRecognition(script);
+    window.SpeechRecognition.available = async () => 'unavailable';
+    const track = { stop: jest.fn() };
+    const stream = { getAudioTracks: () => [track], getTracks: () => [track] };
+    Object.defineProperty(navigator, 'mediaDevices', { configurable: true, value: { getUserMedia: jest.fn(async () => stream) } });
+    try {
+      renderApp(link);
+      await act(async () => {});
+      script.push({ said: [prompt()] });
+      await tapMic();
+      await act(async () => {});
+      expect(made[0].track).toBe(track);
+      expect(track.stop).toHaveBeenCalled();
+    } finally {
+      delete navigator.mediaDevices;
+    }
+  });
+
+  it('lets the browser open its own microphone when listening to the track hears nothing', async () => {
+    const script = [{ error: 'audio-capture' }];
+    const made = fakeRecognition(script);
+    window.SpeechRecognition.available = async () => 'unavailable';
+    const track = { stop: jest.fn() };
+    const stream = { getAudioTracks: () => [track], getTracks: () => [track] };
+    const getUserMedia = jest.fn(async () => stream);
+    Object.defineProperty(navigator, 'mediaDevices', { configurable: true, value: { getUserMedia } });
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      renderApp(link);
+      await act(async () => {});
+      const said = prompt();
+      script.push({ said: [said] });
+      await tapMic();
+      await act(async () => {});
+      expect(made).toHaveLength(2);
+      expect(made[0].track).toBe(track);
+      expect(made[1].track).toBeUndefined();
+      expect(screen.getByText(`Nicely said: "${said}".`)).toBeInTheDocument();
+      // And from then on.
+      fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+      script.push({ said: [prompt()] });
+      await tapMic();
+      expect(made[2].track).toBeUndefined();
+      expect(getUserMedia).toHaveBeenCalledTimes(1);
+    } finally {
+      delete navigator.mediaDevices;
+      warn.mockRestore();
+    }
+  });
+
+  it('lets Safari pick the recording mode, then switches back to playback', async () => {
+    const script = [];
+    fakeRecognition(script);
+    const types = [];
+    const session = { set type(v) { types.push(v); }, get type() { return types[types.length - 1] || 'auto'; } };
+    Object.defineProperty(navigator, 'audioSession', { configurable: true, value: session });
+    try {
+      renderApp(link);
+      script.push({ said: [prompt()] });
+      await tapMic();
+      fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+      script.push({ said: [prompt()] });
+      await tapMic();
+      expect(types).toEqual(['auto', 'playback', 'auto', 'playback']);
+    } finally {
+      delete navigator.audioSession;
+    }
+  });
+
+  it('lets go of the microphone when the learner leaves the page', async () => {
+    const made = [];
+    window.SpeechRecognition = function Fake() {
+      made.push(this);
+      this.start = () => {};
+      this.stop = () => {};
+      this.aborted = 0;
+      this.abort = () => {
+        this.aborted += 1;
+      };
+    };
+    renderApp(link);
+    await tapMic();
+    expect(screen.getByText(/Listening\./)).toBeInTheDocument();
+    Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'hidden' });
+    try {
+      await act(async () => {
+        document.dispatchEvent(new Event('visibilitychange'));
+      });
+    } finally {
+      delete document.visibilityState;
+    }
+    expect(made[0].aborted).toBe(1);
+    expect(screen.queryByText(/Listening\./)).toBeNull();
+  });
+
+  it('listens online only when the learner chose online recognition', async () => {
+    const script = [];
+    const made = fakeRecognition(script);
+    window.SpeechRecognition.available = async () => 'available';
+    setPreferences({ recognition: 'online' });
+    renderApp(link);
+    await act(async () => {});
+    expect(screen.getByText(/online service/)).toBeInTheDocument();
+    script.push({ said: [prompt()] });
+    await tapMic();
+    expect(made[0].processLocally).toBeUndefined();
+  });
+
+  it('never falls back to online when the learner chose on-device recognition', async () => {
+    const script = [{ error: 'language-not-supported' }];
+    const made = fakeRecognition(script);
+    window.SpeechRecognition.available = async () => 'available';
+    window.SpeechRecognition.install = async () => true;
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    setPreferences({ recognition: 'local' });
+    renderApp(link);
+    await act(async () => {});
+    expect(screen.getByText(/on this device/)).toBeInTheDocument();
+    await tapMic();
+    await act(async () => {});
+    expect(made).toHaveLength(1);
+    expect(made[0].processLocally).toBe(true);
+    expect(screen.getByText(/can't recognize speech on this device/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'I said it' })).toBeInTheDocument();
+    warn.mockRestore();
+  });
+
+  it('checks yourself when on-device recognition was chosen but the browser has none', async () => {
+    fakeRecognition([]);
+    window.SpeechRecognition.available = async () => 'unavailable';
+    setPreferences({ recognition: 'local' });
+    renderApp(link);
+    await act(async () => {});
+    expect(screen.getByText(/can't recognize speech on this device/)).toBeInTheDocument();
   });
 
   describe('pronunciation', () => {

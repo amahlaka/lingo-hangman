@@ -5,6 +5,7 @@
 
 let enabled = true;
 let ctx = null;
+let idle = null;
 
 export function setSoundEnabled(on) {
   enabled = Boolean(on);
@@ -51,6 +52,17 @@ function play(notes) {
   } catch {
     // a sound never gets in the way of the game
   }
+  // Suspend the audio between sounds, so a running context doesn't keep a
+  // phone's audio in the mode the microphone put it in (quiet, earpiece only).
+  const longest = Math.max(...notes.map((n) => (n.at || 0) + (n.length || 0.18)));
+  clearTimeout(idle);
+  idle = setTimeout(() => {
+    try {
+      ctx?.suspend?.();
+    } catch {
+      // ignore
+    }
+  }, (longest + 0.3) * 1000);
 }
 
 // C major, around the middle of the piano so nothing is shrill.

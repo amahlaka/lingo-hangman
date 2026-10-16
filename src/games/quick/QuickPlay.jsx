@@ -140,6 +140,7 @@ function QuickQuestion({ question, done, onDone, onItem, t, lang, mic }) {
         mode={mic.selfReason ? "self" : "mic"}
         selfNote={mic.selfNote}
         privacy={mic.privacy}
+        onDeviceOnly={mic.onDeviceOnly}
         prepareOnDevice={mic.prepareOnDevice}
         onBlocked={mic.setSelfReason}
         onOnDeviceFailed={mic.onDeviceFailed}

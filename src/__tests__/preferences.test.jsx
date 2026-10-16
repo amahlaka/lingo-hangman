@@ -54,6 +54,19 @@ describe("practice preferences", () => {
     expect(getPreferences()).toMatchObject({ focus: [], difficulty: "any" });
   });
 
+  it("picks where Say it recognises speech", () => {
+    renderApp("/preferences");
+    expect(screen.getByRole("button", { name: "Automatic" })).toHaveAttribute("aria-pressed", "true");
+    fireEvent.click(screen.getByRole("button", { name: "Online" }));
+    expect(getPreferences().recognition).toBe("online");
+    expect(screen.getByText(/Works in more browsers/)).toBeInTheDocument();
+    // Clearing focus and difficulty keeps this choice.
+    setPreferences({ focus: ["food"] });
+    resetPreferences();
+    expect(getPreferences().recognition).toBe("online");
+    setPreferences({ recognition: "auto" });
+  });
+
   it("is linked from the settings menu", () => {
     renderApp("/hangman");
     fireEvent.click(screen.getByRole("button", { name: "Settings" }));

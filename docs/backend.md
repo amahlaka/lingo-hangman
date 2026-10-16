@@ -175,6 +175,9 @@ app asks `POST /api/tts { text, voice }` for an MP3 in the same voice.
   the voice, speed and text, and shared between learners. Least recently used ones go when it
   passes `TTS_CACHE_MB` (2 GB). Typed text is never logged or stored as text;
   `tts_usage` keeps only a count per learner and day.
+- **Playing it.** The app plays a made clip from a `blob:` URL, so the CSP in
+  `deploy/preview/nginx.conf` allows `media-src 'self' blob:`. Without it the
+  browser refuses the clip and the app falls back to the browser voice.
 - **When it is on.** The app turns it on at start on a device signed in to an
   account (`lingo.sync.v1` has a user), and after signing in; it asks
   `GET /api/tts/status`. Signed out, or with `TTS_URL` unset, nothing changes.

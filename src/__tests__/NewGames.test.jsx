@@ -44,11 +44,14 @@ describe('Your turn', () => {
     expect(JSON.stringify(storage.data)).toContain('for here, thanks.');
   });
 
-  it('shows a line in Finnish when tapped', () => {
+  it('replays a line without its Finnish, which has its own button', () => {
     renderApp('/talk?set=at-the-cafe');
-    expect(screen.queryByText('Hei, mitä saisi olla?')).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /Hi, what can I get you\?/ }));
+    expect(screen.queryByText('Hei, mitä saisi olla?')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'In Finnish' }));
     expect(screen.getByText('Hei, mitä saisi olla?')).toHaveAttribute('lang', 'fi');
+    fireEvent.click(screen.getByRole('button', { name: 'Hide Finnish' }));
+    expect(screen.queryByText('Hei, mitä saisi olla?')).not.toBeInTheDocument();
   });
 
 });
@@ -173,6 +176,8 @@ describe('Read and understand', () => {
     const { storage } = renderApp('/read?set=at-the-cafe');
     const text = getItem('at-the-cafe');
     fireEvent.click(screen.getByRole('button', { name: /Could I have a latte, please\?/ }));
+    expect(screen.queryByText('Saisinko latten, kiitos?')).not.toBeInTheDocument();
+    fireEvent.click(screen.getAllByRole('button', { name: 'In Finnish' })[1]);
     expect(screen.getByText('Saisinko latten, kiitos?')).toHaveAttribute('lang', 'fi');
     expect(screen.getByText('Question 1 of 3')).toBeInTheDocument();
     text.questions.forEach((q, i) => {

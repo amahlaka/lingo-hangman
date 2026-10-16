@@ -713,6 +713,9 @@ textarea.lg-input { padding: var(--space-2) var(--space-3); resize: vertical; }
 .tk-bubble--right { box-shadow: inset 0 0 0 2px var(--pine); background: var(--pine-soft) !important; }
 .tk-bubble--shown { box-shadow: inset 0 0 0 2px var(--cloudberry); background: var(--cloudberry-soft) !important; }
 .tk-bubble__fi { font-size: 15px; line-height: 20px; color: var(--ink-muted); }
+.tk-fi-toggle { padding: 2px var(--space-1); border: 0; border-radius: var(--radius-sm); background: transparent; color: var(--lake); font: 600 13px/18px var(--font-sans); cursor: pointer; }
+.tk-fi-toggle:hover { background: var(--lake-soft); }
+.tk-fi-toggle[aria-pressed="true"] { color: var(--ink-muted); }
 .tk-bubble__icon { position: absolute; top: var(--space-2); right: var(--space-2); color: var(--ink-muted); }
 .tk-typing { display: inline-flex; gap: 4px; padding: var(--space-3); border-radius: var(--radius-md); background: var(--surface-sunken); }
 .tk-typing span { width: 7px; height: 7px; border-radius: var(--radius-pill); background: var(--ink-muted); animation: lg-wave 1s ease-in-out infinite; }
@@ -775,6 +778,9 @@ textarea.lg-input { padding: var(--space-2) var(--space-3); resize: vertical; }
 .rd-line { display: flex; flex-direction: column; gap: 2px; padding: var(--space-1) var(--space-2); border: 0; border-radius: var(--radius-sm); background: transparent; color: var(--ink); font: 400 18px/28px var(--font-sans); text-align: left; cursor: pointer; }
 .rd-line:hover { background: var(--lake-soft); }
 .rd-line__who { font-weight: 700; }
+.rd-row { display: flex; flex-direction: column; align-items: flex-start; }
+.rd-row .rd-line { align-self: stretch; }
+.rd-fi-toggle { margin: 0 0 var(--space-1) var(--space-1); }
 .rd-line__fi { font-size: 15px; line-height: 22px; color: var(--ink-muted); }
 .rd-answered { display: flex; flex-direction: column; gap: var(--space-1); margin: 0; padding: 0; list-style: none; }
 .rd-answered__item { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--space-2); padding: var(--space-2) var(--space-3); border-radius: var(--radius-sm); border-left: 4px solid var(--pine); background: var(--pine-soft); }

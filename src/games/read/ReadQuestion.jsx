@@ -21,15 +21,15 @@ export default function ReadQuestion({ question, onItem, onDone }) {
   const [answers, setAnswers] = useState([]);
   const done = at >= question.questions.length;
 
-  const tap = (i) => {
-    speak(question.sentences[i].en, { lang: "en" });
+  const hear = (i) => speak(question.sentences[i].en, { lang: "en" });
+
+  const toggleFinnish = (i) =>
     setOpen((o) => {
       const next = new Set(o);
       if (next.has(i)) next.delete(i);
       else next.add(i);
       return next;
     });
-  };
 
   const finish = (q, solved, wrongs) => {
     const misses = wrongs.length;
@@ -80,13 +80,20 @@ export default function ReadQuestion({ question, onItem, onDone }) {
         </span>
         <div className="rd-lines">
           {question.sentences.map((s, i) => (
-            <button key={i} type="button" className="rd-line" onClick={() => tap(i)} aria-expanded={open.has(i)}>
-              <span lang="en">
-                {s.speaker && <strong className="rd-line__who">{s.speaker}: </strong>}
-                {s.en}
-              </span>
-              {open.has(i) && s.fi && <span className="rd-line__fi lg-reveal" lang="fi">{s.fi}</span>}
-            </button>
+            <div key={i} className="rd-row">
+              <button type="button" className="rd-line" onClick={() => hear(i)}>
+                <span lang="en">
+                  {s.speaker && <strong className="rd-line__who">{s.speaker}: </strong>}
+                  {s.en}
+                </span>
+                {open.has(i) && s.fi && <span className="rd-line__fi lg-reveal" lang="fi">{s.fi}</span>}
+              </button>
+              {s.fi && (
+                <button type="button" className="tk-fi-toggle rd-fi-toggle" onClick={() => toggleFinnish(i)} aria-pressed={open.has(i)}>
+                  {open.has(i) ? t.talk.hideFinnish : t.talk.showFinnish}
+                </button>
+              )}
+            </div>
           ))}
         </div>
         <p className="lg-caption">{k.tapHelp}</p>

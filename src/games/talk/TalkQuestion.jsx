@@ -10,8 +10,10 @@ import { nextTurn } from "./talkLogic";
 // How long the other speaker "types" before their line appears.
 export const REPLY_DELAY = 900;
 
-// One line of the conversation. Tapping it reads it aloud and shows the Finnish.
-function Bubble({ line, state, open, onTap, i }) {
+// One line of the conversation. Tapping it reads it aloud again; the Finnish
+// has its own button so hearing a line again doesn't give its meaning away.
+function Bubble({ line, state, open, onTap, onFinnish, i }) {
+  const { t } = useSettings();
   return (
     <li className={`tk-line${line.mine ? " tk-line--mine" : ""}`}>
       <span className="tk-line__who">{line.speaker}</span>
@@ -20,12 +22,16 @@ function Bubble({ line, state, open, onTap, i }) {
         className={`tk-bubble${state ? ` tk-bubble--${state}` : ""}${line.mine ? " lg-pop" : " lg-reveal"}`}
         style={{ "--i": i }}
         onClick={onTap}
-        aria-expanded={open}
       >
         <span className="tk-bubble__en" lang="en">{line.en}</span>
         {open && line.fi && <span className="tk-bubble__fi" lang="fi">{line.fi}</span>}
         {canSpeak() && <Volume2 className="tk-bubble__icon" size={16} aria-hidden="true" />}
       </button>
+      {line.fi && (
+        <button type="button" className="tk-fi-toggle" onClick={onFinnish} aria-pressed={open}>
+          {open ? t.talk.hideFinnish : t.talk.showFinnish}
+        </button>
+      )}
     </li>
   );
 }
@@ -124,15 +130,15 @@ export default function TalkQuestion({ question, onItem, onDone }) {
     setMissed(nextMissed);
   };
 
-  const tap = (i) => {
-    speak(lines[i].en, { lang: "en" });
+  const hear = (i) => speak(lines[i].en, { lang: "en" });
+
+  const toggleFinnish = (i) =>
     setOpen((o) => {
       const next = new Set(o);
       if (next.has(i)) next.delete(i);
       else next.add(i);
       return next;
     });
-  };
 
   return (
     <div className="lg-stack pg-question tk-question">
@@ -146,7 +152,7 @@ export default function TalkQuestion({ question, onItem, onDone }) {
       </div>
       <ol className="tk-chat" aria-live="polite">
         {lines.slice(0, shown).map((line, i) => (
-          <Bubble key={i} i={0} line={line} state={results[i]} open={open.has(i)} onTap={() => tap(i)} />
+          <Bubble key={i} i={0} line={line} state={results[i]} open={open.has(i)} onTap={() => hear(i)} onFinnish={() => toggleFinnish(i)} />
         ))}
         {typing && (
           <li className="tk-line" aria-hidden="true">

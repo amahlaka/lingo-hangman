@@ -13,7 +13,7 @@ COPY server/src ./src
 COPY server/migrations ./migrations
 # Progress rules and speech voices shared with the app (server/src/routes
 # imports them from ../../../src/lib, which is /srv/src/lib here).
-COPY src/lib/progress.js src/lib/cosmetics.js src/lib/syncEvents.js src/lib/speechClips.js src/lib/mistakes.js /srv/src/lib/
+COPY src/lib/progress.js src/lib/cosmetics.js src/lib/syncEvents.js src/lib/speechClips.js src/lib/mistakes.js src/lib/pathFormat.js /srv/src/lib/
 RUN echo '{ "type": "module" }' > /srv/src/package.json
 
 ARG LINGO_VERSION=dev

@@ -13,8 +13,8 @@ Built in phases, one pull request each:
 3. Reports and suggestions (signed-in learners), then progress sync.
 4. On-demand speech through the Kokoro TTS server, with daily limits.
 5. Reminders by web push.
-6. Statistics and difficulty data, then **opt-in weekly leaderboards** (the
-   newest), then learning paths.
+6. Statistics and difficulty data, opt-in weekly leaderboards, and **My
+   path** (the newest).
 
 ## How it fits together
 
@@ -289,6 +289,30 @@ Opt-in weekly boards (`server/src/leaderboard/board.js`,
   aren't listed. Nicknames and XP only, never emails. `GET /api/leaderboard`,
   `POST /api/leaderboard/join`, `POST /api/leaderboard/nickname`,
   `DELETE /api/leaderboard/join`, all signed in.
+
+## My path
+
+A short weekly plan on Home (`src/lib/path.js`, `src/app/MyPath.jsx`). The
+planner is a pure function over the learner's progress, so it works the same
+offline and signed out; signed in, `GET`/`PUT /api/path` keeps the current
+path (table `paths`, checked by `src/lib/pathFormat.js`) so every device
+shows the same one.
+
+- **Placement:** with fewer than 20 answers the path is a mixed Quick play
+  round of 10 questions (any answers count), then Pick the meaning and Listen
+  and choose. Once the learner has 20 answers and an overall level, the path
+  is planned again from the results.
+- **A placed path** has four steps of 10 answers each, in this order: the
+  weakest skill, a skill not tried yet, the next weakest, and one going well.
+  Each skill is practised with its game played least. Focus areas and
+  difficulty from Preferences still apply inside the games.
+- **Re-planning:** every Monday, after placement, or when the learner taps
+  "Plan more steps" on a finished path. Progress is counted from each step's
+  `base` (the game's answer count when planned), so it follows synced
+  progress across devices.
+- **Which path wins:** a later week, then the one planned later; on the same
+  day the account's. A device reads the account's path before sending its
+  own, so a new device doesn't replace it.
 
 ## Deploying the API
 

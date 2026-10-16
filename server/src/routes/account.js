@@ -27,6 +27,9 @@ const sessionView = (s, current) => ({
   current: s.id_hash === current,
 });
 
+const pushSettingsExport = (row) =>
+  row ? { enabled: Boolean(row.enabled), time: row.time, timeZone: row.tz, kinds: JSON.parse(row.kinds), language: row.lang } : null;
+
 export default async function accountRoutes(app, { db, config }) {
   // Every route here needs a session.
   app.addHook("preHandler", requireSession(db));
@@ -144,6 +147,10 @@ export default async function accountRoutes(app, { db, config }) {
       suggestions: db.prepare("SELECT * FROM suggestions WHERE user_id = ? ORDER BY id").all(s.user_id).map(suggestionView),
       progress: accountProgress(db, s.user_id),
       speech: db.prepare("SELECT day, count FROM tts_usage WHERE user_id = ? ORDER BY day").all(s.user_id),
+      reminders: {
+        settings: pushSettingsExport(db.prepare("SELECT enabled, time, tz, kinds, lang FROM push_settings WHERE user_id = ?").get(s.user_id)),
+        devices: db.prepare("SELECT created_at AS createdAt, last_sent_at AS lastSentAt FROM push_subscriptions WHERE user_id = ?").all(s.user_id),
+      },
     };
   });
 

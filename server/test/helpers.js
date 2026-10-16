@@ -6,7 +6,7 @@ import { sendDueMail } from "../src/mail/queue.js";
 
 const quietLog = { info() {}, warn() {}, error() {} };
 
-export function setup(env = {}, { tts } = {}) {
+export function setup(env = {}, { tts, push } = {}) {
   const db = openDatabase(":memory:");
   const config = loadConfig({
     ORIGINS: "https://lingo.example",
@@ -14,7 +14,7 @@ export function setup(env = {}, { tts } = {}) {
     ADMIN_EMAILS: "boss@example.com",
     ...env,
   });
-  const app = buildApp({ db, config, logger: false, tts });
+  const app = buildApp({ db, config, logger: false, tts, push });
   const mailer = createMailer(config, quietLog);
   const t = {
     db,

@@ -9,6 +9,7 @@ import { achievementList, answerSummary } from "../lib/progress";
 import { wordStanding } from "../lib/adaptive";
 import { Achievements, DailyProgress, Feedback, GameCard, SettingsMenu } from "../components/lingo";
 import { ShopCard } from "./Shop";
+import { RemindersOffer } from "./Reminders";
 
 // Show answer statistics once there are enough answers to say something.
 const MIN_ANSWERS_FOR_STATS = 10;
@@ -90,6 +91,7 @@ export default function Home() {
 
         <DailyProgress />
         <Feedback variant={nudge.variant} icon={nudge.icon} title={nudge.title} />
+        <RemindersOffer />
 
         <QuickPlayCard t={t} lang={lang} />
 

@@ -60,5 +60,14 @@ export function loadConfig(env = process.env) {
     // Requests waiting for the service, which makes one clip at a time.
     ttsQueueMax: Number(env.TTS_QUEUE_MAX || 20),
     ttsTimeoutMs: Number(env.TTS_TIMEOUT_MS || 30000),
+
+    // Reminders by web push. The VAPID key pair is made once on the server
+    // (npx web-push generate-vapid-keys) and kept in its .env; without it
+    // reminders are off and the app hides them.
+    vapidPublicKey: env.VAPID_PUBLIC_KEY || null,
+    vapidPrivateKey: env.VAPID_PRIVATE_KEY || null,
+    vapidSubject: env.VAPID_SUBJECT || "mailto:lingo@bololoo.com",
+    // How often the reminder scheduler looks for learners to remind.
+    pushIntervalMs: Number(env.PUSH_INTERVAL_MS || 5 * 60_000),
   };
 }

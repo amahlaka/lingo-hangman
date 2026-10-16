@@ -55,6 +55,8 @@ export default defineConfig({
         // /api/ belongs to the backend (server/); the service worker must not
         // answer those addresses with the app's index.html.
         navigateFallbackDenylist: [/^\/api\//],
+        // Shows reminders sent by the backend (public/push-sw.js).
+        importScripts: ['push-sw.js'],
       },
       manifest: {
         name: 'Lingo',

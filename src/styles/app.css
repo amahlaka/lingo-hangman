@@ -653,3 +653,7 @@ textarea.lg-input { padding: var(--space-2) var(--space-3); resize: vertical; }
 .fb-report { margin: 0; padding: var(--space-2) 0 0; border-top: 1px solid var(--border); font-size: 14px; line-height: 20px; overflow-wrap: anywhere; }
 .fb-context { margin: var(--space-1) 0 0; font: 400 12px/16px ui-monospace, monospace; color: var(--ink-muted); white-space: pre-wrap; overflow-wrap: anywhere; }
 .fb-form .lg-field { flex: none; }
+
+/* Reminders (src/app/Reminders.jsx) */
+.rm-time { flex: none; max-width: 200px; }
+.rm-offer .lg-heading { display: flex; align-items: center; gap: var(--space-2); }

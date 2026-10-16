@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useSettings } from "./SettingsContext";
 import { GameScreen, typeClass } from "../components/lingo";
-import { ALL_CATEGORIES, categoryLabels } from "../lib/words";
+import { categoryGroups, categoryLabels } from "../lib/words";
 import { DIFFICULTIES, getPreferences, onPreferencesChange, resetPreferences, setPreferences } from "../lib/preferences";
 
 // Focus areas, difficulty and word-type settings for every game
@@ -14,10 +14,18 @@ export default function Preferences() {
   useEffect(() => onPreferencesChange(setPrefs), []);
 
   const labels = categoryLabels(lang);
+  const groups = categoryGroups(lang, t.focusOther);
   const toggleFocus = (cat) =>
     setPreferences({
       focus: prefs.focus.includes(cat) ? prefs.focus.filter((c) => c !== cat) : [...prefs.focus, cat],
     });
+  // Picks every topic of a group, or clears them when all are picked already.
+  const toggleGroup = (cats) => {
+    const all = cats.every((c) => prefs.focus.includes(c));
+    setPreferences({
+      focus: all ? prefs.focus.filter((c) => !cats.includes(c)) : [...prefs.focus, ...cats.filter((c) => !prefs.focus.includes(c))],
+    });
+  };
 
   return (
     <GameScreen title={t.preferencesTitle}>
@@ -76,22 +84,42 @@ export default function Preferences() {
         <section className="lg-section">
           <h2 className="lg-heading">{t.focusAreasLabel}</h2>
           <p className="lg-caption">{t.focusAreasHint}</p>
-          <div className="lg-chips">
-            {ALL_CATEGORIES.map((cat) => {
-              const on = prefs.focus.includes(cat);
-              return (
-                <button
-                  key={cat}
-                  type="button"
-                  className={`lg-chip ${on ? "lg-chip--on" : ""}`}
-                  aria-pressed={on}
-                  onClick={() => toggleFocus(cat)}
-                >
-                  {labels[cat]}
-                </button>
-              );
-            })}
-          </div>
+          {groups.map((group) => {
+            const all = group.categories.every((c) => prefs.focus.includes(c));
+            return (
+              <div key={group.id} className="lg-focus-group" role="group" aria-labelledby={`focus-${group.id}`}>
+                <div className="lg-focus-group__head">
+                  <h3 id={`focus-${group.id}`} className="lg-focus-group__title">{group.label}</h3>
+                  {group.categories.length > 1 && (
+                    <button
+                      type="button"
+                      className="lg-btn lg-btn--quiet lg-focus-group__all"
+                      onClick={() => toggleGroup(group.categories)}
+                      aria-label={`${all ? t.focusGroupNone : t.focusGroupAll}: ${group.label}`}
+                    >
+                      {all ? t.focusGroupNone : t.focusGroupAll}
+                    </button>
+                  )}
+                </div>
+                <div className="lg-chips">
+                  {group.categories.map((cat) => {
+                    const on = prefs.focus.includes(cat);
+                    return (
+                      <button
+                        key={cat}
+                        type="button"
+                        className={`lg-chip ${on ? "lg-chip--on" : ""}`}
+                        aria-pressed={on}
+                        onClick={() => toggleFocus(cat)}
+                      >
+                        {labels[cat]}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
         </section>
 
         <div className="lg-row">

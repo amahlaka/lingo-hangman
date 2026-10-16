@@ -175,6 +175,22 @@ export function categoryLabels(uiLang = "en") {
   return Object.fromEntries(ALL_CATEGORIES.map((c) => [c, categoryLabel(c, uiLang)]));
 }
 
+// The categories under the headings of the focus area list, from
+// index.json `categoryGroups`: [{ id, label, categories }], in content order.
+// Categories no group names come last under "other" (label `otherLabel`).
+export function categoryGroups(uiLang = "en", otherLabel = "Other") {
+  const used = new Set();
+  const groups = [];
+  for (const g of getContent().categoryGroups || []) {
+    const cats = (Array.isArray(g?.categories) ? g.categories : []).filter((c) => ALL_CATEGORIES.includes(c) && !used.has(c));
+    cats.forEach((c) => used.add(c));
+    if (cats.length) groups.push({ id: g.id, label: g.title?.[uiLang] || g.title?.en || g.id, categories: cats });
+  }
+  const rest = ALL_CATEGORIES.filter((c) => !used.has(c));
+  if (rest.length) groups.push({ id: "other", label: otherLabel, categories: rest });
+  return groups;
+}
+
 // Every item of one type from the word bank: "word", "gap", "rule", "confusable", "group" or "sound".
 export function getItems({ type } = {}) {
   const { items } = getContent();

@@ -425,6 +425,28 @@ export function validateContent({ index, languages, packs }) {
     }
   }
 
+  if (index?.categoryGroups !== undefined) {
+    if (!Array.isArray(index.categoryGroups)) where("index.json", "categoryGroups must be a list");
+    else {
+      const grouped = new Set();
+      index.categoryGroups.forEach((g, i) => {
+        const name = isText(g?.id) ? g.id : `group ${i + 1}`;
+        if (!isObject(g) || !isText(g.id) || !ID_PATTERN.test(g.id)) where("index.json", `categoryGroups: ${name} needs a lower-case id`);
+        const p = [];
+        checkTextMap(g?.title, `categoryGroups.${name}.title`, p, { mustHave: ["en"] });
+        p.forEach((m) => where("index.json", m));
+        if (!Array.isArray(g?.categories) || !g.categories.every(isText)) {
+          where("index.json", `categoryGroups.${name} needs a list of categories`);
+          return;
+        }
+        for (const c of g.categories) {
+          if (grouped.has(c)) where("index.json", `category "${c}" is in more than one group`);
+          grouped.add(c);
+        }
+      });
+    }
+  }
+
   if (!Array.isArray(languages) || languages.length === 0) {
     where("languages.json", "needs at least one language");
   } else {

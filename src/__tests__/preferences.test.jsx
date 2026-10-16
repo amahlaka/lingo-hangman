@@ -1,7 +1,7 @@
 import { fireEvent, screen } from "@testing-library/react";
 import { renderApp } from "../test-utils";
 import { applyPreferences, getPreferences, itemLevel, resetPreferences, setPreferences } from "../lib/preferences";
-import { filterCommonWords, getSentences } from "../lib/words";
+import { ALL_CATEGORIES, categoryGroups, filterCommonWords, getSentences } from "../lib/words";
 
 afterEach(() => resetPreferences());
 
@@ -52,6 +52,20 @@ describe("practice preferences", () => {
     expect(JSON.parse(localStorage.getItem("lingoPreferences")).focus).toEqual(["food"]);
     fireEvent.click(screen.getByRole("button", { name: "Clear choices" }));
     expect(getPreferences()).toMatchObject({ focus: [], difficulty: "any" });
+  });
+
+  it("groups the focus areas under headings", () => {
+    renderApp("/preferences");
+    const groups = categoryGroups("en", "Other");
+    const grouped = groups.flatMap((g) => g.categories);
+    expect([...grouped].sort()).toEqual([...ALL_CATEGORIES].sort());
+    expect(new Set(grouped).size).toBe(grouped.length);
+    const media = groups.find((g) => g.categories.includes("video-editing"));
+    expect(screen.getByRole("heading", { name: media.label })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: `Pick all: ${media.label}` }));
+    expect(getPreferences().focus).toEqual(media.categories);
+    fireEvent.click(screen.getByRole("button", { name: `Clear: ${media.label}` }));
+    expect(getPreferences().focus).toEqual([]);
   });
 
   it("is linked from the settings menu", () => {

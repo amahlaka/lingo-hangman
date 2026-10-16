@@ -63,6 +63,17 @@ describe("item checks", () => {
     expect(problems.some((p) => /id is already used/.test(p))).toBe(true);
     expect(problems.some((p) => /stray.json: is not listed/.test(p))).toBe(true);
   });
+
+  it("checks the focus area groups", () => {
+    const raw = clone(bundled);
+    raw.index.categoryGroups = [
+      { id: "a", title: { en: "A" }, categories: ["food", "home"] },
+      { id: "b", title: {}, categories: ["food"] },
+    ];
+    const problems = validateContent(raw);
+    expect(problems.some((p) => /"food" is in more than one group/.test(p))).toBe(true);
+    expect(problems.some((p) => /categoryGroups.b.title/.test(p))).toBe(true);
+  });
 });
 
 describe("loading", () => {

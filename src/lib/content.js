@@ -40,6 +40,7 @@ export function buildContent(raw) {
     raw,
     languages: raw.languages || [],
     categories: raw.index?.categories || {},
+    categoryGroups: Array.isArray(raw.index?.categoryGroups) ? raw.index.categoryGroups : [],
     packs: sorted,
     items,
     byId: new Map(items.map((i) => [i.id, i])),

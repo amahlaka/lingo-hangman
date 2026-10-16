@@ -13,6 +13,11 @@ import SayGame from "./say/SayGame";
 import TypeGame from "./type/TypeGame";
 import SoundsGame from "./sounds/SoundsGame";
 import QuickPlay from "./quick/QuickPlay";
+import TalkGame from "./talk/TalkGame";
+import MistakeGame from "./mistake/MistakeGame";
+import RushGame from "./rush/RushGame";
+import DailyGame from "./daily/DailyGame";
+import ReadGame from "./read/ReadGame";
 
 export const GAMES = [
   {
@@ -160,6 +165,63 @@ export const GAMES = [
     skill: "Sentences",
     path: "/fill-the-gap",
     routes: [{ path: "/fill-the-gap", Component: FillGapGame }],
+  },
+  {
+    id: "talk",
+    name: "Your turn",
+    nameFi: "Sinun vuorosi",
+    description: "Everyday conversations: you play one person and pick what to say next.",
+    art: "Hi! · Hello.",
+    minutes: 4,
+    skill: "Conversation",
+    path: "/talk",
+    routes: [{ path: "/talk", Component: TalkGame }],
+  },
+  {
+    id: "spot-mistake",
+    name: "Spot the mistake",
+    nameFi: "Löydä virhe",
+    description: "Each sentence has one typical mistake. Find it, then fix it.",
+    art: "he go → goes",
+    minutes: 4,
+    skill: "Grammar",
+    path: "/spot-the-mistake",
+    routes: [{ path: "/spot-the-mistake", Component: MistakeGame }],
+  },
+  {
+    id: "rush",
+    name: "Word rush",
+    nameFi: "Sanakiire",
+    description: "One minute, as many words as you can. Answers in a row score more.",
+    art: "×3",
+    minutes: 1,
+    skill: "Vocabulary",
+    path: "/word-rush",
+    routes: [{ path: "/word-rush", Component: RushGame }],
+  },
+  {
+    id: "daily",
+    name: "Daily word",
+    nameFi: "Päivän sana",
+    description: "One new five-letter word every day. Guess it in six tries from its Finnish meaning.",
+    art: "W O R D",
+    minutes: 3,
+    skill: "Spelling",
+    path: "/daily",
+    // Played once a day, so My path doesn't plan steps of it.
+    noPath: true,
+    routes: [{ path: "/daily", Component: DailyGame }],
+  },
+  {
+    id: "read",
+    name: "Read and understand",
+    nameFi: "Lue ja ymmärrä",
+    description: "Short messages, notices and stories with a few easy questions. Tap a sentence for Finnish.",
+    art: "Dear Anna,",
+    minutes: 5,
+    skill: "Reading",
+    path: "/read",
+    routes: [{ path: "/read", Component: ReadGame }],
   },
 ];
 

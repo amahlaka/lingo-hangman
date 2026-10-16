@@ -17,7 +17,7 @@ import WordPairsGame from "./word-pairs/WordPairsGame";
   description: "Match each English word with its Finnish meaning.",
   art: "cat · kissa",            // typographic card art: real letters, no emoji
   minutes: 3,
-  skill: "Vocabulary",           // Vocabulary, Spelling, Sentences, Listening, Speaking, Grammar or Pronunciation
+  skill: "Vocabulary",           // Vocabulary, Spelling, Sentences, Listening, Speaking, Conversation, Reading, Grammar or Pronunciation
   path: "/word-pairs",           // where the card links to
   routes: [{ path: "/word-pairs", Component: WordPairsGame }],
 }
@@ -312,3 +312,30 @@ topics), suggested focus areas and difficulty with buttons that save them to
 the shared preferences, the last 7 days, and per-game and per-lesson tables.
 The rules are pure functions in `src/lib/insights.js`. Days also keep
 `firstTry`, `ms` and `timed`.
+
+## Your turn, Spot the mistake, Word rush, Daily word, Read and understand
+
+- **Your turn** (`talk/`, `/talk`): the word bank's two-person dialogues as
+  conversations. The learner plays the dialogue's `you` (or the second
+  speaker) and picks each of their lines from three: the line, a later line
+  of theirs (right topic, wrong moment) and one from another conversation.
+  The other side's lines appear after a short pause and are read aloud; any
+  line can be tapped to hear it and see the Finnish. Each line is recorded
+  with `onItem`. `?set=<text id>` plays one conversation.
+- **Spot the mistake** (`mistake/`, `/spot-the-mistake`): grammar and
+  mixed-up words gap sentences with one of their hand-written wrong options
+  in the gap. Tap the wrong word, then pick the fix; the rule shows after.
+  Items whose answer is "no word" are left out. `?set=<topic id>`.
+- **Word rush** (`rush/`, `/word-rush`): 60 seconds of Finnish-to-English
+  picks. Three in a row doubles the round score, six triples it, every five
+  in a row adds three seconds. Every answer is recorded as in other games;
+  the best score is kept on the device (`lingoRushBest`).
+- **Daily word** (`daily/`, `/daily`): one five-letter word bank word a day,
+  the same for everyone (`wordForDay`), guessed in six tries from its Finnish
+  meaning. Any five letters can be tried. The day's word and guesses, played
+  days and streak are kept on the device (`lingoDaily`); the game is recorded
+  once when it ends. Its registry entry has `noPath: true`, so My path never
+  plans steps of it.
+- **Read and understand** (`read/`, `/read`): texts with `questions`; tap a
+  sentence to hear it and see the Finnish, then answer the questions one at a
+  time (each recorded with `onItem`). `?set=<text id>`.

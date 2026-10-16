@@ -29,7 +29,7 @@ function Sentence({ question, done, solved, p }) {
 // Why the answer is what it is: the item's own note, then the set's rule.
 // English UI shows English with the Finnish underneath; Finnish UI shows Finnish.
 // Before answering only the set's rule is shown (the note gives the answer away).
-function Explanation({ parts, lang, p }) {
+export function Explanation({ parts, lang, p }) {
   return (
     <RuleBox label={p.why}>
       {parts.map((part, i) =>

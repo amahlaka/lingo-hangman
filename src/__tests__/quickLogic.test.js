@@ -134,7 +134,8 @@ describe("quick play round", () => {
     expect(roleOf("b")).toBe("challenge");
     expect(roleOf("c")).toBe("easy");
     expect(roleOf("d")).toBe("easy");
-    expect(roleOf("e")).toBe("fresh");
+    // In between: an ordinary new word (it may not make the round of 10).
+    expect(["fresh", undefined]).toContain(roleOf("e"));
     expect(picks[0].role).toBe("easy");
   });
 

@@ -7,6 +7,7 @@ import { enqueueMail } from "../mail/queue.js";
 import { COOKIE, requireSession } from "../sessions.js";
 import { reportView, suggestionView } from "./feedback.js";
 import { accountProgress } from "./sync.js";
+import { storedPath } from "./path.js";
 
 const CHALLENGE_MS = 5 * 60_000;
 const MAX_PASSKEYS = 20;
@@ -152,6 +153,7 @@ export default async function accountRoutes(app, { db, config }) {
         devices: db.prepare("SELECT created_at AS createdAt, last_sent_at AS lastSentAt FROM push_subscriptions WHERE user_id = ?").all(s.user_id),
       },
       leaderboard: db.prepare("SELECT nickname, joined_at AS joinedAt FROM leaderboard_members WHERE user_id = ?").get(s.user_id) || null,
+      path: storedPath(db, s.user_id).path,
     };
   });
 

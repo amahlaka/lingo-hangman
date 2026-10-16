@@ -6,9 +6,6 @@
 // Speaking takes longer than tapping, so a round is a little shorter.
 export const SAY_ROUND_LENGTH = 8;
 // Heard attempts per word before it is left for later. Silence doesn't count.
-// Points the "how to say it" reading costs, like the other one-off hints.
-export const SAY_HINT_COST = 5;
-
 export const MAX_SAY_TRIES = 3;
 // Single words and short phrases; long sentences are a different exercise.
 export const MAX_SAY_WORDS = 4;

@@ -1,5 +1,6 @@
 import { act, fireEvent, screen } from '@testing-library/react';
-import { renderApp } from '../test-utils';
+import { memoryStorage, renderApp } from '../test-utils';
+import { STORAGE_KEY, emptyProgress } from '../lib/progress';
 import { encodeWords } from '../lib/words';
 import bundled from '../lib/bundledContent';
 import { setContent } from '../lib/content';
@@ -201,28 +202,40 @@ describe('Say it', () => {
       expect(validateItem({ ...pack.items[0], say: { fi: '' } })[0]).toMatch(/say.fi is empty/);
     });
 
-    it('always shows the IPA and sells the Finnish reading for points', async () => {
+    it('shows the IPA and the Finnish reading for free', async () => {
       const script = [];
       fakeRecognition(script);
       renderApp('/say?learningLang=en-GB&nativeLang=fi');
       const first = reading[prompt()];
       expect(screen.getByTestId('prompt-ipa').textContent).toBe(first.ipa['en-GB']);
-      expect(screen.queryByText(first.say.fi)).toBeNull();
-      expect(screen.getByRole('button', { name: /Show how to say it/ })).toBeDisabled();
-
-      script.push({ said: [first.text.en] });
-      await tapMic();
-      // Answering shows the reading, free.
       expect(screen.getByText(first.say.fi)).toBeInTheDocument();
-      fireEvent.click(screen.getByRole('button', { name: 'Next' }));
-
-      const second = reading[prompt()];
-      expect(screen.getByTestId('prompt-ipa').textContent).toBe(second.ipa['en-GB']);
-      expect(screen.queryByText(second.say.fi)).toBeNull();
-      fireEvent.click(screen.getByRole('button', { name: /Show how to say it/ }));
-      expect(screen.getByText(second.say.fi)).toBeInTheDocument();
       expect(screen.getByText('Read the Finnish way:')).toBeInTheDocument();
       expect(screen.queryByRole('button', { name: /Show how to say it/ })).toBeNull();
+    });
+
+    it('keeps the reading one free tap away for words the learner says well', async () => {
+      const script = [];
+      fakeRecognition(script);
+      const known = { solved: 2, lost: 0, days: ['2026-10-15'], recent: '22' };
+      const words = Object.fromEntries(pack.items.map((i) => [`en:${i.text.en}`, known]));
+      const storage = memoryStorage({ [STORAGE_KEY]: JSON.stringify({ ...emptyProgress(), words }) });
+      renderApp('/say?learningLang=en-GB&nativeLang=fi', { storage });
+      const first = reading[prompt()];
+      expect(screen.getByTestId('prompt-ipa').textContent).toBe(first.ipa['en-GB']);
+      expect(screen.queryByText(first.say.fi)).toBeNull();
+      fireEvent.click(screen.getByRole('button', { name: 'Show how to say it' }));
+      expect(screen.getByText(first.say.fi)).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /Show how to say it/ })).toBeNull();
+      script.push({ said: [first.text.en] });
+      await tapMic();
+      fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+
+      // Answering shows it too.
+      const second = reading[prompt()];
+      expect(screen.queryByText(second.say.fi)).toBeNull();
+      script.push({ said: [second.text.en] });
+      await tapMic();
+      expect(screen.getByText(second.say.fi)).toBeInTheDocument();
     });
   });
 });

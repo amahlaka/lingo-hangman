@@ -713,6 +713,9 @@ textarea.lg-input { padding: var(--space-2) var(--space-3); resize: vertical; }
 .tk-bubble--right { box-shadow: inset 0 0 0 2px var(--pine); background: var(--pine-soft) !important; }
 .tk-bubble--shown { box-shadow: inset 0 0 0 2px var(--cloudberry); background: var(--cloudberry-soft) !important; }
 .tk-bubble__fi { font-size: 15px; line-height: 20px; color: var(--ink-muted); }
+.tk-fi-toggle { padding: 2px var(--space-1); border: 0; border-radius: var(--radius-sm); background: transparent; color: var(--lake); font: 600 13px/18px var(--font-sans); cursor: pointer; }
+.tk-fi-toggle:hover { background: var(--lake-soft); }
+.tk-fi-toggle[aria-pressed="true"] { color: var(--ink-muted); }
 .tk-bubble__icon { position: absolute; top: var(--space-2); right: var(--space-2); color: var(--ink-muted); }
 .tk-typing { display: inline-flex; gap: 4px; padding: var(--space-3); border-radius: var(--radius-md); background: var(--surface-sunken); }
 .tk-typing span { width: 7px; height: 7px; border-radius: var(--radius-pill); background: var(--ink-muted); animation: lg-wave 1s ease-in-out infinite; }

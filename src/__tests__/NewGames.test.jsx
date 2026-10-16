@@ -44,11 +44,14 @@ describe('Your turn', () => {
     expect(JSON.stringify(storage.data)).toContain('for here, thanks.');
   });
 
-  it('shows a line in Finnish when tapped', () => {
+  it('replays a line without its Finnish, which has its own button', () => {
     renderApp('/talk?set=at-the-cafe');
-    expect(screen.queryByText('Hei, mitä saisi olla?')).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /Hi, what can I get you\?/ }));
+    expect(screen.queryByText('Hei, mitä saisi olla?')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'In Finnish' }));
     expect(screen.getByText('Hei, mitä saisi olla?')).toHaveAttribute('lang', 'fi');
+    fireEvent.click(screen.getByRole('button', { name: 'Hide Finnish' }));
+    expect(screen.queryByText('Hei, mitä saisi olla?')).not.toBeInTheDocument();
   });
 
 });

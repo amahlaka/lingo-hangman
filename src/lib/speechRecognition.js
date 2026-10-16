@@ -76,11 +76,43 @@ export async function installOnDevice(lang) {
   }
 }
 
-// Listen for one utterance. Returns { done, stop }: `done` resolves to
+// Newer Chrome and Edge (the ones with on-device recognition) can listen to
+// a microphone track the page opened itself. Lingo then holds the microphone
+// and stops it when listening ends: left to itself, Chrome on Android can keep
+// the microphone open (and the phone in quiet earpiece "call" audio) until the
+// tab is closed. Other browsers would ignore the track and open a second
+// microphone, so they keep opening their own.
+function canListenToTrack(Ctor) {
+  return typeof Ctor.available === "function" && typeof navigator !== "undefined" && typeof navigator.mediaDevices?.getUserMedia === "function";
+}
+
+async function openMicrophone() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    return stream.getAudioTracks().length ? stream : (stream.getTracks().forEach((t) => t.stop()), null);
+  } catch {
+    // Denied or no microphone: the recogniser's own start reports why.
+    return null;
+  }
+}
+
+// Everything listening now, so leaving the page can let go of the microphone.
+const active = new Set();
+function releaseAll() {
+  Array.from(active).forEach((abort) => abort());
+}
+if (typeof window !== "undefined" && typeof document !== "undefined") {
+  window.addEventListener("pagehide", releaseAll);
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden") releaseAll();
+  });
+}
+
+// Listen for one utterance. Returns { done, stop, abort }: `done` resolves to
 // { alternatives: [text…], error } once the browser stops listening, where
 // error is the browser's code ("no-speech", "not-allowed", "audio-capture" …)
 // or null. `stop` ends listening early and keeps what was heard; `abort`
-// throws it away.
+// throws it away. Either way the microphone is let go.
 export function listenOnce({ lang = "en", onDevice = false, onSound } = {}) {
   const Ctor = recognitionCtor();
   if (!Ctor) return { done: Promise.resolve({ alternatives: [], error: "unsupported" }), stop() {}, abort() {} };
@@ -95,13 +127,16 @@ export function listenOnce({ lang = "en", onDevice = false, onSound } = {}) {
   let alternatives = [];
   let error = null;
   let timer = null;
+  let started = false;
   let released = false;
-  // Let go of the microphone completely: some browsers keep it open after a
-  // result until the recogniser is aborted, which leaves the phone in call
-  // audio and makes the next playback quiet and earpiece-only.
+  let stream = null;
+  let settle = () => {};
+  // Let go of the microphone completely: abort the recogniser (some browsers
+  // keep the microphone after a result until then) and stop our own track.
   const release = () => {
     if (released) return;
     released = true;
+    active.delete(abort);
     clearTimeout(timer);
     listening = Math.max(0, listening - 1);
     lastEnded = Date.now();
@@ -114,9 +149,14 @@ export function listenOnce({ lang = "en", onDevice = false, onSound } = {}) {
     } catch {
       // already stopped
     }
+    if (stream) stream.getTracks().forEach((t) => t.stop());
+    stream = null;
     if (!listening) setAudioSession("playback");
   };
-  let settle = () => {};
+  const abort = () => {
+    release();
+    settle({ alternatives: [], error: "aborted" });
+  };
   const done = new Promise((resolve) => {
     settle = resolve;
     rec.onresult = (event) => {
@@ -135,22 +175,40 @@ export function listenOnce({ lang = "en", onDevice = false, onSound } = {}) {
     };
   });
 
+  const begin = () => {
+    if (released) return;
+    try {
+      const track = stream?.getAudioTracks()[0];
+      if (track) rec.start(track);
+      else rec.start();
+      started = true;
+      timer = setTimeout(() => rec.stop(), LISTEN_TIMEOUT_MS);
+    } catch {
+      release();
+      settle({ alternatives: [], error: "start-failed" });
+    }
+  };
+
   listening += 1;
+  active.add(abort);
   setAudioSession("play-and-record");
-  try {
-    rec.start();
-    timer = setTimeout(() => rec.stop(), LISTEN_TIMEOUT_MS);
-  } catch {
-    release();
-    return { done: Promise.resolve({ alternatives: [], error: "start-failed" }), stop() {}, abort() {} };
+  if (canListenToTrack(Ctor)) {
+    openMicrophone().then((s) => {
+      if (released) {
+        if (s) s.getTracks().forEach((t) => t.stop());
+        return;
+      }
+      stream = s;
+      begin();
+    });
+  } else {
+    begin();
   }
   return {
     done,
-    stop: () => rec.stop(),
-    abort: () => {
-      release();
-      settle({ alternatives: [], error: "aborted" });
-    },
+    // Before the recogniser has started there is nothing to keep.
+    stop: () => (started ? rec.stop() : abort()),
+    abort,
   };
 }
 

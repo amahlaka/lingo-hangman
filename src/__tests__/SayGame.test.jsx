@@ -21,7 +21,8 @@ function fakeRecognition(script) {
   const made = [];
   function Fake() {
     made.push(this);
-    this.start = () => {
+    this.start = (track) => {
+      this.track = track;
       const next = script.shift();
       Promise.resolve().then(() => {
         if (next.error) this.onerror?.({ error: next.error });
@@ -139,6 +140,52 @@ describe('Say it', () => {
     expect(screen.getByText(`Nicely said: "${said}".`)).toBeInTheDocument();
     expect(screen.getByText(/online service/)).toBeInTheDocument();
     warn.mockRestore();
+  });
+
+  it('opens and stops the microphone itself where the browser can listen to it', async () => {
+    const script = [];
+    const made = fakeRecognition(script);
+    window.SpeechRecognition.available = async () => 'unavailable';
+    const track = { stop: jest.fn() };
+    const stream = { getAudioTracks: () => [track], getTracks: () => [track] };
+    Object.defineProperty(navigator, 'mediaDevices', { configurable: true, value: { getUserMedia: jest.fn(async () => stream) } });
+    try {
+      renderApp(link);
+      await act(async () => {});
+      script.push({ said: [prompt()] });
+      await tapMic();
+      await act(async () => {});
+      expect(made[0].track).toBe(track);
+      expect(track.stop).toHaveBeenCalled();
+    } finally {
+      delete navigator.mediaDevices;
+    }
+  });
+
+  it('lets go of the microphone when the learner leaves the page', async () => {
+    const made = [];
+    window.SpeechRecognition = function Fake() {
+      made.push(this);
+      this.start = () => {};
+      this.stop = () => {};
+      this.aborted = 0;
+      this.abort = () => {
+        this.aborted += 1;
+      };
+    };
+    renderApp(link);
+    await tapMic();
+    expect(screen.getByText(/Listening\./)).toBeInTheDocument();
+    Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'hidden' });
+    try {
+      await act(async () => {
+        document.dispatchEvent(new Event('visibilitychange'));
+      });
+    } finally {
+      delete document.visibilityState;
+    }
+    expect(made[0].aborted).toBe(1);
+    expect(screen.queryByText(/Listening\./)).toBeNull();
   });
 
   it('listens online only when the learner chose online recognition', async () => {

@@ -229,7 +229,7 @@ POST   /api/push/test            → a test reminder to this device (5 an hour)
 
 ## Statistics
 
-Numbers over everyone's answers, never about one learner, from the `answer`
+Numbers over everyone's answers from the `answer`
 events that sync stores (`server/src/stats/aggregate.js`). Only learners with
 an account are counted, since only they sync.
 
@@ -242,6 +242,12 @@ an account are counted, since only they sync.
   this week, reminders on, open reports), learners per day for the last 35
   days, each game's answers, first-try share and median time, and the words
   most often missed and slowest.
+- **One learner** (Arttu's decision, 2026-10-16: admins see individual
+  statistics): `/admin/users` shows when each learner last played, and each
+  email opens `/admin/users/:id` (`GET /api/admin/users/:id`) with that
+  learner's level, streak, recent days, games, most missed words, devices
+  and reminder setting, read from their synced progress. Read only. The
+  privacy page says the maintainer can see this.
 - **Difficulty data:** `GET /api/difficulty` (no sign-in, cached for an hour)
   gives each word's answer count, first-try share and median time. A word is
   in it, and in the admin lists, only after 5 answers from 3 different

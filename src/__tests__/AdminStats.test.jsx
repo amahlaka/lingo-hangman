@@ -73,3 +73,34 @@ test("no backend, no difficulty data", async () => {
   mockApi({});
   expect(await loadDifficulty(memoryStorage())).toBeNull();
 });
+
+test("an admin opens one learner's progress", async () => {
+  mockApi({
+    "/health": health,
+    "/admin/users/5": {
+      status: 200,
+      body: {
+        user: { id: 5, email: "anna@example.com", role: "learner", language: "fi", createdAt: "2026-10-01T10:00:00Z", lastAnswerAt: "2026-10-16T09:00:00Z" },
+        devices: [{ device: "Safari on iPhone", lastSeenAt: "2026-10-16T09:00:00Z" }],
+        reminders: { enabled: true, time: "18:00", timeZone: "Europe/Helsinki" },
+        speechToday: 2,
+        reports: 1,
+        suggestions: 0,
+        progress: {
+          xp: 620, level: 3, toNext: 130, words: 64, learned: 12, streakBest: 5, dailyGoal: 10, gems: 40,
+          streak: { current: 4, lastDay: "2026-10-16" },
+          totals: { words: 64, solved: 50, perfect: 40 },
+          days: [{ day: "2026-10-16", words: 12, solved: 10, firstTry: 8, goalMet: true }],
+          games: [{ id: "meaning", n: 40, meanMs: 3200, firstTryRate: 0.7 }],
+          missed: [{ word: "through", lost: 4, solved: 1, recent: "0102", ms: 6100, last: "2026-10-16" }],
+          wordCount: 30,
+        },
+      },
+    },
+  });
+  renderApp("/admin/users/5");
+  expect(await screen.findByText("through")).toBeInTheDocument();
+  expect(screen.getByText(/Reminders: on at 18:00/)).toBeInTheDocument();
+  expect(screen.getByText("Safari on iPhone")).toBeInTheDocument();
+  expect(screen.getByText("words learned")).toBeInTheDocument();
+});

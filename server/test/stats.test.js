@@ -68,3 +68,25 @@ test("the admin Statistics page gets totals, days and word lists", async () => {
   assert.ok(stats.updatedAt);
   await t.close();
 });
+
+test("an admin sees one learner's own progress", async () => {
+  const t = setup();
+  await learner(t, "a@example.com", [answer("cat", HOUR, false), answer("cat", 2 * HOUR, true), answer("dog", 3 * HOUR, true)]);
+  const id = t.db.prepare("SELECT id FROM users WHERE email = 'a@example.com'").get().id;
+  assert.equal((await t.call("GET", `/api/admin/users/${id}`)).statusCode, 403);
+  t.cookie = null;
+  await t.signIn("boss@example.com");
+  const res = await t.call("GET", `/api/admin/users/${id}`);
+  assert.equal(res.statusCode, 200);
+  const view = res.json();
+  assert.equal(view.user.email, "a@example.com");
+  assert.ok(view.user.lastAnswerAt);
+  assert.equal(view.progress.words, 3);
+  assert.deepEqual(view.progress.games.map((g) => [g.id, g.n]), [["meaning", 3]]);
+  assert.deepEqual(view.progress.missed.map((w) => [w.word, w.lost, w.solved]), [["cat", 1, 1]]);
+  assert.equal(view.devices.length, 1);
+  const list = (await t.call("GET", "/api/admin/users")).json();
+  assert.ok(list.users.find((u) => u.id === id).lastAnswerAt);
+  assert.equal((await t.call("GET", "/api/admin/users/99999")).statusCode, 404);
+  await t.close();
+});

@@ -12,6 +12,7 @@ import { addPasskey, passkeysSupported, signInWithPasskey } from "../lib/passkey
 import { flushFeedback } from "../lib/feedback";
 import { forgetDevice } from "../lib/push";
 import { RemindersSection } from "./Reminders";
+import { LeaderboardSection } from "./Leaderboard";
 
 // /account: optional sign-in with a passkey or an emailed code, and the
 // signed-in learner's passkeys, devices and data. Reached from Settings only
@@ -312,6 +313,8 @@ function SignedIn({ t, lang, me, reload, onSignedOut }) {
       </section>
 
       <RemindersSection />
+
+      <LeaderboardSection />
 
       <MyFeedback t={t} me={me} />
 

@@ -176,6 +176,8 @@ describe('Read and understand', () => {
     const { storage } = renderApp('/read?set=at-the-cafe');
     const text = getItem('at-the-cafe');
     fireEvent.click(screen.getByRole('button', { name: /Could I have a latte, please\?/ }));
+    expect(screen.queryByText('Saisinko latten, kiitos?')).not.toBeInTheDocument();
+    fireEvent.click(screen.getAllByRole('button', { name: 'In Finnish' })[1]);
     expect(screen.getByText('Saisinko latten, kiitos?')).toHaveAttribute('lang', 'fi');
     expect(screen.getByText('Question 1 of 3')).toBeInTheDocument();
     text.questions.forEach((q, i) => {

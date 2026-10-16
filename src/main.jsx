@@ -10,6 +10,7 @@ import { loadSpeechClips } from './lib/speech';
 import { loadSync } from './lib/sync';
 import { refreshOnDemandSpeech } from './lib/tts';
 import { refreshReminders } from './lib/push';
+import { loadDifficulty } from './lib/difficulty';
 
 // Games read words synchronously, so switch to the newest published word bank
 // first. If that is slow or offline, the copy built into the app is used.
@@ -25,6 +26,9 @@ registerSW();
 
 // Recorded voice clips; the browser's own voice is used until they load.
 loadSpeechClips();
+// How hard words are for learners in general, for Quick play (none without
+// the backend).
+loadDifficulty();
 // On-demand speech for text without a clip, and this device's reminders, on a
 // device signed in to an account (so signed-out visitors never call the API).
 try {

@@ -119,6 +119,25 @@ describe("quick play round", () => {
     expect(picks.every((p) => p.role === "fresh")).toBe(true);
   });
 
+  it("uses how everyone else did on words a new player hasn't met", () => {
+    const targets = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l"].map((w) => target(w));
+    const difficulty = {
+      [wordKey("a", "en-GB")]: { n: 40, firstTry: 0.2 },
+      [wordKey("b", "en-GB")]: { n: 40, firstTry: 0.3 },
+      [wordKey("c", "en-GB")]: { n: 40, firstTry: 0.95 },
+      [wordKey("d", "en-GB")]: { n: 40, firstTry: 0.9 },
+      [wordKey("e", "en-GB")]: { n: 40, firstTry: 0.7 },
+    };
+    const picks = pickQuickTargets(targets, emptyProgress(), { difficulty });
+    const roleOf = (w) => picks.find((p) => p.target.key === wordKey(w, "en-GB"))?.role;
+    expect(roleOf("a")).toBe("challenge");
+    expect(roleOf("b")).toBe("challenge");
+    expect(roleOf("c")).toBe("easy");
+    expect(roleOf("d")).toBe("easy");
+    expect(roleOf("e")).toBe("fresh");
+    expect(picks[0].role).toBe("easy");
+  });
+
   it("spreads challenges out, with or without easy wins", () => {
     const many = (role, n) => Array.from({ length: n }, (_, i) => ({ role, i }));
     const withEasy = orderRound(many("easy", 3), many("challenge", 3), many("fresh", 4)).map((p) => p.role);

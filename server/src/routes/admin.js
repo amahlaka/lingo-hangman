@@ -4,6 +4,7 @@
 import { requireSession } from "../sessions.js";
 import { reportView, suggestionView } from "./feedback.js";
 import { ttsDay } from "./tts.js";
+import { DAILY_DAYS, MIN_ANSWERS, MIN_LEARNERS, cached } from "../stats/aggregate.js";
 
 const RECENT_SIGN_IN_MS = 24 * 3600_000;
 const REPORT_STATUSES = ["open", "fixed", "dismissed"];
@@ -112,5 +113,35 @@ export default async function adminRoutes(app, { db, config }) {
       .prepare("UPDATE users SET role = ?, tts_requested_at = NULL WHERE id = ? AND role <> 'admin'")
       .run(role, id);
     return changes ? { ok: true } : reply.code(404).send({ error: "not_found" });
+  });
+
+  // The Statistics page: numbers over all learners, recomputed a few times a
+  // day (stats/aggregate.js), plus live account totals.
+  app.get("/api/admin/stats", async () => {
+    const rows = db.prepare("SELECT * FROM stats_daily ORDER BY day").all();
+    const byDay = new Map();
+    for (const r of rows) {
+      const d = byDay.get(r.day) || { day: r.day, learners: 0, answers: 0, firstTry: 0, accounts: 0 };
+      if (r.metric === "learners") d.learners = r.value;
+      else if (r.metric === "accounts") d.accounts = r.value;
+      else if (r.metric === "answers") d.answers += r.value;
+      else if (r.metric === "first_try") d.firstTry += r.value;
+      byDay.set(r.day, d);
+    }
+    const weekAgo = new Date(Date.now() - 7 * 86400_000).toISOString();
+    const words = cached(db, "words");
+    return {
+      updatedAt: words?.updatedAt || null,
+      days: [...byDay.values()],
+      games: cached(db, "games")?.value || [],
+      words: words?.value || { hardest: [], slowest: [], tracked: 0 },
+      totals: {
+        accounts: db.prepare("SELECT COUNT(*) AS n FROM users").get().n,
+        activeWeek: db.prepare("SELECT COUNT(DISTINCT user_id) AS n FROM sync_events WHERE type = 'answer' AND at >= ?").get(weekAgo).n,
+        reminders: db.prepare("SELECT COUNT(*) AS n FROM push_settings WHERE enabled = 1").get().n,
+        openReports: db.prepare("SELECT COUNT(*) AS n FROM reports WHERE status = 'open'").get().n,
+      },
+      rules: { dailyDays: DAILY_DAYS, minAnswers: MIN_ANSWERS, minLearners: MIN_LEARNERS },
+    };
   });
 }

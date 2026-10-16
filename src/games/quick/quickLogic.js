@@ -32,6 +32,10 @@ import { isHangmanWord } from "../hangman/hangmanWords";
 
 export const QUICK_ROUND = 10;
 export const QUICK_QUOTA = { easy: 3, challenge: 3 };
+// Shares of learners right on the first try (src/lib/difficulty.js) below
+// which a new word counts as hard, and from which it counts as easy.
+const GLOBAL_HARD = 0.5;
+const GLOBAL_EASY = 0.85;
 // Most questions from one group in a round, so it stays a mix. Sounds has a
 // single game, so it gets fewer.
 const GROUP_CAP = { sounds: 3, other: 4 };
@@ -191,10 +195,14 @@ function roundRobin(targets, n, random) {
 // Which targets go in the round, and in what role: "easy", "challenge" or "fresh".
 // `include(target)` narrows the round to the learner's settings (focus areas,
 // difficulty); if too few targets pass, the round uses everything.
+// `difficulty` is how everyone else did on each word (src/lib/difficulty.js):
+// a word the learner hasn't met yet that most learners miss is a challenge,
+// and one most learners get right can be an easy win while the learner has
+// few of their own.
 export function pickQuickTargets(
   allTargets,
   state,
-  { count = QUICK_ROUND, quota = QUICK_QUOTA, random = Math.random, include = null } = {}
+  { count = QUICK_ROUND, quota = QUICK_QUOTA, random = Math.random, include = null, difficulty = null } = {}
 ) {
   const narrowed = include ? allTargets.filter(include) : allTargets;
   const targets = narrowed.length >= count ? narrowed : allTargets;
@@ -204,14 +212,18 @@ export function pickQuickTargets(
   const tricky = [];
   const stretch = [];
   const fresh = [];
+  const likelyEasy = [];
   for (const target of targets) {
     const entry = words[target.key];
     const standing = wordStanding(entry);
+    const others = standing === "new" ? difficulty?.[target.key] : null;
     if (standing === "known") known.push(target);
     else if (standing === "tricky") tricky.push({ target, score: challengeScore(entry) + random() });
     else {
       fresh.push(target);
-      if (target.kinds.some((k) => k.lesson && weakLessons.has(`${k.game}:${k.lesson}`))) stretch.push(target);
+      if (others && others.firstTry < GLOBAL_HARD) stretch.push(target);
+      else if (target.kinds.some((k) => k.lesson && weakLessons.has(`${k.game}:${k.lesson}`))) stretch.push(target);
+      else if (others && others.firstTry >= GLOBAL_EASY) likelyEasy.push(target);
     }
   }
 
@@ -239,6 +251,8 @@ export function pickQuickTargets(
     "challenge"
   );
   const easy = take(roundRobin(known, known.length, random), quota.easy, "easy");
+  // A learner with few known words starts with words most learners get right.
+  easy.push(...take(shuffle(likelyEasy, random), quota.easy - easy.length, "easy"));
   const restCount = count - challenges.length - easy.length;
   const unused = fresh.filter((t) => !used.has(t.key));
   const rest = take(roundRobin(unused, unused.length, random), restCount, "fresh");

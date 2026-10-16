@@ -69,5 +69,8 @@ export function loadConfig(env = process.env) {
     vapidSubject: env.VAPID_SUBJECT || "mailto:lingo@bololoo.com",
     // How often the reminder scheduler looks for learners to remind.
     pushIntervalMs: Number(env.PUSH_INTERVAL_MS || 5 * 60_000),
+
+    // How often the statistics and difficulty data are recomputed.
+    statsIntervalMs: Number(env.STATS_INTERVAL_MS || 6 * 3600_000),
   };
 }

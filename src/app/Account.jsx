@@ -320,6 +320,7 @@ function SignedIn({ t, lang, me, reload, onSignedOut }) {
           <div className="lg-row">
             <Link to="/admin/reports" className="lg-btn lg-btn--secondary">{a.adminQueue}</Link>
             <Link to="/admin/users" className="lg-btn lg-btn--secondary">{a.adminUsers}</Link>
+            <Link to="/admin/stats" className="lg-btn lg-btn--secondary">{a.adminStats}</Link>
           </div>
         </section>
       )}

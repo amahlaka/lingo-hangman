@@ -13,6 +13,7 @@ import Suggest from "./app/Suggest";
 import AdminReports from "./admin/AdminReports";
 import ContentAdmin from "./admin/ContentAdmin";
 import AdminUsers from "./admin/AdminUsers";
+import AdminStats from "./admin/AdminStats";
 import HearSentence from "./app/HearSentence";
 import { GAMES, PLAYABLE_GAME_IDS } from "./games/registry";
 
@@ -32,6 +33,7 @@ export function AppRoutes() {
       <Route path="/admin" element={<ContentAdmin />} />
       <Route path="/admin/reports" element={<AdminReports />} />
       <Route path="/admin/users" element={<AdminUsers />} />
+      <Route path="/admin/stats" element={<AdminStats />} />
       {GAMES.flatMap((game) =>
         (game.routes || []).map(({ path, Component }) => (
           <Route key={path} path={path} element={<Component />} />

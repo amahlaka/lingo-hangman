@@ -489,6 +489,7 @@ const i18n = {
       signOut: "Sign out",
       adminQueue: "Reports and suggestions queue",
       adminUsers: "Users and speech limits",
+      adminStats: "Statistics",
       privacy: "Privacy",
       unavailable: "Accounts can't be reached right now. Your progress is still saved on this device.",
       errors: {
@@ -523,6 +524,7 @@ const i18n = {
         "Problem reports and suggestions you send, with what the question showed, so you can see when they are fixed. Only Lingo's maintainer reads them.",
         "How many sentences Lingo's voice made for you each day, for the daily limit. The sentences themselves are not saved as text; the made audio is kept under a code, without your name, and shared so it plays faster next time.",
         "If you turn on reminders: the time, time zone and kinds of reminder you chose, and for each device the address its browser gave for notifications. Reminders go through your browser's own notification service (from Google, Apple, Mozilla or Microsoft), which can't read them: they are encrypted for your device.",
+        "Your answers are also counted together with everyone else's, without names, to see which words are hard. Lingo shows a word's numbers only once several learners have answered it.",
       ],
       whereTitle: "Where and how long",
       whereText: "Account data is stored on Lingo's own server in the EU and is not shared with anyone. It is kept until you delete your account. Sign-in codes are deleted after use or within 10 minutes.",
@@ -1105,6 +1107,7 @@ const i18n = {
       signOut: "Kirjaudu ulos",
       adminQueue: "Ilmoitusten ja ehdotusten jono",
       adminUsers: "Käyttäjät ja puheen määrät",
+      adminStats: "Tilastot",
       privacy: "Tietosuoja",
       unavailable: "Tileihin ei juuri nyt saada yhteyttä. Edistymisesi on yhä tallessa tällä laitteella.",
       errors: {
@@ -1139,6 +1142,7 @@ const i18n = {
         "Lähettämäsi ongelmailmoitukset ja ehdotukset sekä se, mitä kysymyksessä näkyi, jotta näet, kun ne on korjattu. Vain Lingon ylläpitäjä lukee ne.",
         "Kuinka monta lausetta Lingon ääni teki sinulle kunakin päivänä, päivittäistä määrää varten. Lauseita ei tallenneta tekstinä; tehty ääni säilytetään koodin alla ilman nimeäsi ja jaetaan, jotta se toistuu seuraavalla kerralla nopeammin.",
         "Jos laitat muistutukset päälle: valitsemasi kellonaika, aikavyöhyke ja muistutukset sekä jokaiselle laitteelle osoite, jonka sen selain antoi ilmoituksia varten. Muistutukset kulkevat selaimesi oman ilmoituspalvelun kautta (Googlen, Applen, Mozillan tai Microsoftin), joka ei voi lukea niitä: ne salataan laitettasi varten.",
+        "Vastauksesi lasketaan myös yhteen kaikkien muiden vastausten kanssa ilman nimiä, jotta nähdään, mitkä sanat ovat vaikeita. Lingo näyttää sanan luvut vasta, kun useampi oppija on vastannut siihen.",
       ],
       whereTitle: "Missä ja kuinka kauan",
       whereText: "Tilin tiedot säilytetään Lingon omalla palvelimella EU:ssa, eikä niitä jaeta kenellekään. Ne säilytetään, kunnes poistat tilisi. Kirjautumiskoodit poistetaan käytön jälkeen tai viimeistään 10 minuutissa.",

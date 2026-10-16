@@ -1,5 +1,5 @@
 // Entry point: open the database (running any new migrations), start the
-// mail worker, the reminder scheduler and housekeeping, then serve.
+// mail worker, the reminder scheduler, statistics and housekeeping, then serve.
 
 import { loadConfig } from "./config.js";
 import { openDatabase } from "./db.js";
@@ -10,6 +10,7 @@ import { startMailWorker } from "./mail/queue.js";
 import { deleteExpired } from "./sessions.js";
 import { createPushSender } from "./push/sender.js";
 import { startReminders } from "./push/reminders.js";
+import { startStats } from "./stats/aggregate.js";
 
 const config = loadConfig();
 const db = openDatabase(config.dbPath);
@@ -19,6 +20,7 @@ const app = buildApp({ db, config, limiter, push });
 
 const mailer = createMailer(config, app.log);
 const stopMail = startMailWorker(db, mailer, app.log);
+const stopStats = startStats(db, { intervalMs: config.statsIntervalMs, log: app.log });
 const stopReminders = push ? startReminders(db, push, { intervalMs: config.pushIntervalMs, log: app.log }) : () => {};
 const housekeeping = setInterval(() => {
   deleteExpired(db);
@@ -30,6 +32,7 @@ async function shutdown(signal) {
   app.log.info({ signal }, "shutting down");
   stopMail();
   stopReminders();
+  stopStats();
   clearInterval(housekeeping);
   await app.close();
   db.close();

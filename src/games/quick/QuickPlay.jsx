@@ -26,6 +26,7 @@ import useSayMic from "../say/useSayMic";
 import HangmanQuestion from "../hangman/HangmanQuestion";
 import { PairsBoard } from "../word-pairs/WordPairsGame";
 import { buildQuickRound, preferenceFilter, quickTargets } from "./quickLogic";
+import { getDifficulty } from "../../lib/difficulty";
 
 const learningLang = DEFAULT_LEARNING_LANG;
 const nativeLang = DEFAULT_NATIVE_LANG;
@@ -210,7 +211,7 @@ export default function QuickPlay() {
       nativeLang={nativeLang}
       endTitleKey="endTitleQuick"
       recapTitleKey="recapQuick"
-      buildQuestions={() => buildQuickRound(targets, stateRef.current, { include: preferenceFilter(targets) })}
+      buildQuestions={() => buildQuickRound(targets, stateRef.current, { include: preferenceFilter(targets), difficulty: getDifficulty() })}
       renderQuestion={({ question, done, onDone, onItem }) => (
         <QuickQuestion question={question} done={done} onDone={onDone} onItem={onItem} t={t} lang={lang} mic={mic} />
       )}

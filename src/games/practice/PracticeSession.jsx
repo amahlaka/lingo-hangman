@@ -75,7 +75,9 @@ function bannerFor(events, { t, dailyGoal, answer }) {
 //   endTitleKey, recapTitleKey  practice strings for the end screen ("words" by default)
 //   meaningInFeedback      false when the question already shows the meaning
 //   keys                   practice string keys to use instead of correctTitle,
-//                          correctFirstTry, correctLater and retryTitle
+//                          correctFirstTry, correctLater, retryTitle and, for
+//                          multi-item questions, pairsDoneTitle, pairsAllFirstTry
+//                          and pairsFirstTry
 //   endExtra               optional element shown above "All games" on the end screen
 //   endNote(results)       optional element under the end screen numbers; each
 //                          result carries the `question` it answered
@@ -90,7 +92,11 @@ export default function PracticeSession({
   const p = t.practice;
   const fi = i18n.fi.practice;
   const helper = lang === "en";
-  const k = { correctTitle: "correctTitle", correctFirstTry: "correctFirstTry", correctLater: "correctLater", retryTitle: "retryTitle", ...keys };
+  const k = {
+    correctTitle: "correctTitle", correctFirstTry: "correctFirstTry", correctLater: "correctLater", retryTitle: "retryTitle",
+    pairsDoneTitle: "pairsDoneTitle", pairsAllFirstTry: "pairsAllFirstTry", pairsFirstTry: "pairsFirstTry",
+    ...keys,
+  };
 
   const [questions, setQuestions] = useState(buildQuestions);
   const [index, setIndex] = useState(0);
@@ -191,7 +197,8 @@ export default function PracticeSession({
     const b = board.current;
     b.items.push({ ...outcome, xp });
     if (banner && (!b.banner || (banner.big && !b.banner.big))) b.banner = banner;
-    sounds.correct();
+    if (outcome.solved === false) sounds.shown();
+    else sounds.correct();
     if (banner?.big) bigCelebration();
   };
 
@@ -370,12 +377,12 @@ export default function PracticeSession({
             {ruleStep ? null : current.board ? (
               <Feedback
                 variant="correct"
-                title={p.pairsDoneTitle}
-                fi={helper ? fi.pairsDoneTitle : undefined}
+                title={p[k.pairsDoneTitle]}
+                fi={helper ? fi[k.pairsDoneTitle] : undefined}
               >
                 {current.firstTry === current.total
-                  ? p.pairsAllFirstTry
-                  : fill(p.pairsFirstTry, { n: current.firstTry, total: current.total })}{" "}
+                  ? p[k.pairsAllFirstTry]
+                  : fill(p[k.pairsFirstTry], { n: current.firstTry, total: current.total })}{" "}
                 {fill(t.xpEarned, { n: current.xp })}
               </Feedback>
             ) : current.solved ? (

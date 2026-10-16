@@ -300,6 +300,16 @@ function TextItem({ item, set }) {
           </>
         )}
       />
+      {item.kind === "dialogue" && (
+        <Field label="The learner plays" hint="Who the learner is in Your turn. Without it they play the second speaker.">
+          <select className="lg-input" value={item.you ?? ""} onChange={(e) => set({ you: e.target.value })}>
+            <option value="">Second speaker</option>
+            {[...new Set((item.sentences || []).map((l) => l.speaker).filter((v) => v && v.trim()))].map((name) => (
+              <option key={name} value={name}>{name}</option>
+            ))}
+          </select>
+        </Field>
+      )}
       <Rows
         label="Questions about the text (optional)"
         addLabel="Add question"

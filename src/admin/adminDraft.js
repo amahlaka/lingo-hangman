@@ -137,6 +137,7 @@ export function tidyItem(item) {
       out.questions = out.questions.map((q) => ({ ...q, question: tidyMap(q.question) }));
       if (!out.questions.length) delete out.questions;
     }
+    if (out.kind !== "dialogue" || out.you === "") delete out.you;
   }
   // Optional metadata (see FEATURES and friends in contentSchema.js).
   for (const key of ["ipa", "note"]) {

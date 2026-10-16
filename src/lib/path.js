@@ -50,7 +50,8 @@ const step = (game, reason, state, skill = game.skill) => ({
 
 // games: playable registry entries ({ id, skill }); insights: buildInsights().
 export function planPath(state, { games, insights, today = dayKey() }) {
-  const playable = games.filter((g) => !g.soon && !g.featured);
+  // A game played once a day (`noPath`) can't fill a step's answers.
+  const playable = games.filter((g) => !g.soon && !g.featured && !g.noPath);
   const base = { v: PATH_VERSION, week: weekStart(today), planned: today };
 
   if (!insights.overall || allAnswers(state) < MIN_ANSWERS) {

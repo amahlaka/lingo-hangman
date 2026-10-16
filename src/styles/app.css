@@ -700,3 +700,86 @@ textarea.lg-input { padding: var(--space-2) var(--space-3); resize: vertical; }
 .mp-bar__fill { display: block; height: 100%; background: var(--lake); border-radius: inherit; }
 .mp-step--done .mp-bar__fill { background: var(--pine); }
 .mp-step__go { flex: none; }
+
+/* Your turn (src/games/talk) */
+.tk-scene { display: flex; flex-direction: column; gap: var(--space-1); text-align: center; }
+.tk-role { margin: 0; font: 600 18px/26px var(--font-display); }
+.tk-chat { display: flex; flex-direction: column; gap: var(--space-2); margin: 0; padding: 0; list-style: none; }
+.tk-line { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; max-width: 85%; }
+.tk-line--mine { align-self: flex-end; align-items: flex-end; }
+.tk-line__who { font: 700 12px/16px var(--font-sans); color: var(--ink-muted); }
+.tk-bubble { position: relative; display: flex; flex-direction: column; gap: var(--space-1); padding: var(--space-2) 32px var(--space-2) var(--space-3); border: 0; border-radius: var(--radius-md) var(--radius-md) var(--radius-md) var(--radius-sm); background: var(--surface-sunken); color: var(--ink); font: 400 17px/24px var(--font-sans); text-align: left; cursor: pointer; }
+.tk-line--mine .tk-bubble { border-radius: var(--radius-md) var(--radius-md) var(--radius-sm) var(--radius-md); background: var(--lake-soft); }
+.tk-bubble--right { box-shadow: inset 0 0 0 2px var(--pine); background: var(--pine-soft) !important; }
+.tk-bubble--shown { box-shadow: inset 0 0 0 2px var(--cloudberry); background: var(--cloudberry-soft) !important; }
+.tk-bubble__fi { font-size: 15px; line-height: 20px; color: var(--ink-muted); }
+.tk-bubble__icon { position: absolute; top: var(--space-2); right: var(--space-2); color: var(--ink-muted); }
+.tk-typing { display: inline-flex; gap: 4px; padding: var(--space-3); border-radius: var(--radius-md); background: var(--surface-sunken); }
+.tk-typing span { width: 7px; height: 7px; border-radius: var(--radius-pill); background: var(--ink-muted); animation: lg-wave 1s ease-in-out infinite; }
+.tk-typing span:nth-child(2) { animation-delay: .15s; }
+.tk-typing span:nth-child(3) { animation-delay: .3s; }
+.tk-prompt { text-align: center; margin: var(--space-2) 0 0; }
+.tk-choices { grid-template-columns: 1fr; }
+
+/* Spot the mistake (src/games/mistake) */
+.sm-sentence { margin: 0; display: flex; flex-wrap: wrap; justify-content: center; align-items: baseline; gap: var(--space-1); }
+.sm-tile { padding: var(--space-1) var(--space-2); border: 0; border-radius: var(--radius-sm); background: var(--surface-sunken); color: var(--ink); font: 600 22px/32px var(--font-display); cursor: pointer; }
+.sm-tile:hover:not(:disabled) { background: var(--lake-soft); }
+.sm-tile:disabled { cursor: default; }
+.sm-tile--miss { background: transparent; color: var(--ink-muted); box-shadow: inset 0 0 0 2px var(--line); }
+.sm-tile--found { background: var(--lake-soft); box-shadow: inset 0 0 0 2px var(--lake); }
+.sm-tile--fixed, .sm-tile--shown { background: transparent; color: var(--ink-muted); text-decoration: line-through; text-decoration-color: var(--cloudberry); }
+.sm-fix { padding: var(--space-1) var(--space-2); border-radius: var(--radius-sm); font: 600 22px/32px var(--font-display); }
+.sm-fix--right { background: var(--pine-soft); box-shadow: inset 0 0 0 2px var(--pine); }
+.sm-fix--shown { background: var(--cloudberry-soft); box-shadow: inset 0 0 0 2px var(--cloudberry); }
+.sm-step { text-align: center; margin: 0; }
+
+/* Word rush (src/games/rush) */
+.wr-ready { justify-content: center; align-items: center; text-align: center; gap: var(--space-3); }
+.wr-ready__clock { margin: 0; width: 96px; height: 96px; border-radius: var(--radius-pill); display: flex; align-items: center; justify-content: center; background: var(--lake-soft); color: var(--lake); font: 700 40px/1 var(--font-display); box-shadow: inset 0 0 0 4px var(--lake); }
+.wr-board { position: relative; gap: var(--space-3); }
+.wr-status { position: relative; display: flex; align-items: center; gap: var(--space-3); }
+.wr-timer { flex: 1; height: 12px; border-radius: var(--radius-pill); background: var(--surface-sunken); overflow: hidden; }
+.wr-timer__bar { display: block; height: 100%; background: var(--lake); transform-origin: left; transition: transform .1s linear; }
+.wr-timer--low .wr-timer__bar { background: var(--cloudberry); }
+.wr-seconds { min-width: 2ch; font: 700 20px/1 var(--font-sans); font-variant-numeric: tabular-nums; text-align: right; }
+.wr-bonus { position: absolute; right: 0; top: -8px; color: var(--pine); font: 700 16px/1 var(--font-sans); animation: lg-rise 1s ease-out both; }
+.wr-combo { min-height: 32px; display: flex; align-items: center; justify-content: center; gap: var(--space-2); }
+.wr-combo__x { padding: 2px var(--space-3); border-radius: var(--radius-pill); background: var(--cloudberry); color: var(--on-cloudberry); font: 700 18px/26px var(--font-display); }
+.wr-choices { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.wr-choices .pg-choice__mark { box-shadow: inset 0 0 0 2px var(--border); color: var(--ink-muted); }
+.wr-choices .pg-choice--shown .pg-choice__mark { box-shadow: none; color: var(--on-cloudberry); }
+
+/* Daily word (src/games/daily) */
+.dw-board { position: relative; align-items: center; gap: var(--space-3); }
+.dw-clue { margin: 0; }
+.dw-grid { display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.dw-row { display: grid; grid-template-columns: repeat(5, 52px); gap: 6px; }
+.dw-cell { height: 52px; display: flex; align-items: center; justify-content: center; border-radius: var(--radius-sm); box-shadow: inset 0 0 0 2px var(--line); font: 700 26px/1 var(--font-display); text-transform: uppercase; }
+.dw-cell--typed { box-shadow: inset 0 0 0 2px var(--ink-muted); animation: lg-pop .2s ease-out both; }
+.dw-cell--next { box-shadow: inset 0 0 0 2px var(--lake); }
+.dw-cell--hit { background: var(--pine); color: var(--on-pine); box-shadow: none; }
+.dw-cell--near { background: var(--lake-soft); color: var(--ink); box-shadow: inset 0 0 0 2px var(--lake); }
+.dw-cell--miss { background: var(--surface-sunken); color: var(--ink-muted); box-shadow: none; }
+.dw-status { margin: 0; text-align: center; }
+.dw-result { width: 100%; display: flex; flex-direction: column; align-items: center; gap: var(--space-3); text-align: center; }
+.dw-result .lg-note, .dw-result .lg-progress { width: 100%; box-sizing: border-box; text-align: left; }
+.dw-actions { width: 100%; }
+.dw-keyboard .lg-key--miss { box-shadow: none; background: transparent; opacity: .45; }
+.dw-keyboard .lg-key--miss::after { display: none; }
+.dw-keyboard .dw-key--wide { max-width: 72px; flex: 1.5 1 0; font-size: 13px; }
+
+/* Read and understand (src/games/read) */
+.rd-text { display: flex; flex-direction: column; gap: var(--space-2); }
+.rd-lines { display: flex; flex-direction: column; gap: 2px; padding: var(--space-3); border-radius: var(--radius-md); background: var(--surface-sunken); }
+.rd-line { display: flex; flex-direction: column; gap: 2px; padding: var(--space-1) var(--space-2); border: 0; border-radius: var(--radius-sm); background: transparent; color: var(--ink); font: 400 18px/28px var(--font-sans); text-align: left; cursor: pointer; }
+.rd-line:hover { background: var(--lake-soft); }
+.rd-line__who { font-weight: 700; }
+.rd-line__fi { font-size: 15px; line-height: 22px; color: var(--ink-muted); }
+.rd-answered { display: flex; flex-direction: column; gap: var(--space-1); margin: 0; padding: 0; list-style: none; }
+.rd-answered__item { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--space-2); padding: var(--space-2) var(--space-3); border-radius: var(--radius-sm); border-left: 4px solid var(--pine); background: var(--pine-soft); }
+.rd-answered__item--shown { border-left-color: var(--cloudberry); background: var(--cloudberry-soft); }
+.rd-ask { display: flex; flex-direction: column; gap: var(--space-2); }
+.rd-ask .lg-caption { margin: 0; }
+.rd-ask__q { margin: 0; font: 600 20px/28px var(--font-display); }
+.rd-ask__fi { margin: 0; color: var(--ink-muted); }

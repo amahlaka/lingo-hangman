@@ -9,10 +9,10 @@ the learner is signed out. Previews run without a backend.
 Built in phases, one pull request each:
 
 1. Skeleton: the service, its database, image and deploys.
-2. **Accounts** (this): passkeys, with a one-time email code as the fallback.
+2. Accounts: passkeys, with a one-time email code as the fallback.
 3. Reports and suggestions (signed-in learners), then progress sync.
 4. On-demand speech through the Kokoro TTS server, with daily limits.
-5. Reminders by web push.
+5. **Reminders** by web push (the newest).
 6. Statistics, opt-in anonymous leaderboards and learning paths.
 
 ## How it fits together
@@ -175,6 +175,56 @@ app asks `POST /api/tts { text, voice }` for an MP3 in the same voice.
 - **When it is on.** The app turns it on at start on a device signed in to an
   account (`lingo.sync.v1` has a user), and after signing in; it asks
   `GET /api/tts/status`. Signed out, or with `TTS_URL` unset, nothing changes.
+
+## Reminders
+
+A signed-in learner can get one short reminder a day by web push, on days they
+haven't played yet. Settings live under Account (`src/app/Reminders.jsx`).
+
+- **Asked, not pushed.** Home offers reminders once, to a signed-in learner who
+  has played on at least 3 days, on a device that can show them. "No thanks"
+  is remembered on that device (`lingo.remindersOffer.v1`). The browser asks
+  for permission only after a tap.
+- **What the learner picks:** on or off, a time of day (18:00 by default), and
+  which reminders: *daily goal waiting* and *streak could break*. A streak at
+  risk is mentioned first. "New lessons added" from the plan is left for later.
+- **Which devices.** The setting is per account; each device subscribes itself
+  (Account shows "This device gets reminders" and a test button). A
+  subscription belongs to the session that made it, so signing a device out,
+  or the session expiring, stops its reminders. At most 10 devices.
+- **The scheduler** runs in the API process every 5 minutes
+  (`PUSH_INTERVAL_MS`, `server/src/push/reminders.js`). It works in the
+  learner's time zone (sent with the settings, and updated when the app starts
+  somewhere else) and on the learner's own day key, the same one answers are
+  recorded under. At most one reminder a day; none if the learner already
+  played that day, whatever they played, judged from their synced progress.
+  A reminder missed by more than 3 hours (the server was down) is skipped.
+  Turning reminders on after today's time starts them tomorrow.
+- **Sending.** `web-push` signs with the VAPID keys and encrypts the text for
+  the device, so the browser's push service (Google, Apple, Mozilla or
+  Microsoft) can't read it. Subscriptions are only accepted for those
+  services' addresses. A subscription the service says is gone is deleted.
+  Logs never include a subscription's address.
+- **The app's side.** `public/push-sw.js` is loaded into the generated service
+  worker (`workbox.importScripts` in `vite.config.js`); it shows the
+  notification and opens or focuses Lingo when it is tapped. `src/lib/push.js`
+  subscribes and unsubscribes and, at start, sends the current subscription
+  again in case the browser replaced it.
+- **iPhone and iPad** allow push only for apps on the Home Screen (iOS 16.4
+  and later); there, Account explains how to add it instead of the switch.
+- **Off** without `VAPID_PUBLIC_KEY` and `VAPID_PRIVATE_KEY`: `GET /api/push`
+  says `available: false` and the app hides everything about reminders. Make
+  the keys once on the server (`npx web-push generate-vapid-keys`); the private
+  key stays in the server's `.env`. Changing the keys invalidates every
+  subscription, so devices have to turn reminders on again.
+
+```
+GET    /api/push                 → { available, publicKey, enabled, time, timeZone, kinds, devices, thisDevice }
+PUT    /api/push/settings        { enabled?, time?, timeZone?, kinds?, lang? }
+POST   /api/push/subscribe       { endpoint, keys: { p256dh, auth } }   (this device)
+DELETE /api/push/subscribe                                              (this device)
+POST   /api/push/test            → a test reminder to this device (5 an hour)
+```
 
 ## Deploying the API
 

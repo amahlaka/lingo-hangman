@@ -10,6 +10,8 @@ import { fill } from "../i18n";
 import { api, backendAvailable } from "../lib/backend";
 import { addPasskey, passkeysSupported, signInWithPasskey } from "../lib/passkeys";
 import { flushFeedback } from "../lib/feedback";
+import { forgetDevice } from "../lib/push";
+import { RemindersSection } from "./Reminders";
 
 // /account: optional sign-in with a passkey or an emailed code, and the
 // signed-in learner's passkeys, devices and data. Reached from Settings only
@@ -309,6 +311,8 @@ function SignedIn({ t, lang, me, reload, onSignedOut }) {
         </ul>
       </section>
 
+      <RemindersSection />
+
       <MyFeedback t={t} me={me} />
 
       {me.user.role === "admin" && (
@@ -380,6 +384,8 @@ export default function Account() {
     // The progress stays on this device; it just isn't sent any more.
     sync.disconnect();
     setOnDemandSpeech(null);
+    // The server stopped this device's reminders with the session.
+    forgetDevice();
     setMe(null);
     setNotice(message);
     setView("signedOut");

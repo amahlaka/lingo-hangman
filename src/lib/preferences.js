@@ -4,6 +4,9 @@
 // - `typeColors`: colour words by their word type (src/lib/wordTypes.js).
 // - `typeHelp`: show word types by themselves on easy sentences the learner
 //   has found hard lately.
+// - `recognition`: where Say it turns speech into text. "auto" (on the device
+//   when the browser can, else its online service), "local" (on the device
+//   only) or "online" (the browser's online service).
 // All are optional. Games pass their word bank items through
 // applyPreferences(); when too few items match, a preference is ignored for
 // that pool so no game runs out of questions.
@@ -11,7 +14,8 @@
 const STORAGE_KEY = "lingoPreferences";
 
 export const DIFFICULTIES = ["any", "easy", "normal", "hard"];
-const DEFAULTS = { focus: [], difficulty: "any", typeColors: false, typeHelp: true };
+export const RECOGNITION = ["auto", "local", "online"];
+const DEFAULTS = { focus: [], difficulty: "any", typeColors: false, typeHelp: true, recognition: "auto" };
 
 // A pool smaller than this ignores the preference that shrank it.
 export const MIN_POOL = 6;
@@ -30,6 +34,7 @@ function read() {
       difficulty: DIFFICULTIES.includes(stored?.difficulty) ? stored.difficulty : "any",
       typeColors: typeof stored?.typeColors === "boolean" ? stored.typeColors : DEFAULTS.typeColors,
       typeHelp: typeof stored?.typeHelp === "boolean" ? stored.typeHelp : DEFAULTS.typeHelp,
+      recognition: RECOGNITION.includes(stored?.recognition) ? stored.recognition : DEFAULTS.recognition,
     };
   } catch {
     return { ...DEFAULTS };

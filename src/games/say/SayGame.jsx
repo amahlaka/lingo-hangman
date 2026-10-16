@@ -25,7 +25,7 @@ export default function SayGame() {
     return { ...pool, pairs: pool.pairs.filter((w) => wordCount(w.learning) <= MAX_SAY_WORDS) };
   }, [search]);
 
-  const { selfReason, setSelfReason, privacy, prepareOnDevice, onDeviceFailed, selfNote } = useSayMic(learningLang, p);
+  const { selfReason, setSelfReason, privacy, onDeviceOnly, prepareOnDevice, onDeviceFailed, selfNote } = useSayMic(learningLang, p);
 
   return (
     <PracticeSession
@@ -48,6 +48,7 @@ export default function SayGame() {
           mode={selfReason ? "self" : "mic"}
           selfNote={selfNote}
           privacy={privacy}
+          onDeviceOnly={onDeviceOnly}
           prepareOnDevice={prepareOnDevice}
           onBlocked={setSelfReason}
           onOnDeviceFailed={onDeviceFailed}

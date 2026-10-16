@@ -143,6 +143,7 @@ export default async function accountRoutes(app, { db, config }) {
       reports: db.prepare("SELECT * FROM reports WHERE user_id = ? ORDER BY id").all(s.user_id).map(reportView),
       suggestions: db.prepare("SELECT * FROM suggestions WHERE user_id = ? ORDER BY id").all(s.user_id).map(suggestionView),
       progress: accountProgress(db, s.user_id),
+      speech: db.prepare("SELECT day, count FROM tts_usage WHERE user_id = ? ORDER BY day").all(s.user_id),
     };
   });
 

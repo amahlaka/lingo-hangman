@@ -2,7 +2,7 @@ import { getContent } from '../lib/content';
 import { getSentences, getSoundLessons, filterCommonWords, sentenceFor } from '../lib/words';
 import { lessonWords } from '../games/sounds/soundsLogic';
 import { clipKey, spokenTexts, wordByWordTexts, wordsKey } from '../lib/speechClips';
-import { RATE_SLOW, loadSpeechClips, resetSpeechClips, setSpeechVoice, speak, speakWords, stopSpeaking } from '../lib/speech';
+import { RATE_SLOW, loadSpeechClips, resetSpeechClips, setOnDemandSpeech, setSpeechVoice, speak, speakOnDemand, speakWords, stopSpeaking } from '../lib/speech';
 
 describe('spokenTexts', () => {
   const texts = new Set(spokenTexts(getContent().raw, 'en').values());
@@ -80,6 +80,56 @@ describe('speak', () => {
     delete window.speechSynthesis;
     delete window.SpeechSynthesisUtterance;
     delete window.Audio;
+  });
+
+  describe('on demand', () => {
+    beforeEach(() => {
+      URL.createObjectURL = jest.fn((blob) => `blob:${blob.text}`);
+      URL.revokeObjectURL = jest.fn();
+    });
+
+    it('asks for English without a clip once, in the picked voice, and plays it', async () => {
+      install();
+      await loadSpeechClips({ fetchImpl: fetchImpl([knife], [knife]) });
+      const made = jest.fn(async (text, voice) => ({ blob: { text: `${voice}:${text}` }, left: 4 }));
+      setOnDemandSpeech(made);
+      speak('knife');
+      expect(made).not.toHaveBeenCalled();
+      setSpeechVoice('male');
+      speak('  a new   sentence ');
+      await flush();
+      speak('a new sentence');
+      await flush();
+      expect(made.mock.calls).toEqual([['a new sentence', 'male']]);
+      expect(players[0].played.slice(-2)).toEqual(['blob:male:a new sentence', 'blob:male:a new sentence']);
+      speak('fork', { lang: 'en-GB' });
+      expect(made).toHaveBeenCalledTimes(1);
+      expect(spoken.map((u) => u.text)).toEqual(['fork']);
+    });
+
+    it('uses the browser voice when no clip comes back, and asks again next time', async () => {
+      install();
+      await loadSpeechClips({ fetchImpl: fetchImpl([]) });
+      const made = jest.fn(async () => ({ blob: null, left: 0, error: 'tts_limit' }));
+      setOnDemandSpeech(made);
+      speak('over the limit');
+      await flush();
+      expect(spoken.map((u) => u.text)).toEqual(['over the limit']);
+      expect(await speakOnDemand('over the limit')).toEqual({ played: false, left: 0, error: 'tts_limit' });
+      expect(made).toHaveBeenCalledTimes(2);
+    });
+
+    it('does not play a clip that arrives after something else was said', async () => {
+      install();
+      await loadSpeechClips({ fetchImpl: fetchImpl([knife]) });
+      let finish;
+      setOnDemandSpeech(() => new Promise((r) => { finish = r; }));
+      speak('a slow one');
+      speak('knife');
+      finish({ blob: { text: 'late' }, left: 3 });
+      await flush();
+      expect(players[0].played).toEqual([`/content/audio/${NOVA}/${knife}.mp3`]);
+    });
   });
 
   it('plays the recorded clip when there is one', async () => {

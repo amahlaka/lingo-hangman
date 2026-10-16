@@ -19,6 +19,8 @@ export const VOICES = [
   { id: "male", folder: "kokoro-1.0-v4-am_liam", speaker: "am_liam" },
 ];
 export const DEFAULT_VOICE = "female";
+// Speaking speed of every clip; keep in step with SPEED in scripts/speech-audio.py.
+export const CLIP_SPEED = 0.8;
 
 export function voiceById(id) {
   return VOICES.find((v) => v.id === id) || VOICES.find((v) => v.id === DEFAULT_VOICE);

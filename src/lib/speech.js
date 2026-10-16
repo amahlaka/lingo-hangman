@@ -3,10 +3,12 @@
 //
 // Texts from the word base have recorded clips (made with an open voice
 // model, see scripts/speech-audio.mjs), so every device hears the same voice.
-// Anything without a clip, or a clip that won't play (offline, say), falls
-// back to the browser's own speech synthesis.
+// For English without a clip, a signed-in learner's app asks the optional
+// backend to make one with the same voice (on-demand speech, src/lib/tts.js).
+// Anything else, or a clip that won't play (offline, say), falls back to the
+// browser's own speech synthesis.
 
-import { AUDIO_BASE, DEFAULT_VOICE, clipKey, voiceById, wordsKey } from "./speechClips";
+import { AUDIO_BASE, CLIP_LANGS, DEFAULT_VOICE, clipKey, normalizeSpeech, voiceById, wordsKey } from "./speechClips";
 
 export const RATE_NORMAL = 0.9;
 export const RATE_SLOW = 0.6;
@@ -30,6 +32,11 @@ let clips = null;
 let voiceId = DEFAULT_VOICE; // "female" or "male", from Settings
 let player = null;
 let turn = 0; // bumps on every speak/stop, so a clip that was stopped never falls back
+// (text, voiceId) => Promise<{ blob, left, error }>, while on-demand speech is on.
+let onDemand = null;
+// Clips made on demand this visit: "voice|text" -> Promise<{ url, left, error }>.
+const made = new Map();
+const MAX_MADE = 60;
 
 export function canSpeak() {
   return Boolean(synth()) || Boolean(clipKeys()?.size && canPlayClips());
@@ -133,7 +140,65 @@ function speakWordsWithBrowser(text, langTag) {
   return true;
 }
 
+// Turn on-demand speech on (with a function that asks the backend) or off.
+export function setOnDemandSpeech(fn) {
+  onDemand = typeof fn === "function" ? fn : null;
+  for (const job of made.values()) job.then((r) => r.url && URL.revokeObjectURL?.(r.url));
+  made.clear();
+}
+
+export function onDemandSpeechOn() {
+  return Boolean(onDemand) && canPlayClips();
+}
+
+// The made clip for `text` in the current voice: { url, left, error }. A
+// failed one is forgotten, so it is asked for again next time.
+function onDemandClip(text) {
+  const id = `${voiceId}|${normalizeSpeech(text)}`;
+  if (made.has(id)) return made.get(id);
+  const job = onDemand(normalizeSpeech(text), voiceId)
+    .then(({ blob, left = null, error = null } = {}) => ({
+      url: blob && typeof URL !== "undefined" && URL.createObjectURL ? URL.createObjectURL(blob) : null,
+      left,
+      error,
+    }))
+    .catch(() => ({ url: null, left: null, error: "network" }));
+  made.set(id, job);
+  job.then((r) => {
+    if (!r.url) made.delete(id);
+  });
+  // Keep the newest few; the browser cache keeps the rest.
+  if (made.size > MAX_MADE) {
+    const [oldest] = made.keys();
+    made.get(oldest).then((r) => r.url && URL.revokeObjectURL?.(r.url));
+    made.delete(oldest);
+  }
+  return job;
+}
+
+// Says `text` with a clip made on demand, for the "Hear any sentence" page.
+// Resolves to { played, left, error }; without a clip it uses the browser.
+export async function speakOnDemand(text, { lang = "en", rate = RATE_NORMAL } = {}) {
+  stopSpeaking();
+  const mine = turn;
+  const key = clipKey(text, lang);
+  if (clipKeys()?.has(key) && canPlayClips()) {
+    playClip(key, () => speakWithBrowser(text, speechLang(lang), rate), rate);
+    return { played: true, left: null, error: null };
+  }
+  if (!onDemandSpeechOn()) return { played: speakWithBrowser(text, speechLang(lang), rate), left: null, error: "off" };
+  const r = await onDemandClip(text);
+  if (mine !== turn) return { played: false, left: r.left, error: null };
+  if (r.url) playUrl(r.url, () => speakWithBrowser(text, speechLang(lang), rate), rate);
+  else speakWithBrowser(text, speechLang(lang), rate);
+  return { played: Boolean(r.url), left: r.left, error: r.error };
+}
+
 function playClip(key, fallbackSpeech, rate) {
+  playUrl(`${clips.base}${voiceById(voiceId).folder}/${key}.mp3`, fallbackSpeech, rate);
+}
+
+function playUrl(src, fallbackSpeech, rate) {
   const mine = turn;
   let fellBack = false;
   const fallback = () => {
@@ -142,7 +207,7 @@ function playClip(key, fallbackSpeech, rate) {
     fallbackSpeech();
   };
   const p = getPlayer();
-  p.src = `${clips.base}${voiceById(voiceId).folder}/${key}.mp3`;
+  p.src = src;
   p.preservesPitch = true;
   p.playbackRate = rate < RATE_NORMAL ? CLIP_SLOW : 1;
   // Not played: offline, blocked before the first tap, or a broken file.
@@ -166,6 +231,15 @@ export function speak(text, { lang = "en", rate = RATE_NORMAL } = {}) {
   stopSpeaking();
   if (clipKeys()?.has(key) && canPlayClips()) {
     playClip(key, () => speakWithBrowser(text, langTag, rate), rate);
+    return true;
+  }
+  if (onDemandSpeechOn() && CLIP_LANGS.includes(lang)) {
+    const mine = turn;
+    onDemandClip(text).then((r) => {
+      if (mine !== turn) return;
+      if (r.url) playUrl(r.url, () => speakWithBrowser(text, langTag, rate), rate);
+      else speakWithBrowser(text, langTag, rate);
+    });
     return true;
   }
   return speakWithBrowser(text, langTag, rate);
@@ -199,4 +273,6 @@ export function resetSpeechClips() {
   clips = null;
   player = null;
   voiceId = DEFAULT_VOICE;
+  onDemand = null;
+  made.clear();
 }

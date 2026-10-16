@@ -12,10 +12,12 @@ import accountRoutes from "./routes/account.js";
 import feedbackRoutes from "./routes/feedback.js";
 import adminRoutes from "./routes/admin.js";
 import syncRoutes from "./routes/sync.js";
+import ttsRoutes from "./routes/tts.js";
 
 const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
 
-export function buildApp({ db, config, logger = true, limiter = createRateLimiter() }) {
+// `tts` ({ fetchImpl, cache }) replaces the TTS service and its cache in tests.
+export function buildApp({ db, config, logger = true, limiter = createRateLimiter(), tts = {} }) {
   const app = Fastify({
     logger: logger && {
       level: config.logLevel,
@@ -73,6 +75,7 @@ export function buildApp({ db, config, logger = true, limiter = createRateLimite
   app.register(feedbackRoutes, { db, limiter });
   app.register(adminRoutes, { db, config });
   app.register(syncRoutes, { db, limiter });
+  app.register(ttsRoutes, { db, config, ...tts });
 
   app.setNotFoundHandler((req, reply) => {
     reply.code(404).send({ error: "not_found" });

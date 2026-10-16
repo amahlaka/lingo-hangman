@@ -5,10 +5,10 @@ name: API checks
 
 on:
   pull_request:
-    paths: ["server/**", "deploy/api/**", ".github/workflows/api.yml", "src/lib/progress.js", "src/lib/cosmetics.js", "src/lib/syncEvents.js"]
+    paths: ["server/**", "deploy/api/**", ".github/workflows/api.yml", "src/lib/progress.js", "src/lib/cosmetics.js", "src/lib/syncEvents.js", "src/lib/speechClips.js"]
   push:
     branches: [master]
-    paths: ["server/**", "deploy/api/**", ".github/workflows/api.yml", "src/lib/progress.js", "src/lib/cosmetics.js", "src/lib/syncEvents.js"]
+    paths: ["server/**", "deploy/api/**", ".github/workflows/api.yml", "src/lib/progress.js", "src/lib/cosmetics.js", "src/lib/syncEvents.js", "src/lib/speechClips.js"]
 
 permissions:
   contents: read

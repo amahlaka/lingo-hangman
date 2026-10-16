@@ -46,5 +46,19 @@ export function loadConfig(env = process.env) {
     mailFromName: env.MAIL_FROM_NAME || "Lingo",
     // Bounces go to a + address of the sender.
     mailBounce: env.MAIL_BOUNCE || null,
+
+    // On-demand speech: the Kokoro TTS service on the Docker network
+    // (http://kokoro-tts:8000) and its API key. Without TTS_URL the app uses
+    // recorded clips and the browser voice only.
+    ttsUrl: env.TTS_URL || null,
+    ttsApiKey: env.TTS_API_KEY || null,
+    ttsCacheDir: env.TTS_CACHE_DIR || "./data/tts-cache",
+    ttsCacheBytes: Number(env.TTS_CACHE_MB || 2048) * 1024 * 1024,
+    // New clips a day: every signed-in learner, and learners Arttu verified.
+    ttsDailyLimit: Number(env.TTS_DAILY_LIMIT || 10),
+    ttsVerifiedLimit: Number(env.TTS_VERIFIED_LIMIT || 200),
+    // Requests waiting for the service, which makes one clip at a time.
+    ttsQueueMax: Number(env.TTS_QUEUE_MAX || 20),
+    ttsTimeoutMs: Number(env.TTS_TIMEOUT_MS || 30000),
   };
 }

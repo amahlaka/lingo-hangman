@@ -1,4 +1,6 @@
 import React, { useCallback, useEffect, useState } from "react";
+import { refreshOnDemandSpeech } from "../lib/tts";
+import { setOnDemandSpeech } from "../lib/speech";
 import { Link } from "react-router-dom";
 import { KeyRound, Mail } from "lucide-react";
 import { useSettings } from "./SettingsContext";
@@ -311,7 +313,10 @@ function SignedIn({ t, lang, me, reload, onSignedOut }) {
 
       {me.user.role === "admin" && (
         <section className="lg-section">
-          <Link to="/admin/reports" className="lg-btn lg-btn--secondary">{a.adminQueue}</Link>
+          <div className="lg-row">
+            <Link to="/admin/reports" className="lg-btn lg-btn--secondary">{a.adminQueue}</Link>
+            <Link to="/admin/users" className="lg-btn lg-btn--secondary">{a.adminUsers}</Link>
+          </div>
         </section>
       )}
 
@@ -369,10 +374,12 @@ export default function Account() {
     if (viaCode && passkeys === 0 && passkeysSupported()) setView("offerPasskey");
     await load();
     sync.connect();
+    refreshOnDemandSpeech();
   };
   const signedOut = (message) => {
     // The progress stays on this device; it just isn't sent any more.
     sync.disconnect();
+    setOnDemandSpeech(null);
     setMe(null);
     setNotice(message);
     setView("signedOut");

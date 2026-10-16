@@ -7,6 +7,8 @@ import './styles/app.css'
 import { registerSW } from 'virtual:pwa-register';
 import { loadPublishedContent } from './lib/content';
 import { loadSpeechClips } from './lib/speech';
+import { loadSync } from './lib/sync';
+import { refreshOnDemandSpeech } from './lib/tts';
 
 // Games read words synchronously, so switch to the newest published word bank
 // first. If that is slow or offline, the copy built into the app is used.
@@ -22,3 +24,11 @@ registerSW();
 
 // Recorded voice clips; the browser's own voice is used until they load.
 loadSpeechClips();
+// On-demand speech for text without a clip, on a device signed in to an
+// account (so signed-out visitors never call the API for it).
+try {
+  const linked = loadSync(window.localStorage);
+  if (linked.user && !linked.paused) refreshOnDemandSpeech();
+} catch {
+  // Storage blocked: no account here either.
+}

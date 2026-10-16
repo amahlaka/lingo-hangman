@@ -3,6 +3,7 @@
 
 import { requireSession } from "../sessions.js";
 import { reportView, suggestionView } from "./feedback.js";
+import { ttsDay } from "./tts.js";
 
 const RECENT_SIGN_IN_MS = 24 * 3600_000;
 const REPORT_STATUSES = ["open", "fixed", "dismissed"];
@@ -74,5 +75,42 @@ export default async function adminRoutes(app, { db, config }) {
     let changed = 0;
     for (const id of ids) changed += Number(update.run(status, status, id).changes);
     return { changed };
+  });
+
+  // Learners, for granting the extended speech limit: those who asked first.
+  app.get("/api/admin/users", async (req, reply) => {
+    const q = typeof req.query.q === "string" ? req.query.q.trim().toLowerCase().slice(0, 100) : "";
+    const rows = db
+      .prepare(
+        `SELECT u.id, u.email, u.role, u.created_at, u.tts_requested_at, COALESCE(t.count, 0) AS tts_today
+         FROM users u LEFT JOIN tts_usage t ON t.user_id = u.id AND t.day = ?
+         WHERE (? = '' OR instr(u.email, ?) > 0)
+         ORDER BY (u.tts_requested_at IS NULL AND u.role = 'learner') OR u.role <> 'learner', u.tts_requested_at, u.id DESC
+         LIMIT ?`
+      )
+      .all(ttsDay(), q, q, MAX_ROWS);
+    return {
+      users: rows.map((r) => ({
+        id: r.id,
+        email: r.email,
+        role: r.role,
+        createdAt: r.created_at,
+        ttsRequestedAt: r.role === "learner" ? r.tts_requested_at : null,
+        ttsToday: r.tts_today,
+      })),
+      limits: { basic: config.ttsDailyLimit, extended: config.ttsVerifiedLimit },
+    };
+  });
+
+  // Verify a learner (the extended speech limit) or take it back. Admins
+  // come from ADMIN_EMAILS and are not changed here.
+  app.post("/api/admin/users/role", async (req, reply) => {
+    const id = req.body?.id;
+    const role = req.body?.role;
+    if (!Number.isInteger(id) || id <= 0 || !["learner", "verified"].includes(role)) return reply.code(400).send({ error: "bad_request" });
+    const { changes } = db
+      .prepare("UPDATE users SET role = ?, tts_requested_at = NULL WHERE id = ? AND role <> 'admin'")
+      .run(role, id);
+    return changes ? { ok: true } : reply.code(404).send({ error: "not_found" });
   });
 }

@@ -10,7 +10,7 @@ import { api, backendAvailable } from "../lib/backend";
 // /admin, it is in English only and not linked from the games.
 
 const REASONS = { misheard: "Heard wrong (Say it)", wrong_answer: "Wrong answer", typo: "Typo", bad_audio: "Bad audio", confusing: "Confusing", other: "Something else" };
-const GATES = {
+export const GATES = {
   unavailable: "The backend can't be reached.",
   signed_out: "Sign in with an admin account first.",
   not_admin: "This account isn't an admin. Add its email to ADMIN_EMAILS on the server.",
@@ -131,7 +131,7 @@ export default function AdminReports() {
     <GameScreen title="Reports">
       <main className="lg-board lg-page">
         <p className="lg-body-lg">
-          Problems and suggestions learners sent. Fix content in the <Link to="/admin">word bank editor</Link>, then mark it fixed here; the learner sees it under Account.
+          Problems and suggestions learners sent. Fix content in the <Link to="/admin">word bank editor</Link>, then mark it fixed here; the learner sees it under Account. Speech limits are under <Link to="/admin/users">users</Link>.
         </p>
         {gate ? (
           <section className="lg-section">

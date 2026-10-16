@@ -145,6 +145,11 @@ export default function SettingsMenu({ actions = [] }) {
             </button>
           )}
           {hasBackend && (
+            <Link to="/hear" className="lg-btn lg-btn--quiet" onClick={() => setOpen(false)}>
+              {t.hear.title}
+            </Link>
+          )}
+          {hasBackend && (
             <Link to="/suggest" className="lg-btn lg-btn--quiet" onClick={() => setOpen(false)}>
               {t.feedback.suggestLink}
             </Link>

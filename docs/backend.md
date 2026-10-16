@@ -146,6 +146,36 @@ Signed out, nothing is sent and the app works as before.
 - Settings other than the daily goal (language, theme, voice, focus areas)
   are not synced yet.
 
+## On-demand speech
+
+Every text in the word base has a recorded clip (`src/lib/speech.js`). For
+English without one (new content before its clips are made, or a sentence a
+learner types on the *Hear any sentence* page, `/hear`), a signed-in learner's
+app asks `POST /api/tts { text, voice }` for an MP3 in the same voice.
+
+- **The service.** The API forwards to the Kokoro TTS service (`TTS_URL`, the
+  `kokoro-tts` container on the same Docker network) with its API key
+  (`TTS_API_KEY`), so the key never reaches browsers. Voices and speed come
+  from `src/lib/speechClips.js`, which the API image copies like the progress
+  rules. Live clips are made from the text in one go, without the trimming
+  `scripts/speech-audio.py` does, so a single word can sound a little less
+  clean than a recorded one.
+- **Limits.** New clips a day: 10 for every signed-in learner
+  (`TTS_DAILY_LIMIT`), 200 for learners an admin verifies under
+  `/admin/users` (`TTS_VERIFIED_LIMIT`). Learners ask for more on `/hear`, which
+  puts them at the top of that list. Clips already made, by anyone, are free.
+  Text is at most 200 characters of Latin letters, digits and everyday
+  punctuation. One clip at a time per learner, and at most 20 waiting for the
+  service (`TTS_QUEUE_MAX`), which makes one at a time. A failed clip isn't
+  counted. Past the limit, or with any error, the app uses the browser voice.
+- **Cache.** Clips are kept in `/data/tts-cache` by a hash of the voice, speed
+  and text, and shared between learners. Least recently used ones go when it
+  passes `TTS_CACHE_MB` (2 GB). Typed text is never logged or stored as text;
+  `tts_usage` keeps only a count per learner and day.
+- **When it is on.** The app turns it on at start on a device signed in to an
+  account (`lingo.sync.v1` has a user), and after signing in; it asks
+  `GET /api/tts/status`. Signed out, or with `TTS_URL` unset, nothing changes.
+
 ## Deploying the API
 
 *Production deploy* (`.github/workflows/production.yml`) also tests the API,

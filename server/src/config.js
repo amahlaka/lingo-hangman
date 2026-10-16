@@ -1,5 +1,7 @@
 // Settings come from the environment (the server's .env), never from the repo.
 
+import path from "node:path";
+
 function list(value) {
   return (value || "")
     .split(",")
@@ -9,11 +11,12 @@ function list(value) {
 
 export function loadConfig(env = process.env) {
   const origins = list(env.ORIGINS || "http://localhost:5173");
+  const dbPath = env.DB_PATH || "./data/lingo.db";
   return {
     host: env.HOST || "0.0.0.0",
     port: Number(env.PORT || 3000),
     // ":memory:" for tests; a file on the data volume in the container.
-    dbPath: env.DB_PATH || "./data/lingo.db",
+    dbPath,
     // The commit the image was built from, shown by /api/health.
     version: env.LINGO_VERSION || "dev",
     logLevel: env.LOG_LEVEL || "info",
@@ -52,7 +55,9 @@ export function loadConfig(env = process.env) {
     // recorded clips and the browser voice only.
     ttsUrl: env.TTS_URL || null,
     ttsApiKey: env.TTS_API_KEY || null,
-    ttsCacheDir: env.TTS_CACHE_DIR || "./data/tts-cache",
+    // Next to the database by default, so it lands on the data volume (the
+    // container's own files are read-only).
+    ttsCacheDir: env.TTS_CACHE_DIR || path.join(dbPath === ":memory:" ? "./data" : path.dirname(dbPath), "tts-cache"),
     ttsCacheBytes: Number(env.TTS_CACHE_MB || 2048) * 1024 * 1024,
     // New clips a day: every signed-in learner, and learners Arttu verified.
     ttsDailyLimit: Number(env.TTS_DAILY_LIMIT || 10),

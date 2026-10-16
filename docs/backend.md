@@ -169,8 +169,10 @@ app asks `POST /api/tts { text, voice }` for an MP3 in the same voice.
   punctuation. One clip at a time per learner, and at most 20 waiting for the
   service (`TTS_QUEUE_MAX`), which makes one at a time. A failed clip isn't
   counted. Past the limit, or with any error, the app uses the browser voice.
-- **Cache.** Clips are kept in `/data/tts-cache` by a hash of the voice, speed
-  and text, and shared between learners. Least recently used ones go when it
+- **Cache.** Clips are kept in `TTS_CACHE_DIR`, by default a `tts-cache`
+  folder next to the database (`/data/tts-cache` in the container, on the
+  data volume, since the container's own files are read-only), by a hash of
+  the voice, speed and text, and shared between learners. Least recently used ones go when it
   passes `TTS_CACHE_MB` (2 GB). Typed text is never logged or stored as text;
   `tts_usage` keeps only a count per learner and day.
 - **When it is on.** The app turns it on at start on a device signed in to an
@@ -366,6 +368,11 @@ Then:
   forwarding to `http://lingo-api:3000` with the original path.
 - Check it: `curl https://<app address>/api/health` answers
   `{"ok":true,"version":"<SHA>","schema":1}`.
+
+The release script never updates `/srv/lingo-api/docker-compose.yml` from
+the repository, so when a PR changes `deploy/api/docker-compose.yml`, copy it
+again (the `install -m 644` line above). Settings the API needs have working
+defaults in the image, so an older copy keeps working.
 
 Server-only compose settings (for example `extra_hosts` for the mail server)
 go in `/srv/lingo-api/docker-compose.override.yml`, never in the repository;

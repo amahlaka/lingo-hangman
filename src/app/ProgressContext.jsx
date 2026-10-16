@@ -258,9 +258,9 @@ export function ProgressProvider({ children, storage, gameIds = [] }) {
       cosmetics,
       buyItem,
       equipItem,
-      sync: { user: syncUser, connect: connectSync, disconnect: disconnectSync },
+      sync: { user: syncUser, connect: connectSync, disconnect: disconnectSync, flush: flushSync },
     };
-  }, [state, wordStreak, recordWord, setDailyGoal, cosmetics, buyItem, equipItem, syncUser, connectSync, disconnectSync]);
+  }, [state, wordStreak, recordWord, setDailyGoal, cosmetics, buyItem, equipItem, syncUser, connectSync, disconnectSync, flushSync]);
 
   return (
     <ProgressContext.Provider value={value}>

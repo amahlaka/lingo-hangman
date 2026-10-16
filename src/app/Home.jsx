@@ -65,7 +65,7 @@ function AnswerStats({ state, t, lang }) {
 // Home screen: progress, Quick play, one card per game and achievements.
 export default function Home() {
   const { t, lang } = useSettings();
-  const { state, streak, today, dailyGoal, learnedWords } = useProgress();
+  const { state, streak, today, dailyGoal, learnedWords, sync } = useProgress();
   const left = Math.max(0, dailyGoal - today.words);
   const brokenStreak = !streak.alive && state.streak.best > 1 && state.streak.current > 0;
 
@@ -112,6 +112,10 @@ export default function Home() {
         </section>
 
         <ShopCard />
+
+        {sync.user && (
+          <Link to="/leaderboard" className="lg-btn lg-btn--secondary">{t.board.homeLink}</Link>
+        )}
 
         <AnswerStats state={state} t={t} lang={lang} />
 

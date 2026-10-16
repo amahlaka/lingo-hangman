@@ -13,8 +13,8 @@ Built in phases, one pull request each:
 3. Reports and suggestions (signed-in learners), then progress sync.
 4. On-demand speech through the Kokoro TTS server, with daily limits.
 5. Reminders by web push.
-6. **Statistics** and difficulty data (the newest), then opt-in anonymous
-   leaderboards and learning paths.
+6. Statistics and difficulty data, then **opt-in weekly leaderboards** (the
+   newest), then learning paths.
 
 ## How it fits together
 
@@ -266,6 +266,29 @@ an account are counted, since only they sync.
   than half of learners get right first time is a challenge, and one that 85%
   get right can be an easy win while the learner knows few words of their
   own. A learner's own answers always win once they exist.
+
+## Leaderboards
+
+Opt-in weekly boards (`server/src/leaderboard/board.js`,
+`routes/leaderboard.js`, `src/app/Leaderboard.jsx`).
+
+- **Joining** (Settings > Account, or `/leaderboard`) gives a random nickname
+  such as "Calm Otter 42". It can be re-rolled (20 times an hour) but never
+  typed, so there is nothing to moderate. Only `leaderboard_members` (user,
+  nickname, joined) is stored. Leaving deletes the row, and deleting the
+  account removes it too; the account download includes it.
+- **The week** runs Monday to Sunday in Finnish time. A learner's XP for the
+  week is the sum of `days[day].xp` in their synced progress, read when the
+  board is asked for, so there is no separate score to keep in step. The page
+  sends the device's waiting answers first.
+- **Groups:** members are sorted by their XP over the 4 weeks before this
+  one and split into groups of about 30, so learners meet others at a
+  similar level and the groups stay the same all week.
+- **What a board shows:** the top 10 of the group, plus the 2 learners above
+  and below you when you're further down. Learners with no XP yet this week
+  aren't listed. Nicknames and XP only, never emails. `GET /api/leaderboard`,
+  `POST /api/leaderboard/join`, `POST /api/leaderboard/nickname`,
+  `DELETE /api/leaderboard/join`, all signed in.
 
 ## Deploying the API
 

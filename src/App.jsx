@@ -8,6 +8,7 @@ import Profile from "./app/Profile";
 import Preferences from "./app/Preferences";
 import Shop from "./app/Shop";
 import Account from "./app/Account";
+import Leaderboard from "./app/Leaderboard";
 import Privacy from "./app/Privacy";
 import Suggest from "./app/Suggest";
 import AdminReports from "./admin/AdminReports";
@@ -27,6 +28,7 @@ export function AppRoutes() {
       <Route path="/profile" element={<Profile />} />
       <Route path="/shop" element={<Shop />} />
       <Route path="/account" element={<Account />} />
+      <Route path="/leaderboard" element={<Leaderboard />} />
       <Route path="/privacy" element={<Privacy />} />
       <Route path="/suggest" element={<Suggest />} />
       <Route path="/hear" element={<HearSentence />} />

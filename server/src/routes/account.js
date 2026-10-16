@@ -151,6 +151,7 @@ export default async function accountRoutes(app, { db, config }) {
         settings: pushSettingsExport(db.prepare("SELECT enabled, time, tz, kinds, lang FROM push_settings WHERE user_id = ?").get(s.user_id)),
         devices: db.prepare("SELECT created_at AS createdAt, last_sent_at AS lastSentAt FROM push_subscriptions WHERE user_id = ?").all(s.user_id),
       },
+      leaderboard: db.prepare("SELECT nickname, joined_at AS joinedAt FROM leaderboard_members WHERE user_id = ?").get(s.user_id) || null,
     };
   });
 

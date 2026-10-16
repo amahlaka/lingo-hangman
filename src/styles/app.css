@@ -672,3 +672,14 @@ textarea.lg-input { padding: var(--space-2) var(--space-3); resize: vertical; }
 .st-table { width: 100%; border-collapse: collapse; font: 15px/20px var(--font-sans); }
 .st-table th, .st-table td { padding: var(--space-2); text-align: left; border-bottom: 1px solid var(--line); white-space: nowrap; }
 .st-table th { font-weight: 700; color: var(--ink-muted); }
+
+/* Weekly board (app/Leaderboard.jsx) */
+.lb-me { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-md); background: var(--cloudberry-soft); color: var(--cloudberry-ink); }
+.lb-me p { margin: 0; }
+.lb-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-1); }
+.lb-row { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-2) var(--space-3); border-radius: var(--radius-sm); background: var(--surface-raised); box-shadow: inset 0 0 0 1px var(--line); }
+.lb-row--me { background: var(--lake-soft); box-shadow: inset 0 0 0 2px var(--lake); font-weight: 700; }
+.lb-row__rank { min-width: 2ch; font: 700 17px/1 var(--font-sans); color: var(--ink-muted); text-align: right; }
+.lb-row__name { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
+.lb-row__xp { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.lb-gap { text-align: center; color: var(--ink-muted); }

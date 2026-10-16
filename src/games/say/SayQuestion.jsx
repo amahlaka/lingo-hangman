@@ -7,8 +7,10 @@ import { sounds } from "../../lib/sounds";
 import { isBlockingError, isOnDeviceFailure, listenOnce } from "../../lib/speechRecognition";
 import { RATE_SLOW, speak, stopSpeaking } from "../../lib/speech";
 import ListenMore from "../practice/ListenMore";
-import { PaidHints } from "../practice/RuleBox";
-import { MAX_SAY_TRIES, SAY_HINT_COST, checkSaid } from "./sayLogic";
+import { MAX_SAY_TRIES, checkSaid } from "./sayLogic";
+import { useProgress } from "../../app/ProgressContext";
+import { wordStanding } from "../../lib/adaptive";
+import { wordKey } from "../../lib/progress";
 import { useQuestionControls } from "../practice/questionControls";
 
 // What the recogniser heard, with the target's words marked as heard or not.
@@ -53,7 +55,14 @@ export default function SayQuestion({
   const [misses, setMisses] = useState(0);
   const [state, setState] = useState("idle"); // idle | preparing | listening
   const [result, setResult] = useState(null);
-  const [showSay, setShowSay] = useState(false);
+  // The Finnish reading shows from the start, except for words the learner
+  // already says well; those keep it one free tap away.
+  const { state: progress } = useProgress();
+  const [showSay, setShowSay] = useState(() => {
+    const words = progress?.words || {};
+    const entry = words[wordKey(word.learning, learningLang)] || words[wordKey(word.learning, "en")];
+    return wordStanding(entry) !== "known";
+  });
   const session = useRef(null);
   const alive = useRef(true);
   // What the microphone heard on each try, for problem reports.
@@ -211,7 +220,9 @@ export default function SayQuestion({
         </>
       )}
       {!done && reading && !showSay && (
-        <PaidHints hints={[{ id: "say", label: fill(p.hintSay, { n: SAY_HINT_COST }), cost: SAY_HINT_COST, onBuy: () => setShowSay(true) }]} />
+        <button type="button" className="lg-btn lg-btn--quiet sy-show-say" onClick={() => setShowSay(true)}>
+          {p.hintSay}
+        </button>
       )}
     </div>
   );

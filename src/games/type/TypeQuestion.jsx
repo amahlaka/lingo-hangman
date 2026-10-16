@@ -70,6 +70,8 @@ export default function TypeQuestion({ question, done, onDone, p, learningLang, 
   const dictation = mode === "dictation";
   const [value, setValue] = useState("");
   const [misses, setMisses] = useState(0);
+  // What the learner typed on each wrong try, to see how learners go wrong.
+  const typed = useRef([]);
   const [result, setResult] = useState(null);
   const [firstLetters, setFirstLetters] = useState(false);
   const [revealed, setRevealed] = useState(0);
@@ -93,6 +95,7 @@ export default function TypeQuestion({ question, done, onDone, p, learningLang, 
   const finish = (solved, missCount) =>
     onDone({
       solved,
+      wrong: typed.current,
       firstTry: solved && missCount === 0,
       tries: missCount + 1,
       triesLeft: Math.max(0, MAX_TYPE_TRIES - missCount),
@@ -112,6 +115,7 @@ export default function TypeQuestion({ question, done, onDone, p, learningLang, 
       return;
     }
     setResult(checked);
+    typed.current = [...typed.current, value.trim()];
     const next = misses + 1;
     setMisses(next);
     if (next >= MAX_TYPE_TRIES) finish(false, next);

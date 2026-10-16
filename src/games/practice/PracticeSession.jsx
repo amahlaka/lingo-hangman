@@ -114,6 +114,9 @@ export default function PracticeSession({
   const board = useRef({ items: [], banner: null });
   // When the current question (or the board's last word) appeared, for answer times.
   const shownAt = useRef(Date.now());
+  // True while "Skip this one" finishes the question, so the answer is
+  // recorded as skipped rather than as a wrong answer.
+  const skipping = useRef(false);
 
   const finished = questions.length > 0 && index >= questions.length;
 
@@ -156,6 +159,8 @@ export default function PracticeSession({
     const now = Date.now();
     const events = recordWord({
       gameId: question?.gameId || gameId,
+      wrong: outcome.wrong,
+      skipped: skipping.current || undefined,
       lesson: question?.lesson || question?.lessonId || question?.setId || undefined,
       word: outcome.answer,
       lang: learningLang,
@@ -237,7 +242,12 @@ export default function PracticeSession({
     if (current) return;
     const own = controls.current?.skip;
     if (own) {
-      own();
+      skipping.current = true;
+      try {
+        own();
+      } finally {
+        skipping.current = false;
+      }
       return;
     }
     board.current = { items: [], banner: null };

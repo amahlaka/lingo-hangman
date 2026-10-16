@@ -98,9 +98,11 @@ export default function HangmanGame() {
     shownAt.current = Date.now();
   }, [answer, roundNumber]);
 
-  const finishRound = (solved, missCount) => {
+  const finishRound = (solved, missCount, wrongLetters = misses) => {
     const events = recordWord({
       gameId: "hangman",
+      wrong: wrongLetters,
+      skipped: missCount >= MAX_MISSES && wrongLetters.length < MAX_MISSES,
       word: answer,
       lang: guessLang,
       solved,
@@ -154,8 +156,9 @@ export default function HangmanGame() {
       if (inWord(letter)) sounds.found(next.filter(inWord).length - 1);
       else sounds.miss();
     }
-    if (won) finishRound(true, nextMisses);
-    else if (nextMisses >= MAX_MISSES) finishRound(false, nextMisses);
+    const wrongLetters = next.filter((g) => !inWord(g));
+    if (won) finishRound(true, nextMisses, wrongLetters);
+    else if (nextMisses >= MAX_MISSES) finishRound(false, nextMisses, wrongLetters);
   };
 
   const handleNext = useCallback(() => {

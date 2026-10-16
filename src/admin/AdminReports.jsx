@@ -131,7 +131,7 @@ export default function AdminReports() {
     <GameScreen title="Reports">
       <main className="lg-board lg-page">
         <p className="lg-body-lg">
-          Problems and suggestions learners sent. Fix content in the <Link to="/admin">word bank editor</Link>, then mark it fixed here; the learner sees it under Account. Speech limits are under <Link to="/admin/users">users</Link>.
+          Problems and suggestions learners sent. Fix content in the <Link to="/admin">word bank editor</Link>, then mark it fixed here; the learner sees it under Account. Speech limits are under <Link to="/admin/users">users</Link>, numbers under <Link to="/admin/stats">statistics</Link>.
         </p>
         {gate ? (
           <section className="lg-section">

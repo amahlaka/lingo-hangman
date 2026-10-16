@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useRef, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useSettings } from "../../app/SettingsContext";
 import { languageLabel } from "../../lib/words";
@@ -14,6 +14,8 @@ export function PairsBoard({ board, done, onItem, onDone, p, learningLang, nativ
   const [selected, setSelected] = useState(null); // { side, id }
   const [matched, setMatched] = useState([]);
   const [misses, setMisses] = useState({});
+  // The wrong partners tried for each word, to see how learners go wrong.
+  const tried = useRef({});
   const [wobble, setWobble] = useState(null); // tile keys like "native-3"
   const [hint, setHint] = useState("");
 
@@ -34,6 +36,7 @@ export function PairsBoard({ board, done, onItem, onDone, p, learningLang, nativ
       const { pair } = board.items[id];
       onItem({
         solved: true,
+        wrong: tried.current[id] || [],
         firstTry: missCount === 0,
         tries: missCount + 1,
         triesLeft: Math.max(0, MAX_MISSES - missCount),
@@ -44,6 +47,11 @@ export function PairsBoard({ board, done, onItem, onDone, p, learningLang, nativ
       return;
     }
     // Not a pair: the miss counts against the word picked first.
+    const other = board.items[id]?.pair;
+    if (other) {
+      const text = selected.side === "learning" ? other.native : other.learning;
+      tried.current = { ...tried.current, [selected.id]: [...(tried.current[selected.id] || []), text] };
+    }
     sounds.miss();
     setMisses((m) => ({ ...m, [selected.id]: (m[selected.id] || 0) + 1 }));
     setWobble([`${selected.side}-${selected.id}`, `${side}-${id}`]);

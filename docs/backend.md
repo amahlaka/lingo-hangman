@@ -12,8 +12,9 @@ Built in phases, one pull request each:
 2. Accounts: passkeys, with a one-time email code as the fallback.
 3. Reports and suggestions (signed-in learners), then progress sync.
 4. On-demand speech through the Kokoro TTS server, with daily limits.
-5. **Reminders** by web push (the newest).
-6. Statistics, opt-in anonymous leaderboards and learning paths.
+5. Reminders by web push.
+6. **Statistics** and difficulty data (the newest), then opt-in anonymous
+   leaderboards and learning paths.
 
 ## How it fits together
 
@@ -225,6 +226,46 @@ POST   /api/push/subscribe       { endpoint, keys: { p256dh, auth } }   (this de
 DELETE /api/push/subscribe                                              (this device)
 POST   /api/push/test            → a test reminder to this device (5 an hour)
 ```
+
+## Statistics
+
+Numbers over everyone's answers from the `answer`
+events that sync stores (`server/src/stats/aggregate.js`). Only learners with
+an account are counted, since only they sync.
+
+- **The job** runs in the API process shortly after start and then every 6
+  hours (`STATS_INTERVAL_MS`). It reads the last 90 days of answers once and
+  replaces `stats_daily` (per learner day: learners, answers and first-try
+  answers per game, new accounts) and `stats_cache` (the lists below) in one
+  transaction.
+- **/admin/stats** (admin only) shows totals (accounts, learners who played
+  this week, reminders on, open reports), learners per day for the last 35
+  days, each game's answers, first-try share and median time, and the words
+  most often missed and slowest.
+- **One learner** (Arttu's decision, 2026-10-16: admins see individual
+  statistics): `/admin/users` shows when each learner last played, and each
+  email opens `/admin/users/:id` (`GET /api/admin/users/:id`) with that
+  learner's level, streak, recent days, games, most missed words, devices
+  and reminder setting, read from their synced progress. Read only. The
+  privacy page says the maintainer can see this.
+- **How learners go wrong** (Arttu, 2026-10-16): each answer carries
+  `wrong`, what the learner picked, typed, built or was heard saying on each
+  wrong try (at most 8, 120 characters each), and `skipped` when they skipped.
+  `src/lib/mistakes.js` sorts each one into a kind: spelling ("oltmil" for
+  "oatmeal"), letters or words in the wrong order, words missing, a different
+  word, a wrong option, sound, pair or letter, misheard, skipped.
+  `/admin/stats` shows the kinds per game and wrong answers that at least 3
+  different learners gave; `/admin/users/:id` shows that learner's counts by
+  kind and their latest 30 mistakes.
+- **Difficulty data:** `GET /api/difficulty` (no sign-in, cached for an hour)
+  gives each word's answer count, first-try share and median time. A word is
+  in it, and in the admin lists, only after 5 answers from 3 different
+  learners, so its numbers never describe one person. The app loads it at
+  start and keeps it a day (`lingo.difficulty.v1`, `src/lib/difficulty.js`).
+- **Quick play** uses it for words the learner hasn't met yet: one that fewer
+  than half of learners get right first time is a challenge, and one that 85%
+  get right can be an easy win while the learner knows few words of their
+  own. A learner's own answers always win once they exist.
 
 ## Deploying the API
 

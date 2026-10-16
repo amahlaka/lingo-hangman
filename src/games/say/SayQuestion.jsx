@@ -82,6 +82,8 @@ export default function SayQuestion({
       answer: text,
       meaning: word.native,
       heard: heardNow.current,
+      // What was heard on the wrong tries (the last one is the right one when solved).
+      wrong: (solved && missCount > 0 ? heardNow.current.slice(0, -1) : solved ? [] : heardNow.current).filter((h) => typeof h === "string" && h),
     });
   useQuestionControls({
     skip: () => !done && finish(false, misses),

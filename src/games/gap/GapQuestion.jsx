@@ -62,29 +62,33 @@ export default function GapQuestion({ question, done, onDone }) {
   const [peeked, setPeeked] = useState(false);
   const typeOf = useLooseWordType();
 
-  const finish = (solved, misses) =>
-    onDone({
+  // `wrongs`: the options picked before, kept to see how learners go wrong.
+  const finish = (solved, wrongs) => {
+    const misses = wrongs.length;
+    return onDone({
       solved,
+      wrong: wrongs.map((o) => o || "(nothing)"),
       firstTry: solved && misses === 0,
       tries: misses + 1,
       triesLeft: maxMisses - misses,
       answer: question.sentence,
       meaning: question.fi,
     });
-  useQuestionControls({ skip: () => !done && finish(false, missed.length) });
+  };
+  useQuestionControls({ skip: () => !done && finish(false, missed) });
 
   const choose = (option) => {
     if (done || picked !== null || missed.includes(option)) return;
     if (option === question.answer) {
       setPicked(option);
-      finish(true, missed.length);
+      finish(true, missed);
       return;
     }
     const nextMissed = [...missed, option];
     setMissed(nextMissed);
     setWobble(option);
     if (nextMissed.length < maxMisses) sounds.miss();
-    else finish(false, nextMissed.length);
+    else finish(false, nextMissed);
   };
 
   const stateOf = (option) => {

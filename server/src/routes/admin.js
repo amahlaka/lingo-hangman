@@ -4,6 +4,11 @@
 import { requireSession } from "../sessions.js";
 import { reportView, suggestionView } from "./feedback.js";
 import { ttsDay } from "./tts.js";
+import { DAILY_DAYS, MIN_ANSWERS, MIN_LEARNERS, cached } from "../stats/aggregate.js";
+import { accountProgress } from "./sync.js";
+import { gemBalance } from "../../../src/lib/cosmetics.js";
+import { answerSummary, levelInfo, progressSummary } from "../../../src/lib/progress.js";
+import { answerMistakes } from "../../../src/lib/mistakes.js";
 
 const RECENT_SIGN_IN_MS = 24 * 3600_000;
 const REPORT_STATUSES = ["open", "fixed", "dismissed"];
@@ -82,7 +87,8 @@ export default async function adminRoutes(app, { db, config }) {
     const q = typeof req.query.q === "string" ? req.query.q.trim().toLowerCase().slice(0, 100) : "";
     const rows = db
       .prepare(
-        `SELECT u.id, u.email, u.role, u.created_at, u.tts_requested_at, COALESCE(t.count, 0) AS tts_today
+        `SELECT u.id, u.email, u.role, u.created_at, u.tts_requested_at, COALESCE(t.count, 0) AS tts_today,
+           (SELECT MAX(at) FROM sync_events e WHERE e.user_id = u.id AND e.type = 'answer') AS last_answer_at
          FROM users u LEFT JOIN tts_usage t ON t.user_id = u.id AND t.day = ?
          WHERE (? = '' OR instr(u.email, ?) > 0)
          ORDER BY (u.tts_requested_at IS NULL AND u.role = 'learner') OR u.role <> 'learner', u.tts_requested_at, u.id DESC
@@ -97,6 +103,7 @@ export default async function adminRoutes(app, { db, config }) {
         createdAt: r.created_at,
         ttsRequestedAt: r.role === "learner" ? r.tts_requested_at : null,
         ttsToday: r.tts_today,
+        lastAnswerAt: r.last_answer_at,
       })),
       limits: { basic: config.ttsDailyLimit, extended: config.ttsVerifiedLimit },
     };
@@ -113,4 +120,114 @@ export default async function adminRoutes(app, { db, config }) {
       .run(role, id);
     return changes ? { ok: true } : reply.code(404).send({ error: "not_found" });
   });
+
+  // The Statistics page: numbers over all learners, recomputed a few times a
+  // day (stats/aggregate.js), plus live account totals.
+  app.get("/api/admin/stats", async () => {
+    const rows = db.prepare("SELECT * FROM stats_daily ORDER BY day").all();
+    const byDay = new Map();
+    for (const r of rows) {
+      const d = byDay.get(r.day) || { day: r.day, learners: 0, answers: 0, firstTry: 0, accounts: 0 };
+      if (r.metric === "learners") d.learners = r.value;
+      else if (r.metric === "accounts") d.accounts = r.value;
+      else if (r.metric === "answers") d.answers += r.value;
+      else if (r.metric === "first_try") d.firstTry += r.value;
+      byDay.set(r.day, d);
+    }
+    const weekAgo = new Date(Date.now() - 7 * 86400_000).toISOString();
+    const words = cached(db, "words");
+    return {
+      updatedAt: words?.updatedAt || null,
+      days: [...byDay.values()],
+      games: cached(db, "games")?.value || [],
+      words: words?.value || { hardest: [], slowest: [], tracked: 0 },
+      mistakes: cached(db, "mistakes")?.value || { games: [], common: [] },
+      totals: {
+        accounts: db.prepare("SELECT COUNT(*) AS n FROM users").get().n,
+        activeWeek: db.prepare("SELECT COUNT(DISTINCT user_id) AS n FROM sync_events WHERE type = 'answer' AND at >= ?").get(weekAgo).n,
+        reminders: db.prepare("SELECT COUNT(*) AS n FROM push_settings WHERE enabled = 1").get().n,
+        openReports: db.prepare("SELECT COUNT(*) AS n FROM reports WHERE status = 'open'").get().n,
+      },
+      rules: { dailyDays: DAILY_DAYS, minAnswers: MIN_ANSWERS, minLearners: MIN_LEARNERS },
+    };
+  });
+
+  // One learner's own progress and account details (Arttu, 2026-10-16:
+  // admins see individual statistics). Read only.
+  app.get("/api/admin/users/:id", async (req, reply) => {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id) || id <= 0) return reply.code(400).send({ error: "bad_request" });
+    const u = db.prepare("SELECT id, email, role, lang, created_at, tts_requested_at FROM users WHERE id = ?").get(id);
+    if (!u) return reply.code(404).send({ error: "not_found" });
+    const state = accountProgress(db, id);
+    const lastAnswer = db.prepare("SELECT MAX(at) AS at FROM sync_events WHERE user_id = ? AND type = 'answer'").get(id).at;
+    const sessions = db.prepare("SELECT device, last_seen_at FROM sessions WHERE user_id = ? ORDER BY last_seen_at DESC").all(id);
+    const push = db.prepare("SELECT enabled, time, tz FROM push_settings WHERE user_id = ?").get(id);
+    const words = state
+      ? Object.entries(state.words).map(([key, w]) => ({
+          word: key.replace(/^[^:]+:/, ""),
+          solved: w.solved,
+          lost: w.lost,
+          recent: w.recent || "",
+          last: w.last || null,
+          ms: w.timed ? Math.round(w.ms / w.timed) : null,
+        }))
+      : [];
+    const days = state
+      ? Object.entries(state.days)
+          .sort(([a], [b]) => b.localeCompare(a))
+          .slice(0, 30)
+          .map(([day, d]) => ({ day, words: d.words, solved: d.solved, firstTry: d.firstTry || 0, goalMet: Boolean(d.goalMet) }))
+      : [];
+    return {
+      mistakes: learnerMistakes(db, id),
+      user: {
+        id: u.id,
+        email: u.email,
+        role: u.role,
+        language: u.lang,
+        createdAt: u.created_at,
+        lastAnswerAt: lastAnswer,
+        ttsRequestedAt: u.tts_requested_at,
+      },
+      devices: sessions.map((s) => ({ device: s.device, lastSeenAt: new Date(s.last_seen_at).toISOString() })),
+      reminders: push ? { enabled: Boolean(push.enabled), time: push.time, timeZone: push.tz } : null,
+      speechToday: db.prepare("SELECT count FROM tts_usage WHERE user_id = ? AND day = ?").get(id, ttsDay())?.count || 0,
+      reports: db.prepare("SELECT COUNT(*) AS n FROM reports WHERE user_id = ?").get(id).n,
+      suggestions: db.prepare("SELECT COUNT(*) AS n FROM suggestions WHERE user_id = ?").get(id).n,
+      progress: state
+        ? {
+            ...progressSummary(state),
+            toNext: levelInfo(state.xp).toNext,
+            dailyGoal: state.dailyGoal,
+            streak: { current: state.streak.current, lastDay: state.streak.lastDay },
+            totals: state.totals,
+            gems: gemBalance(state),
+            days,
+            games: answerSummary(state).games,
+            missed: words.filter((w) => w.lost > 0).sort((a, b) => b.lost - a.lost || b.lost / (b.solved + b.lost) - a.lost / (a.solved + a.lost)).slice(0, 20),
+            wordCount: words.length,
+          }
+        : null,
+    };
+  });
+}
+
+// How one learner has gone wrong: counts by kind over their synced answers,
+// and the latest mistakes with what they answered.
+const RECENT_MISTAKES = 30;
+function learnerMistakes(db, userId) {
+  const kinds = {};
+  const recent = [];
+  const rows = db
+    .prepare("SELECT payload FROM sync_events WHERE user_id = ? AND type = 'answer' ORDER BY seq DESC")
+    .iterate(userId);
+  for (const row of rows) {
+    const { result, day } = JSON.parse(row.payload);
+    for (const m of answerMistakes(result)) {
+      kinds[m.kind] = (kinds[m.kind] || 0) + 1;
+      if (recent.length < RECENT_MISTAKES) recent.push({ day, game: result.gameId, word: result.word || "", given: m.given, kind: m.kind });
+    }
+  }
+  return { kinds, recent };
 }

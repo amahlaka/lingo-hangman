@@ -248,6 +248,15 @@ an account are counted, since only they sync.
   learner's level, streak, recent days, games, most missed words, devices
   and reminder setting, read from their synced progress. Read only. The
   privacy page says the maintainer can see this.
+- **How learners go wrong** (Arttu, 2026-10-16): each answer carries
+  `wrong`, what the learner picked, typed, built or was heard saying on each
+  wrong try (at most 8, 120 characters each), and `skipped` when they skipped.
+  `src/lib/mistakes.js` sorts each one into a kind: spelling ("oltmil" for
+  "oatmeal"), letters or words in the wrong order, words missing, a different
+  word, a wrong option, sound, pair or letter, misheard, skipped.
+  `/admin/stats` shows the kinds per game and wrong answers that at least 3
+  different learners gave; `/admin/users/:id` shows that learner's counts by
+  kind and their latest 30 mistakes.
 - **Difficulty data:** `GET /api/difficulty` (no sign-in, cached for an hour)
   gives each word's answer count, first-try share and median time. A word is
   in it, and in the admin lists, only after 5 answers from 3 different

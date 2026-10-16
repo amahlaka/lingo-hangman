@@ -24,29 +24,33 @@ export function GapQuestion({ question, done, onDone, p, learningLang, nativeLan
   const [picked, setPicked] = useState(null);
   const [wobble, setWobble] = useState(null);
 
-  const finish = (solved, misses) =>
-    onDone({
+  // `wrongs`: the options picked before, kept to see how learners go wrong.
+  const finish = (solved, wrongs) => {
+    const misses = wrongs.length;
+    return onDone({
       solved,
+      wrong: wrongs.map((o) => String(o)),
       firstTry: solved && misses === 0,
       tries: misses + 1,
       triesLeft: maxMisses - misses,
       answer: target.learning,
       meaning: target.native,
     });
-  useQuestionControls({ skip: () => !done && finish(false, missed.length) });
+  };
+  useQuestionControls({ skip: () => !done && finish(false, missed) });
 
   const choose = (option) => {
     if (done || picked || missed.includes(option)) return;
     if (option === answer) {
       setPicked(option);
-      finish(true, missed.length);
+      finish(true, missed);
       return;
     }
     const nextMissed = [...missed, option];
     setMissed(nextMissed);
     setWobble(option);
     if (nextMissed.length < maxMisses) sounds.miss();
-    else finish(false, nextMissed.length);
+    else finish(false, nextMissed);
   };
 
   const result = done ? (picked ? "right" : "shown") : null;

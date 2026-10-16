@@ -90,3 +90,33 @@ test("an admin sees one learner's own progress", async () => {
   assert.equal((await t.call("GET", "/api/admin/users/99999")).statusCode, 404);
   await t.close();
 });
+
+const typed = (word, wrong, msAgo = HOUR, extra = {}) => {
+  const at = new Date(Date.now() - msAgo);
+  return makeEvent(
+    "answer",
+    { result: { gameId: "type-it", word, lang: "en", solved: false, triesLeft: 0, perfect: false, wrong, ...extra }, day: at.toISOString().slice(0, 10) },
+    at
+  );
+};
+
+test("how learners go wrong: kinds per game and wrong answers several learners gave", async () => {
+  const t = setup();
+  await learner(t, "a@example.com", [typed("oatmeal", ["oltmil"]), typed("I like tea", ["tea I like"], 2 * HOUR)]);
+  await learner(t, "b@example.com", [typed("oatmeal", ["Oltmil", "otmeal"])]);
+  await learner(t, "c@example.com", [typed("oatmeal", ["oltmil"]), typed("cat", [], 2 * HOUR, { skipped: true })]);
+  const out = runStats(t.db);
+  const game = out.mistakes.games.find((g) => g.id === "type-it");
+  assert.deepEqual(game.kinds, { spelling: 4, word_order: 1, skipped: 1 });
+  // "otmeal" and the word-order slip came from one learner each: not listed.
+  assert.deepEqual(out.mistakes.common.map((c) => [c.word, c.given, c.kind, c.learners]), [["oatmeal", "oltmil", "spelling", 3]]);
+
+  t.cookie = null;
+  await t.signIn("boss@example.com");
+  assert.equal((await t.call("GET", "/api/admin/stats")).json().mistakes.common.length, 1);
+  const id = t.db.prepare("SELECT id FROM users WHERE email = 'a@example.com'").get().id;
+  const { mistakes } = (await t.call("GET", `/api/admin/users/${id}`)).json();
+  assert.deepEqual(mistakes.kinds, { spelling: 1, word_order: 1 });
+  assert.deepEqual(mistakes.recent.map((m) => [m.word, m.given, m.kind]), [["I like tea", "tea I like", "word_order"], ["oatmeal", "oltmil", "spelling"]]);
+  await t.close();
+});

@@ -12,22 +12,26 @@ export default function ChoiceQuestion({ question, learningLang, nativeLang, don
   const [picked, setPicked] = useState(null);
   const [wobble, setWobble] = useState(null);
 
-  const finish = (solved, misses) =>
-    onDone({
+  // `wrongs`: the options picked before, kept to see how learners go wrong.
+  const finish = (solved, wrongs) => {
+    const misses = wrongs.length;
+    return onDone({
       solved,
+      wrong: wrongs.map((o) => o.learning),
       firstTry: solved && misses === 0,
       tries: misses + 1,
       triesLeft: MAX_MISSES - misses,
       answer: target.learning,
       meaning: target.native,
     });
-  useQuestionControls({ skip: () => !done && finish(false, missed.length) });
+  };
+  useQuestionControls({ skip: () => !done && finish(false, missed) });
 
   const choose = (option) => {
     if (done || picked || missed.includes(option)) return;
     if (option === target) {
       setPicked(option);
-      finish(true, missed.length);
+      finish(true, missed);
       return;
     }
     const nextMissed = [...missed, option];
@@ -35,7 +39,7 @@ export default function ChoiceQuestion({ question, learningLang, nativeLang, don
     setWobble(option);
     // The last miss gets the session's "answer shown" sound instead.
     if (nextMissed.length < MAX_MISSES) sounds.miss();
-    if (nextMissed.length >= MAX_MISSES) finish(false, nextMissed.length);
+    if (nextMissed.length >= MAX_MISSES) finish(false, nextMissed);
   };
 
   const stateOf = (option) => {

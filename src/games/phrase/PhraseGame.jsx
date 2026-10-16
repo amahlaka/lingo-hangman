@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useRef, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useSettings } from "../../app/SettingsContext";
 import { fill } from "../../i18n";
@@ -53,6 +53,8 @@ export function PhraseQuestion({ puzzle, done, onDone, p, learningLang, nativeLa
   );
   const [free, setFree] = useState([]);
   const [misses, setMisses] = useState(0);
+  // Each wrong order the learner checked, to see how learners go wrong.
+  const tried = useRef([]);
   const [hint, setHint] = useState("");
   const [result, setResult] = useState(null);
   const [bought, setBought] = useState({ slots: false, options: false, rule: false });
@@ -83,6 +85,7 @@ export function PhraseQuestion({ puzzle, done, onDone, p, learningLang, nativeLa
     setResult(solved ? "right" : "shown");
     onDone({
       solved,
+      wrong: tried.current,
       firstTry: solved && missCount === 0,
       tries: missCount + 1,
       triesLeft: MAX_MISSES - missCount,
@@ -111,6 +114,7 @@ export function PhraseQuestion({ puzzle, done, onDone, p, learningLang, nativeLa
       finish(true, misses);
       return;
     }
+    tried.current = [...tried.current, placedWords.join(" ")];
     const nextMisses = misses + 1;
     setMisses(nextMisses);
     if (nextMisses >= MAX_MISSES) {

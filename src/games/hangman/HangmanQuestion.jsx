@@ -24,9 +24,11 @@ export default function HangmanQuestion({ question, done, onDone, learningLang, 
   const won = letters.every((ch) => !isGuessable(ch) || guesses.includes(ch));
   const left = MAX_MISSES - misses.length;
 
-  const finish = (solved, missCount) =>
+  // `wrongLetters`: the letters guessed that aren't in the word.
+  const finish = (solved, missCount, wrongLetters = misses) =>
     onDone({
       solved,
+      wrong: wrongLetters,
       firstTry: solved && missCount === 0,
       tries: missCount + 1,
       triesLeft: solved ? MAX_MISSES - missCount : 0,
@@ -41,8 +43,9 @@ export default function HangmanQuestion({ question, done, onDone, learningLang, 
     setGuesses(next);
     setFound(inWord(letter) ? letters.map((ch, i) => (ch === letter ? i : -1)).filter((i) => i >= 0) : []);
     const nextMisses = next.filter((g) => !inWord(g)).length;
-    if (letters.every((ch) => !isGuessable(ch) || next.includes(ch))) finish(true, nextMisses);
-    else if (nextMisses >= MAX_MISSES) finish(false, nextMisses);
+    const wrongLetters = next.filter((g) => !inWord(g));
+    if (letters.every((ch) => !isGuessable(ch) || next.includes(ch))) finish(true, nextMisses, wrongLetters);
+    else if (nextMisses >= MAX_MISSES) finish(false, nextMisses, wrongLetters);
     else if (inWord(letter)) sounds.found(next.filter(inWord).length - 1);
     else sounds.miss();
   };

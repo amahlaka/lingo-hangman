@@ -38,6 +38,10 @@ test("the Statistics page shows totals, days, games and hard words", async () =>
         ],
         games: [{ id: "meaning", answers: 80, firstTry: 0.75, ms: 3200 }],
         words: { hardest: [{ key: "en-GB:through", word: "through", n: 12, learners: 4, firstTry: 0.25, ms: 6100 }], slowest: [], tracked: 1 },
+        mistakes: {
+          games: [{ id: "type-it", total: 4, kinds: { spelling: 3, word_order: 1 } }],
+          common: [{ key: "en:oatmeal", word: "oatmeal", given: "oltmil", kind: "spelling", n: 3, learners: 3 }],
+        },
         totals: { accounts: 7, activeWeek: 4, reminders: 2, openReports: 1 },
         rules: { dailyDays: 35, minAnswers: 5, minLearners: 3 },
       },
@@ -49,6 +53,8 @@ test("the Statistics page shows totals, days, games and hard words", async () =>
   expect(screen.getByLabelText("Learners per day")).toBeInTheDocument();
   expect(screen.getByText("through")).toBeInTheDocument();
   expect(screen.getByText("25%")).toBeInTheDocument();
+  expect(screen.getByText("Spelling 75% · Words in the wrong order 25%")).toBeInTheDocument();
+  expect(screen.getByText("oltmil")).toBeInTheDocument();
 });
 
 test("a non-admin is told why", async () => {
@@ -86,6 +92,10 @@ test("an admin opens one learner's progress", async () => {
         speechToday: 2,
         reports: 1,
         suggestions: 0,
+        mistakes: {
+          kinds: { spelling: 2, skipped: 1 },
+          recent: [{ day: "2026-10-16", game: "type-it", word: "oatmeal", given: "oltmil", kind: "spelling" }],
+        },
         progress: {
           xp: 620, level: 3, toNext: 130, words: 64, learned: 12, streakBest: 5, dailyGoal: 10, gems: 40,
           streak: { current: 4, lastDay: "2026-10-16" },
@@ -103,4 +113,6 @@ test("an admin opens one learner's progress", async () => {
   expect(screen.getByText(/Reminders: on at 18:00/)).toBeInTheDocument();
   expect(screen.getByText("Safari on iPhone")).toBeInTheDocument();
   expect(screen.getByText("words learned")).toBeInTheDocument();
+  expect(screen.getByText("oltmil")).toBeInTheDocument();
+  expect(screen.getAllByText("Spelling").length).toBeGreaterThan(0);
 });

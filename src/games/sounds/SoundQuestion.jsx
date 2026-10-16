@@ -113,29 +113,33 @@ export default function SoundQuestion({ question, done, onDone, showRule = false
 
   const isRight = (key) => (kind === "silent" ? silentAt.includes(key) : key === question.answer);
 
-  const finish = (solved, misses) =>
-    onDone({
+  // `wrongs`: the options picked before, kept to see how learners go wrong.
+  const finish = (solved, wrongs) => {
+    const misses = wrongs.length;
+    return onDone({
       solved,
+      wrong: wrongs.map((k) => (kind === "silent" ? question.letters[k] ?? String(k) : String(k))),
       firstTry: solved && misses === 0,
       tries: misses + 1,
       triesLeft: maxMisses - misses,
       answer: word.text,
       meaning: word.fi || (word.say ? `"${word.say}"` : ""),
     });
-  useQuestionControls({ skip: () => !done && finish(false, missed.length) });
+  };
+  useQuestionControls({ skip: () => !done && finish(false, missed) });
 
   const choose = (key) => {
     if (done || picked !== null || missed.includes(key)) return;
     if (isRight(key)) {
       setPicked(key);
-      finish(true, missed.length);
+      finish(true, missed);
       return;
     }
     const nextMissed = [...missed, key];
     setMissed(nextMissed);
     setWobble(key);
     if (nextMissed.length < maxMisses) sounds.miss();
-    else finish(false, nextMissed.length);
+    else finish(false, nextMissed);
   };
 
   const stateOf = (key) => {

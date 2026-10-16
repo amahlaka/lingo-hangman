@@ -8,6 +8,7 @@ import { DAILY_DAYS, MIN_ANSWERS, MIN_LEARNERS, cached } from "../stats/aggregat
 import { accountProgress } from "./sync.js";
 import { gemBalance } from "../../../src/lib/cosmetics.js";
 import { answerSummary, levelInfo, progressSummary } from "../../../src/lib/progress.js";
+import { answerMistakes } from "../../../src/lib/mistakes.js";
 
 const RECENT_SIGN_IN_MS = 24 * 3600_000;
 const REPORT_STATUSES = ["open", "fixed", "dismissed"];
@@ -140,6 +141,7 @@ export default async function adminRoutes(app, { db, config }) {
       days: [...byDay.values()],
       games: cached(db, "games")?.value || [],
       words: words?.value || { hardest: [], slowest: [], tracked: 0 },
+      mistakes: cached(db, "mistakes")?.value || { games: [], common: [] },
       totals: {
         accounts: db.prepare("SELECT COUNT(*) AS n FROM users").get().n,
         activeWeek: db.prepare("SELECT COUNT(DISTINCT user_id) AS n FROM sync_events WHERE type = 'answer' AND at >= ?").get(weekAgo).n,
@@ -178,6 +180,7 @@ export default async function adminRoutes(app, { db, config }) {
           .map(([day, d]) => ({ day, words: d.words, solved: d.solved, firstTry: d.firstTry || 0, goalMet: Boolean(d.goalMet) }))
       : [];
     return {
+      mistakes: learnerMistakes(db, id),
       user: {
         id: u.id,
         email: u.email,
@@ -208,4 +211,23 @@ export default async function adminRoutes(app, { db, config }) {
         : null,
     };
   });
+}
+
+// How one learner has gone wrong: counts by kind over their synced answers,
+// and the latest mistakes with what they answered.
+const RECENT_MISTAKES = 30;
+function learnerMistakes(db, userId) {
+  const kinds = {};
+  const recent = [];
+  const rows = db
+    .prepare("SELECT payload FROM sync_events WHERE user_id = ? AND type = 'answer' ORDER BY seq DESC")
+    .iterate(userId);
+  for (const row of rows) {
+    const { result, day } = JSON.parse(row.payload);
+    for (const m of answerMistakes(result)) {
+      kinds[m.kind] = (kinds[m.kind] || 0) + 1;
+      if (recent.length < RECENT_MISTAKES) recent.push({ day, game: result.gameId, word: result.word || "", given: m.given, kind: m.kind });
+    }
+  }
+  return { kinds, recent };
 }

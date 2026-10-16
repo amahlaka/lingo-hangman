@@ -4,6 +4,7 @@ import { GameScreen } from "../components/lingo";
 import { api, backendAvailable } from "../lib/backend";
 import { GAMES } from "../games/registry";
 import { GATES } from "./AdminReports";
+import { kindRows, mistakeLabel } from "./mistakeLabels";
 
 // /admin/stats: numbers over all learners (server/src/stats/aggregate.js),
 // never about one learner. English only, like the other admin pages.
@@ -61,6 +62,62 @@ function WordTable({ title, caption, rows }) {
               {rows.map((w) => (
                 <tr key={w.key}>
                   <td>{w.word}</td><td>{w.n}</td><td>{w.learners}</td><td>{pct(w.firstTry)}</td><td>{secs(w.ms)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
+  );
+}
+
+// How learners go wrong: kinds of mistake per game, and wrong answers that
+// several learners gave.
+function Mistakes({ mistakes, minLearners }) {
+  const games = mistakes?.games || [];
+  const common = mistakes?.common || [];
+  return (
+    <section className="lg-section">
+      <h2 className="lg-heading">How learners go wrong</h2>
+      {games.length === 0 ? (
+        <p className="lg-caption">No mistakes recorded yet.</p>
+      ) : (
+        <div className="st-scroll">
+          <table className="st-table">
+            <thead>
+              <tr><th>Game</th><th>Mistakes</th><th>Most common kinds</th></tr>
+            </thead>
+            <tbody>
+              {games.map((g) => (
+                <tr key={g.id}>
+                  <td>{gameName(g.id)}</td>
+                  <td>{g.total}</td>
+                  <td>{kindRows(g.kinds).slice(0, 3).map(([k, n]) => `${mistakeLabel(k)} ${pct(n / g.total)}`).join(" · ")}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      <h3 className="lg-heading">Common wrong answers</h3>
+      <p className="lg-caption">Given by at least {minLearners} different learners.</p>
+      {common.length === 0 ? (
+        <p className="lg-caption">None yet.</p>
+      ) : (
+        <div className="st-scroll">
+          <table className="st-table">
+            <thead>
+              <tr><th>Word</th><th>Answered</th><th>Kind</th><th>Times</th><th>Learners</th></tr>
+            </thead>
+            <tbody>
+              {common.map((c) => (
+                <tr key={`${c.key}|${c.given}`}>
+                  <td lang="en">{c.word}</td>
+                  <td lang="en">{c.given}</td>
+                  <td>{mistakeLabel(c.kind)}</td>
+                  <td>{c.n}</td>
+                  <td>{c.learners}</td>
                 </tr>
               ))}
             </tbody>
@@ -160,6 +217,7 @@ export default function AdminStats() {
 
             <WordTable title="Most often missed" caption="Lowest share right on the first try. Worth a look in the editor: a confusing question or a missing meaning?" rows={data.words.hardest} />
             <WordTable title="Slowest" caption="Longest median answer time." rows={data.words.slowest} />
+            <Mistakes mistakes={data.mistakes} minLearners={data.rules?.minLearners ?? 3} />
           </>
         )}
       </main>

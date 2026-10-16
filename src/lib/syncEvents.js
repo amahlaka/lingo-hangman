@@ -5,7 +5,9 @@
 // See docs/backend.md ("Progress sync").
 //
 // Event: { id, at (ISO time), type, payload }
-//   answer   { result, day }   a finished word, as recordWord takes it
+//   answer   { result, day }   a finished word, as recordWord takes it, plus
+//                              `wrong` (what was answered on wrong tries) and
+//                              `skipped`
 //   goal     { goal }          daily goal changed
 //   buy      { id }            shop item bought
 //   equip    { id }            owned item put in use
@@ -19,6 +21,7 @@ import { buyItem, equipItem } from "./cosmetics.js";
 export const EVENT_TYPES = ["answer", "goal", "buy", "equip", "baseline", "merge"];
 const DAY_RE = /^\d{4}-\d{2}-\d{2}$/;
 const ID_RE = /^[A-Za-z0-9_-]{8,64}$/;
+const MAX_WRONG = 8;
 
 const str = (v, max) => typeof v === "string" && v.length <= max;
 const optStr = (v, max) => v === undefined || v === null || str(v, max);
@@ -34,6 +37,12 @@ function cleanResult(r) {
   if (r.lang) out.lang = r.lang;
   if (r.lesson) out.lesson = r.lesson;
   if (Number.isFinite(r.ms) && r.ms > 0) out.ms = Math.round(r.ms);
+  // What the learner answered on wrong tries (src/lib/mistakes.js).
+  if (Array.isArray(r.wrong)) {
+    const wrong = r.wrong.filter((w) => typeof w === "string" && w.trim()).slice(0, MAX_WRONG).map((w) => w.trim().slice(0, 120));
+    if (wrong.length) out.wrong = wrong;
+  }
+  if (r.skipped === true) out.skipped = true;
   return out;
 }
 

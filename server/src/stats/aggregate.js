@@ -1,9 +1,11 @@
 // Statistics over everyone's answers (the "answer" events in sync_events):
 // daily counts for the admin Statistics page, and how hard each word is,
-// published at /api/difficulty for Quick play. Only numbers over several
-// learners leave this file; nothing here names or counts a single learner.
+// published at /api/difficulty for Quick play, and how learners go wrong.
+// Only numbers over several learners leave this file; nothing here names or
+// counts a single learner.
 
 import { wordKey } from "../../../src/lib/progress.js";
+import { answerMistakes } from "../../../src/lib/mistakes.js";
 
 // Days of answers the job looks at.
 export const STATS_DAYS = 90;
@@ -31,6 +33,8 @@ export function aggregate(db, now = Date.now()) {
   const days = new Map(); // day -> { learners:Set, answers:{game:n}, firstTry:{game:n} }
   const games = new Map(); // game -> { n, firstTry, ms[] }
   const words = new Map(); // key -> { word, n, firstTry, solved, learners:Set, ms[] }
+  const kinds = new Map(); // game -> { kind: n }
+  const wrongs = new Map(); // key -> given -> { n, kind, learners:Set }
   const rows = db
     .prepare("SELECT user_id, payload FROM sync_events WHERE type = 'answer' AND at >= ?")
     .iterate(since);
@@ -63,6 +67,21 @@ export function aggregate(db, now = Date.now()) {
       if (result.ms && result.ms < 60000) w.ms.push(result.ms);
       words.set(key, w);
     }
+
+    for (const m of answerMistakes(result)) {
+      const k = kinds.get(game) || {};
+      k[m.kind] = (k[m.kind] || 0) + 1;
+      kinds.set(game, k);
+      if (!result.word || !m.given) continue;
+      const key = wordKey(result.word, result.lang || "en");
+      const given = m.given.toLowerCase();
+      const byWord = wrongs.get(key) || new Map();
+      const e = byWord.get(given) || { n: 0, kind: m.kind, learners: new Set() };
+      e.n += 1;
+      e.learners.add(row.user_id);
+      byWord.set(given, e);
+      wrongs.set(key, byWord);
+    }
   }
 
   const daily = [];
@@ -87,8 +106,23 @@ export function aggregate(db, now = Date.now()) {
     listed.push({ key, word: w.word, learners: w.learners.size, solved: Math.round((w.solved / w.n) * 100) / 100, ...entry });
   }
 
+  // Wrong answers given by several learners, so none of them is one person's.
+  const common = [];
+  for (const [key, byWord] of wrongs) {
+    const word = words.get(key)?.word || key;
+    for (const [given, e] of byWord) {
+      if (e.learners.size < MIN_LEARNERS) continue;
+      common.push({ key, word, given, kind: e.kind, n: e.n, learners: e.learners.size });
+    }
+  }
+  const mistakes = {
+    games: [...kinds].map(([id, k]) => ({ id, kinds: k, total: Object.values(k).reduce((a, b) => a + b, 0) })).sort((a, b) => b.total - a.total),
+    common: common.sort((a, b) => b.learners - a.learners || b.n - a.n).slice(0, LIST_LENGTH),
+  };
+
   return {
     daily,
+    mistakes,
     difficulty: { generatedAt: new Date(now).toISOString(), days: STATS_DAYS, items },
     words: {
       hardest: [...listed].sort((a, b) => a.firstTry - b.firstTry || b.n - a.n).slice(0, LIST_LENGTH),
@@ -117,6 +151,7 @@ export function runStats(db, now = Date.now()) {
     put.run("difficulty", JSON.stringify(out.difficulty));
     put.run("words", JSON.stringify(out.words));
     put.run("games", JSON.stringify(out.games));
+    put.run("mistakes", JSON.stringify(out.mistakes));
     db.exec("COMMIT");
   } catch (err) {
     db.exec("ROLLBACK");

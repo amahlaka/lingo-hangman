@@ -4,6 +4,7 @@ import { GameScreen } from "../components/lingo";
 import { api, backendAvailable } from "../lib/backend";
 import { GAMES } from "../games/registry";
 import { GATES } from "./AdminReports";
+import { kindRows, mistakeLabel } from "./mistakeLabels";
 
 // /admin/users/:id: one learner's own progress and account details, from
 // their synced progress (server/src/routes/admin.js). Read only. English
@@ -127,6 +128,22 @@ export default function AdminLearner() {
                 </section>
               </>
             )}
+
+            <section className="lg-section">
+              <h2 className="lg-heading">How they go wrong</h2>
+              {!data.mistakes?.recent.length ? (
+                <p className="lg-caption">No mistakes recorded yet.</p>
+              ) : (
+                <>
+                  <Table head={["Kind", "Times"]} rows={kindRows(data.mistakes.kinds).map(([k, n]) => [mistakeLabel(k), n])} />
+                  <p className="lg-caption">Latest mistakes, newest first.</p>
+                  <Table
+                    head={["Day", "Game", "Word", "Answered", "Kind"]}
+                    rows={data.mistakes.recent.map((m) => [shortDay(m.day), gameName(m.game), m.word, m.given || "–", mistakeLabel(m.kind)])}
+                  />
+                </>
+              )}
+            </section>
 
             <section className="lg-section">
               <h2 className="lg-heading">Devices</h2>

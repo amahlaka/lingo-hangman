@@ -108,14 +108,51 @@ if (typeof window !== "undefined" && typeof document !== "undefined") {
   });
 }
 
+// Whether listening to our own track has worked on this visit. Some phones
+// hear nothing from it after the first time, so after one such failure the
+// browser opens its own microphone again.
+let trackWorks = true;
+// An attempt that ends with nothing heard this soon after it began didn't
+// really listen.
+const QUICK_FAIL_MS = 1500;
+
 // Listen for one utterance. Returns { done, stop, abort }: `done` resolves to
 // { alternatives: [text…], error } once the browser stops listening, where
 // error is the browser's code ("no-speech", "not-allowed", "audio-capture" …)
 // or null. `stop` ends listening early and keeps what was heard; `abort`
 // throws it away. Either way the microphone is let go.
-export function listenOnce({ lang = "en", onDevice = false, onSound } = {}) {
+export function listenOnce(options = {}) {
   const Ctor = recognitionCtor();
   if (!Ctor) return { done: Promise.resolve({ alternatives: [], error: "unsupported" }), stop() {}, abort() {} };
+  const useTrack = trackWorks && canListenToTrack(Ctor);
+  const first = listenWith(Ctor, options, useTrack);
+  if (!useTrack) return first;
+
+  let current = first;
+  let ended = false;
+  const startedAt = Date.now();
+  const done = first.done.then((heard) => {
+    if (ended || heard.alternatives.length || ["aborted", "not-allowed", "service-not-allowed"].includes(heard.error)) return heard;
+    if (heard.error === "no-speech" && Date.now() - startedAt > QUICK_FAIL_MS) return heard;
+    if (typeof console !== "undefined") console.warn(`Listening to Lingo's microphone track failed (${heard.error}); the browser opens its own from now on.`);
+    trackWorks = false;
+    current = listenWith(Ctor, options, false);
+    return current.done;
+  });
+  return {
+    done,
+    stop: () => {
+      ended = true;
+      current.stop();
+    },
+    abort: () => {
+      ended = true;
+      current.abort();
+    },
+  };
+}
+
+function listenWith(Ctor, { lang = "en", onDevice = false, onSound } = {}, useTrack = false) {
 
   const rec = new Ctor();
   rec.lang = recognitionLang(lang);
@@ -192,7 +229,7 @@ export function listenOnce({ lang = "en", onDevice = false, onSound } = {}) {
   listening += 1;
   active.add(abort);
   setAudioSession("play-and-record");
-  if (canListenToTrack(Ctor)) {
+  if (useTrack) {
     openMicrophone().then((s) => {
       if (released) {
         if (s) s.getTracks().forEach((t) => t.stop());

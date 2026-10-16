@@ -162,6 +162,38 @@ describe('Say it', () => {
     }
   });
 
+  it('lets the browser open its own microphone when listening to the track hears nothing', async () => {
+    const script = [{ error: 'audio-capture' }];
+    const made = fakeRecognition(script);
+    window.SpeechRecognition.available = async () => 'unavailable';
+    const track = { stop: jest.fn() };
+    const stream = { getAudioTracks: () => [track], getTracks: () => [track] };
+    const getUserMedia = jest.fn(async () => stream);
+    Object.defineProperty(navigator, 'mediaDevices', { configurable: true, value: { getUserMedia } });
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      renderApp(link);
+      await act(async () => {});
+      const said = prompt();
+      script.push({ said: [said] });
+      await tapMic();
+      await act(async () => {});
+      expect(made).toHaveLength(2);
+      expect(made[0].track).toBe(track);
+      expect(made[1].track).toBeUndefined();
+      expect(screen.getByText(`Nicely said: "${said}".`)).toBeInTheDocument();
+      // And from then on.
+      fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+      script.push({ said: [prompt()] });
+      await tapMic();
+      expect(made[2].track).toBeUndefined();
+      expect(getUserMedia).toHaveBeenCalledTimes(1);
+    } finally {
+      delete navigator.mediaDevices;
+      warn.mockRestore();
+    }
+  });
+
   it('lets go of the microphone when the learner leaves the page', async () => {
     const made = [];
     window.SpeechRecognition = function Fake() {

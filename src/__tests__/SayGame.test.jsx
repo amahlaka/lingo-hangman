@@ -194,6 +194,25 @@ describe('Say it', () => {
     }
   });
 
+  it('lets Safari pick the recording mode, then switches back to playback', async () => {
+    const script = [];
+    fakeRecognition(script);
+    const types = [];
+    const session = { set type(v) { types.push(v); }, get type() { return types[types.length - 1] || 'auto'; } };
+    Object.defineProperty(navigator, 'audioSession', { configurable: true, value: session });
+    try {
+      renderApp(link);
+      script.push({ said: [prompt()] });
+      await tapMic();
+      fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+      script.push({ said: [prompt()] });
+      await tapMic();
+      expect(types).toEqual(['auto', 'playback', 'auto', 'playback']);
+    } finally {
+      delete navigator.audioSession;
+    }
+  });
+
   it('lets go of the microphone when the learner leaves the page', async () => {
     const made = [];
     window.SpeechRecognition = function Fake() {

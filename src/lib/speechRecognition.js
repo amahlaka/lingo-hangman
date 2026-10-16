@@ -24,8 +24,11 @@ export function recognitionLang(code = "en") {
   return /^en(-|$)/i.test(code) ? "en-US" : speechLang(code);
 }
 
-// Safari's Audio Session API: "play-and-record" while listening, then back to
-// "playback" so speech and sounds use the loudspeaker again. Elsewhere a no-op.
+// Safari's Audio Session API. After listening, "playback" sends speech and
+// sounds to the loudspeaker again instead of the quiet earpiece. Before
+// listening it goes back to "auto": forcing "play-and-record" there left the
+// iPhone's recogniser hearing nothing from the second word on, so WebKit picks
+// the recording mode itself. Elsewhere a no-op.
 function setAudioSession(type) {
   try {
     const session = typeof navigator !== "undefined" ? navigator.audioSession : null;
@@ -109,8 +112,9 @@ if (typeof window !== "undefined" && typeof document !== "undefined") {
 }
 
 // Whether listening to our own track has worked on this visit. Some phones
-// hear nothing from it after the first time, so after one such failure the
-// browser opens its own microphone again.
+// hear nothing from it after the first time (the recogniser listens but never
+// reports any sound), so after one such failure the browser opens its own
+// microphone again.
 let trackWorks = true;
 // An attempt that ends with nothing heard this soon after it began didn't
 // really listen.
@@ -132,10 +136,14 @@ export function listenOnce(options = {}) {
   let ended = false;
   const startedAt = Date.now();
   const done = first.done.then((heard) => {
-    if (ended || heard.alternatives.length || ["aborted", "not-allowed", "service-not-allowed"].includes(heard.error)) return heard;
-    if (heard.error === "no-speech" && Date.now() - startedAt > QUICK_FAIL_MS) return heard;
-    if (typeof console !== "undefined") console.warn(`Listening to Lingo's microphone track failed (${heard.error}); the browser opens its own from now on.`);
+    if (heard.alternatives.length || ["aborted", "not-allowed", "service-not-allowed"].includes(heard.error)) return heard;
+    // The recogniser heard sound and simply caught no words: a real miss.
+    if (heard.sound && heard.error === "no-speech" && Date.now() - startedAt > QUICK_FAIL_MS) return heard;
+    if (typeof console !== "undefined") console.warn(`Listening to Lingo's microphone track heard nothing (${heard.error}); the browser opens its own from now on.`);
     trackWorks = false;
+    // Stopped by the learner: they see "didn't catch that" and the next tap
+    // uses the browser's microphone. Otherwise try again with it right away.
+    if (ended) return heard;
     current = listenWith(Ctor, options, false);
     return current.done;
   });
@@ -165,6 +173,7 @@ function listenWith(Ctor, { lang = "en", onDevice = false, onSound } = {}, useTr
   let error = null;
   let timer = null;
   let started = false;
+  let sound = false;
   let released = false;
   let stream = null;
   let settle = () => {};
@@ -180,6 +189,7 @@ function listenWith(Ctor, { lang = "en", onDevice = false, onSound } = {}, useTr
     rec.onresult = null;
     rec.onerror = null;
     rec.onsoundstart = null;
+    rec.onspeechstart = null;
     rec.onend = null;
     try {
       rec.abort();
@@ -204,9 +214,15 @@ function listenWith(Ctor, { lang = "en", onDevice = false, onSound } = {}, useTr
     rec.onerror = (event) => {
       error = event.error || "unknown";
     };
-    rec.onsoundstart = () => onSound && onSound();
+    rec.onsoundstart = () => {
+      sound = true;
+      if (onSound) onSound();
+    };
+    rec.onspeechstart = () => {
+      sound = true;
+    };
     rec.onend = () => {
-      const heard = { alternatives, error: alternatives.length ? null : error };
+      const heard = { alternatives, error: alternatives.length ? null : error, sound };
       release();
       resolve(heard);
     };
@@ -228,7 +244,7 @@ function listenWith(Ctor, { lang = "en", onDevice = false, onSound } = {}, useTr
 
   listening += 1;
   active.add(abort);
-  setAudioSession("play-and-record");
+  setAudioSession("auto");
   if (useTrack) {
     openMicrophone().then((s) => {
       if (released) {

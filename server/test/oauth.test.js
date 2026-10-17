@@ -44,6 +44,8 @@ async function approve(t, clientId, decision = "allow") {
   const pageRes = await t.app.inject({ method: "GET", url: authorizeUrl(clientId), headers: { cookie: `lingo_session=${t.cookie}` } });
   assert.equal(pageRes.statusCode, 200);
   assert.match(pageRes.headers["content-security-policy"], /form-action 'self' https:\/\/claude\.ai/);
+  // Browsers send "Origin: null" on a form POST from a no-referrer page.
+  assert.equal(pageRes.headers["referrer-policy"], "same-origin");
   const request = pageRes.body.match(/name="request" value="([^"]+)"/)[1];
   return form(t, "/api/oauth/authorize", { request, decision }, { cookie: t.cookie, headers: { origin: "https://lingo.example" } });
 }

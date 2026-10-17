@@ -577,6 +577,14 @@ a { color: var(--lake); }
 .pf-topic { display: grid; grid-template-columns: minmax(100px, 1fr) 2fr auto; align-items: center; gap: var(--space-3); }
 .pf-topic__track { height: 10px; border-radius: var(--radius-pill); background: var(--surface-sunken); overflow: hidden; }
 .pf-topic__fill { display: block; height: 100%; border-radius: var(--radius-pill); background: var(--pine); }
+.pf-learned { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.pf-learned__word { display: flex; align-items: center; gap: var(--space-2); min-height: 44px; padding: var(--space-2) var(--space-3); border: 2px solid var(--line); border-radius: var(--radius-md); background: var(--surface-raised); color: var(--ink); font: inherit; text-align: left; cursor: pointer; transition: border-color .15s, background-color .15s; }
+.pf-learned__word:hover:not(:disabled) { border-color: var(--pine); background: var(--pine-soft); }
+.pf-learned__word:disabled { cursor: default; }
+.pf-learned__word svg { flex: none; color: var(--pine); }
+.pf-learned__text { display: flex; flex-direction: column; min-width: 0; }
+.pf-learned__en { font-weight: 700; overflow-wrap: anywhere; }
+.pf-learned__fi { font-size: 13px; line-height: 18px; color: var(--ink-muted); }
 .pf-table-wrap { overflow-x: auto; }
 .pf-table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
 .pf-table th, .pf-table td { padding: var(--space-2) var(--space-3); text-align: right; border-bottom: 1px solid var(--line); }

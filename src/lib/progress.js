@@ -147,6 +147,18 @@ export function learnedWordCount(state) {
   return Object.values(state.words).filter((w) => w.days.length >= LEARNED_AFTER_DAYS).length;
 }
 
+// The learned words themselves, most recently practiced first:
+// { key, word, lang, solved, lost, last }.
+export function learnedWords(state) {
+  return Object.entries(state.words)
+    .filter(([, w]) => w.days.length >= LEARNED_AFTER_DAYS)
+    .map(([key, w]) => {
+      const at = key.indexOf(":");
+      return { key, word: key.slice(at + 1), lang: key.slice(0, at), solved: w.solved, lost: w.lost, last: w.last || w.days[w.days.length - 1] };
+    })
+    .sort((a, b) => b.last.localeCompare(a.last) || a.word.localeCompare(b.word));
+}
+
 export function dayStats(state, day = dayKey()) {
   return state.days[day] || { words: 0, solved: 0, xp: 0, goalMet: false };
 }

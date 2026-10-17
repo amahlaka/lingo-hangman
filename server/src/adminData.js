@@ -8,7 +8,7 @@ import { DAILY_DAYS, MIN_ANSWERS, MIN_LEARNERS, cached } from "./stats/aggregate
 import { accountProgress } from "./routes/sync.js";
 import { playStats } from "./stats/play.js";
 import { gemBalance } from "../../src/lib/cosmetics.js";
-import { answerSummary, levelInfo, progressSummary } from "../../src/lib/progress.js";
+import { answerSummary, learnedWords, levelInfo, progressSummary } from "../../src/lib/progress.js";
 import { answerMistakes } from "../../src/lib/mistakes.js";
 
 export const REPORT_STATUSES = ["open", "fixed", "dismissed"];
@@ -134,6 +134,8 @@ export function learnerView(db, id) {
           games: answerSummary(state).games,
           missed: words.filter((w) => w.lost > 0).sort((a, b) => b.lost - a.lost || b.lost / (b.solved + b.lost) - a.lost / (a.solved + a.lost)).slice(0, 20),
           wordCount: words.length,
+          // Every word solved on 3 different days, most recently practiced first.
+          learnedWords: learnedWords(state).map((w) => ({ word: w.word, solved: w.solved, lost: w.lost, last: w.last })),
         }
       : null,
   };

@@ -44,7 +44,8 @@ const SYNC_DELAY_MS = 3000;
 export function ProgressProvider({ children, storage, gameIds = [] }) {
   const store = storage === undefined ? globalThis.localStorage : storage;
   const [state, setState] = useState(() => loadProgress(store));
-  // Answers right on the first try in a row during this visit; not saved.
+  // Answers right on the first try in a row during this round of a game;
+  // each game starts it again (resetWordStreak). Not saved.
   const [wordStreak, setWordStreak] = useState(0);
   const wordStreakRef = useRef(0);
   const gameIdsRef = useRef(gameIds);
@@ -227,6 +228,13 @@ export function ProgressProvider({ children, storage, gameIds = [] }) {
     };
   }, [queueEvent]);
 
+  // A new round starts the "right in a row" count again, so a round never
+  // opens with a streak left over from the last one.
+  const resetWordStreak = useCallback(() => {
+    wordStreakRef.current = 0;
+    setWordStreak(0);
+  }, []);
+
   const setDailyGoal = useCallback((goal) => {
     const next = setDailyGoalPure(stateRef.current, goal);
     stateRef.current = next;
@@ -295,6 +303,7 @@ export function ProgressProvider({ children, storage, gameIds = [] }) {
       learnedWords: learnedWordCount(state),
       wordStreak,
       recordWord,
+      resetWordStreak,
       setDailyGoal,
       gems: gemBalance(state),
       cosmetics,
@@ -304,7 +313,7 @@ export function ProgressProvider({ children, storage, gameIds = [] }) {
       spendExtraTry,
       sync: { user: syncUser, connect: connectSync, disconnect: disconnectSync, flush: flushSync },
     };
-  }, [state, wordStreak, recordWord, setDailyGoal, cosmetics, buyItem, equipItem, spendExtraTry, syncUser, connectSync, disconnectSync, flushSync]);
+  }, [state, wordStreak, recordWord, resetWordStreak, setDailyGoal, cosmetics, buyItem, equipItem, spendExtraTry, syncUser, connectSync, disconnectSync, flushSync]);
 
   return (
     <ProgressContext.Provider value={value}>

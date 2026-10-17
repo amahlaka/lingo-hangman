@@ -21,7 +21,7 @@ export default function RushGame() {
   const [params] = useSearchParams();
   const { t } = useSettings();
   const k = t.rush;
-  const { recordWord } = useProgress();
+  const { recordWord, resetWordStreak } = useProgress();
   const { celebrate, confetti } = useConfetti();
   const search = params.toString();
   const { pairs, learningLang, nativeLang } = useMemo(() => {
@@ -74,6 +74,7 @@ export default function RushGame() {
 
   const start = () => {
     const at = Date.now();
+    resetWordStreak();
     setQuestions(buildRushQuestions(pairs));
     setIndex(0);
     setScore(0);

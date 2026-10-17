@@ -1,6 +1,7 @@
 // /api/mcp: the Model Context Protocol endpoint for AI tools (docs/backend.md,
 // "AI tools (MCP)"). Not used by the app. A token made at /admin/ai is sent as
-// "Authorization: Bearer <token>"; its scope picks the tools. Only "admin"
+// "Authorization: Bearer <token>", or a connector gets one through OAuth
+// (routes/oauth.js); its scope picks the tools. Only "admin"
 // exists now; a learner scope for personalised content can be added to
 // SCOPES later with its own tools.
 
@@ -38,7 +39,11 @@ export default async function mcpRoutes(app, { db, config }) {
 
     const token = findToken(db, bearer(req.headers.authorization));
     if (!token) {
-      return reply.code(401).header("WWW-Authenticate", 'Bearer realm="lingo"').send(failure(null, -32001, "A valid token is needed: make one at /admin/ai"));
+      // Connectors that speak OAuth find the way to sign in from here.
+      return reply
+        .code(401)
+        .header("WWW-Authenticate", `Bearer realm="lingo", resource_metadata="${config.publicUrl}/api/oauth/protected-resource", scope="admin"`)
+        .send(failure(null, -32001, "Sign in through OAuth, or make a token at /admin/ai"));
     }
     const scope = SCOPES[token.scope];
     if (!scope || !scope.allowed(db, config, token)) return reply.code(403).send(failure(null, -32001, "This token's account can't use these tools"));

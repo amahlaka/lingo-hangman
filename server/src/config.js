@@ -31,6 +31,11 @@ export function loadConfig(env = process.env) {
     rpId: env.RP_ID || new URL(origins[0]).hostname,
     rpName: env.RP_NAME || "Lingo",
     origins,
+    // The app's own address, for links the API hands out (OAuth metadata).
+    publicUrl: (env.PUBLIC_URL || origins[0]).replace(/\/$/, ""),
+    // Where OAuth clients (AI connectors) may send the approval back, besides
+    // claude.ai's own and loopback addresses for local tools (comma separated).
+    oauthRedirectUris: list(env.OAUTH_REDIRECT_URIS),
     // Cookies are Secure unless the app runs on plain http (local development).
     cookieSecure: env.COOKIE_SECURE ? env.COOKIE_SECURE === "true" : origins.every((o) => o.startsWith("https:")),
     // Accounts with these emails are admins.

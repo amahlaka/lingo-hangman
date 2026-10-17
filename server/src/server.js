@@ -13,6 +13,7 @@ import { startReminders } from "./push/reminders.js";
 import { startStats } from "./stats/aggregate.js";
 import { prunePlay } from "./stats/play.js";
 import { deleteExpiredTokens } from "./mcp/tokens.js";
+import { deleteExpiredOauth } from "./mcp/oauth.js";
 
 const config = loadConfig();
 const db = openDatabase(config.dbPath);
@@ -28,6 +29,7 @@ const housekeeping = setInterval(() => {
   deleteExpired(db);
   prunePlay(db);
   deleteExpiredTokens(db);
+  deleteExpiredOauth(db);
   limiter.sweep(86400_000);
 }, 10 * 60_000);
 housekeeping.unref();

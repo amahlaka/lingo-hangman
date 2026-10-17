@@ -52,3 +52,11 @@ test("the AI tools page asks a non-admin to sign in", async () => {
   renderApp("/admin/ai");
   expect(await screen.findByText(/isn't an admin/)).toBeInTheDocument();
 });
+
+test("after signing in, Account goes back only to the OAuth approval page", () => {
+  const { oauthReturn } = require("../app/Account");
+  expect(oauthReturn("?next=%2Fapi%2Foauth%2Fauthorize%3Fclient_id%3Dx")).toBe("/api/oauth/authorize?client_id=x");
+  expect(oauthReturn("?next=https%3A%2F%2Fevil.example%2Fapi%2Foauth%2Fauthorize%3Fx")).toBeNull();
+  expect(oauthReturn("?next=%2F%2Fevil.example%2Fapi%2Foauth%2Fauthorize%3F")).toBeNull();
+  expect(oauthReturn("")).toBeNull();
+});

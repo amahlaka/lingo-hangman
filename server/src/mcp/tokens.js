@@ -17,11 +17,22 @@ export function createToken(db, { userId, name, scope, days }, now = Date.now())
   return { id: Number(lastInsertRowid), name, scope, expiresAt, token: secret };
 }
 
+// A connector's token (OAuth) works as long as its refresh token does.
 export function listTokens(db, userId) {
   return db
-    .prepare("SELECT id, name, scope, created_at, expires_at, last_used_at FROM api_tokens WHERE user_id = ? ORDER BY id DESC")
+    .prepare(
+      "SELECT id, name, scope, created_at, expires_at, refresh_expires_at, last_used_at, client_id FROM api_tokens WHERE user_id = ? ORDER BY id DESC"
+    )
     .all(userId)
-    .map((t) => ({ id: t.id, name: t.name, scope: t.scope, createdAt: t.created_at, expiresAt: t.expires_at, lastUsedAt: t.last_used_at }));
+    .map((t) => ({
+      id: t.id,
+      name: t.name,
+      scope: t.scope,
+      connector: Boolean(t.client_id),
+      createdAt: t.created_at,
+      expiresAt: t.refresh_expires_at || t.expires_at,
+      lastUsedAt: t.last_used_at,
+    }));
 }
 
 export function revokeToken(db, userId, id) {
@@ -46,5 +57,6 @@ export function findToken(db, secret, now = Date.now()) {
 }
 
 export function deleteExpiredTokens(db, now = Date.now()) {
-  db.prepare("DELETE FROM api_tokens WHERE expires_at <= ?").run(new Date(now).toISOString());
+  const iso = new Date(now).toISOString();
+  db.prepare("DELETE FROM api_tokens WHERE expires_at <= ? AND (refresh_expires_at IS NULL OR refresh_expires_at <= ?)").run(iso, iso);
 }

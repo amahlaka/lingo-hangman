@@ -598,6 +598,7 @@ const i18n = {
       adminUsers: "Users and speech limits",
       adminStats: "Statistics",
       adminAi: "AI tools",
+      oauthContinue: "Continue connecting the AI tool",
       privacy: "Privacy",
       unavailable: "Accounts can't be reached right now. Your progress is still saved on this device.",
       errors: {
@@ -1417,6 +1418,7 @@ const i18n = {
       adminUsers: "Käyttäjät ja puheen määrät",
       adminStats: "Tilastot",
       adminAi: "Tekoälytyökalut",
+      oauthContinue: "Jatka tekoälytyökalun yhdistämistä",
       privacy: "Tietosuoja",
       unavailable: "Tileihin ei juuri nyt saada yhteyttä. Edistymisesi on yhä tallessa tällä laitteella.",
       errors: {

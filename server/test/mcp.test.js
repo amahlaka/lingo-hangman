@@ -4,8 +4,9 @@ import { setup } from "./helpers.js";
 import { makeEvent } from "../../src/lib/syncEvents.js";
 import { runStats } from "../src/stats/aggregate.js";
 
-const answer = (word, solved, wrong = []) =>
-  makeEvent("answer", { result: { gameId: "type-it", word, lang: "en", solved, triesLeft: 0, perfect: solved, wrong }, day: new Date().toISOString().slice(0, 10) });
+const daysAgo = (n) => new Date(Date.now() - n * 86400_000).toISOString().slice(0, 10);
+const answer = (word, solved, wrong = [], day = daysAgo(0)) =>
+  makeEvent("answer", { result: { gameId: "type-it", word, lang: "en", solved, triesLeft: 0, perfect: solved, wrong }, day });
 
 // Signs in as the admin and makes a token at /admin/ai.
 async function adminToken(t, body = { name: "Claude Code" }) {
@@ -178,8 +179,23 @@ test("statistics and learners, with learners named by id only", async () => {
   assert.equal(one.user.email, undefined);
   assert.equal(one.devices, undefined);
   assert.equal(one.progress.wordCount, 2);
+  assert.deepEqual(one.progress.learnedWords, []);
   assert.deepEqual(one.mistakes.kinds, { spelling: 1 });
   assert.ok(!JSON.stringify(one).includes("@example.com"));
   assert.match((await call(t, token, "get_learner", { id: 9999 })).error, /No learner/);
+  await t.close();
+});
+
+test("get_learner lists the words a learner has learned", async () => {
+  const t = setup();
+  await t.signIn("learner@example.com");
+  await t.call("POST", "/api/sync", {
+    events: [answer("cat", true, [], daysAgo(4)), answer("cat", true, [], daysAgo(2)), answer("dog", true, [], daysAgo(2)), answer("cat", true, [], daysAgo(1))],
+  });
+  const { token } = await adminToken(t);
+  const { learners } = await call(t, token, "list_learners", { limit: 10 });
+  const one = await call(t, token, "get_learner", { id: learners.find((l) => l.answers30d === 4).id });
+  assert.equal(one.progress.learned, 1);
+  assert.deepEqual(one.progress.learnedWords, [{ word: "cat", solved: 3, lost: 0, last: daysAgo(1) }]);
   await t.close();
 });

@@ -126,6 +126,15 @@ export default function AdminLearner() {
                     <Table head={["Word", "Missed", "Right", "Recent", "Average time", "Last"]} rows={p.missed.map((w) => [w.word, w.lost, w.solved, w.recent || "–", secs(w.ms), w.last ? shortDay(w.last) : "–"])} />
                   )}
                 </section>
+                <section className="lg-section">
+                  <h2 className="lg-heading">Learned words</h2>
+                  <p className="lg-caption">Solved on 3 different days, most recently practiced first.</p>
+                  {!p.learnedWords?.length ? (
+                    <p className="lg-caption">No learned words yet.</p>
+                  ) : (
+                    <Table head={["Word", "Right", "Missed", "Last"]} rows={p.learnedWords.map((w) => [w.word, w.solved, w.lost, w.last ? shortDay(w.last) : "–"])} />
+                  )}
+                </section>
               </>
             )}
 

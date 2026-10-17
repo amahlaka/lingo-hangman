@@ -3,6 +3,7 @@ import {
   achievementList,
   emptyProgress,
   learnedWordCount,
+  learnedWords,
   levelInfo,
   loadProgress,
   recordWord,
@@ -80,6 +81,8 @@ describe("progress rules", () => {
     ({ state: s, events } = recordWord(s, solved("Dog "), { day: "2026-10-20" }));
     expect(events.wordLearned).toBe(true);
     expect(learnedWordCount(s)).toBe(1);
+    ({ state: s } = recordWord(s, solved("cat"), { day: "2026-10-21" }));
+    expect(learnedWords(s)).toEqual([{ key: "en:dog", word: "dog", lang: "en", solved: 4, lost: 0, last: "2026-10-20" }]);
   });
 
   it("lists locked achievements with progress", () => {

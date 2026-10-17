@@ -1,11 +1,13 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { Volume2 } from "lucide-react";
 import { useSettings } from "./SettingsContext";
 import { useProgress } from "./ProgressContext";
 import { fill } from "../i18n";
 import { GameScreen } from "../components/lingo";
 import { GAMES } from "../games/registry";
-import { wordKey } from "../lib/progress";
+import { learnedWords, wordKey } from "../lib/progress";
+import { canSpeak, speak } from "../lib/speech";
 import { LEVELS, MIN_ANSWERS, buildInsights } from "../lib/insights";
 import { getPreferences, onPreferencesChange, setPreferences } from "../lib/preferences";
 import {
@@ -36,6 +38,70 @@ function categoryMap() {
     add(filled.charAt(0).toUpperCase() + filled.slice(1), g.categories);
   });
   return map;
+}
+
+// Word key -> { text, fi } from the word bank, to show learned words with
+// their usual spelling and Finnish meaning.
+function meaningMap() {
+  const map = new Map();
+  const add = (learning, native) => {
+    const key = wordKey(learning, DEFAULT_LEARNING_LANG);
+    if (!map.has(key)) map.set(key, { text: learning, fi: native });
+  };
+  filterCommonWords({ learningLang: DEFAULT_LEARNING_LANG, nativeLang: DEFAULT_NATIVE_LANG }).forEach((w) => add(w.learning, w.native));
+  getSentences().forEach((s) => add(s.learning, s.native));
+  return map;
+}
+
+// Learned words show this many at first, then all on request.
+const LEARNED_SHOWN = 24;
+
+function LearnedWords({ state, p }) {
+  const meanings = useMemo(meaningMap, []);
+  const [all, setAll] = useState(false);
+  const learned = useMemo(() => learnedWords(state), [state]);
+  const speech = canSpeak();
+  const shown = all ? learned : learned.slice(0, LEARNED_SHOWN);
+  return (
+    <section className="lg-section">
+      <h2 className="lg-heading">{fill(p.learnedTitle, { n: learned.length })}</h2>
+      <p className="lg-caption">{p.learnedHint}</p>
+      {learned.length === 0 ? (
+        <p className="lg-caption">{p.learnedEmpty}</p>
+      ) : (
+        <>
+          <ul className="pf-learned">
+            {shown.map((w) => {
+              const known = meanings.get(w.key);
+              const text = known?.text || w.word;
+              return (
+                <li key={w.key}>
+                  <button
+                    type="button"
+                    className="pf-learned__word"
+                    onClick={() => speak(text, { lang: w.lang })}
+                    disabled={!speech}
+                    aria-label={speech ? fill(p.learnedListen, { word: text }) : text}
+                  >
+                    {speech && <Volume2 size={18} strokeWidth={2} aria-hidden="true" />}
+                    <span className="pf-learned__text">
+                      <span className="pf-learned__en">{text}</span>
+                      {known?.fi && <span className="pf-learned__fi" lang="fi">{known.fi}</span>}
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+          {learned.length > LEARNED_SHOWN && (
+            <button type="button" className="lg-btn lg-btn--quiet" onClick={() => setAll(!all)} aria-expanded={all}>
+              {all ? p.learnedFewer : fill(p.learnedAll, { n: learned.length })}
+            </button>
+          )}
+        </>
+      )}
+    </section>
+  );
 }
 
 function useNames(t, lang) {
@@ -241,6 +307,8 @@ export default function Profile() {
             <div><dt>{p.wordsTricky}</dt><dd>{words.tricky}</dd></div>
           </dl>
         </section>
+
+        <LearnedWords state={state} p={p} />
 
         {topics.length > 0 && (
           <section className="lg-section">

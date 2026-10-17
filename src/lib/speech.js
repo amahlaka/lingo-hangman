@@ -34,6 +34,9 @@ let player = null;
 let turn = 0; // bumps on every speak/stop, so a clip that was stopped never falls back
 // (text, voiceId) => Promise<{ blob, left, error }>, while on-demand speech is on.
 let onDemand = null;
+// (text, voiceId) => Promise<{ folder, key } | null>: has the backend make a
+// word-base text's missing recorded clip (src/lib/tts.js, makeWordClip).
+let clipMaker = null;
 // Clips made on demand this visit: "voice|text" -> Promise<{ url, left, error }>.
 const made = new Map();
 const MAX_MADE = 60;
@@ -176,6 +179,31 @@ function onDemandClip(text) {
   return job;
 }
 
+export function setClipMaker(fn) {
+  clipMaker = typeof fn === "function" ? fn : null;
+}
+
+// Says a word-base text with its recorded clip. Without one yet (new content
+// the publish workflow hasn't voiced), the backend makes and saves it as a
+// recorded clip first (Hangman's Listen hint); if it can't, as speak().
+export async function speakSaved(text, { lang = "en", rate = RATE_NORMAL } = {}) {
+  if (!text) return false;
+  const key = clipKey(text, lang);
+  if (!clips || !clipMaker || !CLIP_LANGS.includes(lang) || !canPlayClips() || clipKeys()?.has(key)) {
+    return speak(text, { lang, rate });
+  }
+  stopSpeaking();
+  const mine = turn;
+  const folder = voiceById(voiceId).folder;
+  const made = await clipMaker(normalizeSpeech(text), voiceId).catch(() => null);
+  if (mine !== turn) return true;
+  if (made?.folder === folder && made.key === key) {
+    if (!clips.folders.has(folder)) clips.folders.set(folder, new Set());
+    clips.folders.get(folder).add(key);
+  }
+  return speak(text, { lang, rate });
+}
+
 // Says `text` with a clip made on demand, for the "Hear any sentence" page.
 // Resolves to { played, left, error }; without a clip it uses the browser.
 export async function speakOnDemand(text, { lang = "en", rate = RATE_NORMAL } = {}) {
@@ -274,5 +302,6 @@ export function resetSpeechClips() {
   player = null;
   voiceId = DEFAULT_VOICE;
   onDemand = null;
+  clipMaker = null;
   made.clear();
 }

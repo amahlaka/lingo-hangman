@@ -1,22 +1,40 @@
 import React from "react";
-import { Dices, Eraser, Gift, Lock, Wand2 } from "lucide-react";
+import { Dices, Gift, Lock, Volume2, Wand2 } from "lucide-react";
 import { fill } from "../../i18n";
 
-export const HINT_COSTS = { fifty: 5, remove: 8, clear: 25 };
+export const HINT_COSTS = { fifty: 5, listen: 8, clear: 25 };
 
 // Hints for this game: the first few are free (`free` left), then they are
 // bought with this session's points. Each is an icon with its cost (a gift
 // while free, a lock when out of reach) over a short line saying what it
-// does, with the full description as its accessible name.
-export default function HintButtons({ points, free = 0, available, onHint, t }) {
+// does, with the full description as its accessible name. Listen is bought
+// once per word (`heard`); hearing the word again is free.
+export default function HintButtons({ points, free = 0, available, heard = false, onHint, t }) {
   const hints = [
     { id: "fifty", Icon: Dices, name: t.hintFifty, short: t.hintFiftyShort, desc: t.hintFiftyDesc },
-    { id: "remove", Icon: Eraser, name: t.hintRemove, short: t.hintRemoveShort, desc: t.hintRemoveDesc },
+    { id: "listen", Icon: Volume2, name: t.hintListen, short: t.hintListenShort, desc: t.hintListenDesc },
     { id: "clear", Icon: Wand2, name: t.hintClear, short: t.hintClearShort, desc: t.hintClearDesc },
   ];
   return (
     <div className="hm-hints" role="group" aria-label={t.hints}>
       {hints.map(({ id, Icon, name, short, desc }) => {
+        if (id === "listen" && heard) {
+          return (
+            <button
+              key={id}
+              type="button"
+              className="lg-btn lg-btn--secondary hm-hint"
+              disabled={!available[id]}
+              onClick={() => onHint(id)}
+              aria-label={`${name}. ${t.hintListenAgain} (${t.hintFree})`}
+            >
+              <span className="hm-hint__top" aria-hidden="true">
+                <Icon size={18} strokeWidth={2} />
+              </span>
+              <span className="hm-hint__what" aria-hidden="true">{t.hintListenAgain}</span>
+            </button>
+          );
+        }
         const cost = HINT_COSTS[id];
         const affordable = free > 0 || points >= cost;
         const enabled = available[id] && affordable;

@@ -182,6 +182,28 @@ app asks `POST /api/tts { text, voice }` for an MP3 in the same voice.
   account (`lingo.sync.v1` has a user), and after signing in; it asks
   `GET /api/tts/status`. Signed out, or with `TTS_URL` unset, nothing changes.
 
+### Saved word-base clips
+
+Hangman's *Listen* hint says the answer with its recorded clip. When a
+word-base text has no clip yet (new content the Content publish workflow
+hasn't voiced), the app asks `POST /api/tts/clip { text, voice }`, signed in or
+not, and the API makes it with the TTS service and saves it where the workflow
+puts clips: `CLIP_DIR/<voice folder>/<key>.mp3`, with the key added to
+`CLIP_DIR/index.json`. It answers `{ folder, key, made }` and the app plays
+`/content/audio/<folder>/<key>.mp3` like any recorded clip. The workflow never
+replaces an existing clip, so a saved one stays.
+
+- Only texts the published word base says (`spokenTexts()` over
+  `CONTENT_DIR`, reread when its `index.json` changes) can be made, so nobody
+  can fill the folder with text of their own. Anything else is a 404 and the
+  app falls back to on-demand speech or the browser voice.
+- 30 new clips an hour per address; saved ones are free. It shares the
+  service queue with on-demand speech.
+- Off unless `TTS_URL`, `CONTENT_DIR` and `CLIP_DIR` are all set. On the
+  server, bind-mount the live content folder read-only as `CONTENT_DIR` and its
+  `audio` folder writable as `CLIP_DIR` (a `docker-compose.override.yml`), with
+  the audio folder writable by the container's user (uid 1000).
+
 ## Reminders
 
 A signed-in learner can get one short reminder a day by web push, on days they

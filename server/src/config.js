@@ -65,6 +65,11 @@ export function loadConfig(env = process.env) {
     // Requests waiting for the service, which makes one clip at a time.
     ttsQueueMax: Number(env.TTS_QUEUE_MAX || 20),
     ttsTimeoutMs: Number(env.TTS_TIMEOUT_MS || 30000),
+    // The published word base (read only) and its recorded clips (written),
+    // so a word-base text without a clip can get one (routes/tts.js). Both
+    // unset: no clips are made.
+    contentDir: env.CONTENT_DIR || null,
+    clipDir: env.CLIP_DIR || null,
 
     // Reminders by web push. The VAPID key pair is made once on the server
     // (npx web-push generate-vapid-keys) and kept in its .env; without it

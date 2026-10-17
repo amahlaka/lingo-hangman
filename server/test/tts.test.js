@@ -140,3 +140,71 @@ test("the disk cache drops the least recently used clips when full", async () =>
   assert.ok(await cache.get("ccnew"));
   await fs.rm(dir, { recursive: true });
 });
+
+// A word base on disk with one word and one sentence, and an empty clip folder.
+async function wordBase() {
+  const fs = await import("node:fs/promises");
+  const os = await import("node:os");
+  const path = await import("node:path");
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), "lingo-clips-"));
+  const content = path.join(root, "content");
+  await fs.mkdir(path.join(content, "packs"), { recursive: true });
+  await fs.writeFile(path.join(content, "languages.json"), JSON.stringify([{ code: "en" }, { code: "fi" }]));
+  await fs.writeFile(path.join(content, "index.json"), JSON.stringify({ packs: ["basics"] }));
+  await fs.writeFile(
+    path.join(content, "packs", "basics.json"),
+    JSON.stringify({ id: "basics", items: [{ type: "word", text: { en: "kitchen", fi: "keittiö" }, examples: [{ en: "The kitchen is warm." }] }] })
+  );
+  const audio = path.join(content, "audio");
+  await fs.mkdir(audio);
+  await fs.writeFile(path.join(audio, "index.json"), JSON.stringify({ voices: { "kokoro-1.0-v4-af_nova": ["old"] } }));
+  return { fs, path, audio, env: { CONTENT_DIR: content, CLIP_DIR: audio }, done: () => fs.rm(root, { recursive: true, force: true }) };
+}
+
+test("a word-base text without a clip gets one saved like a recorded clip, for anyone", async () => {
+  const base = await wordBase();
+  const fake = fakeTts();
+  const t = setup({ ...TTS, ...base.env }, { tts: fake });
+  const { clipKey } = await import("../../src/lib/speechClips.js");
+  const key = clipKey("kitchen", "en");
+
+  const made = await t.call("POST", "/api/tts/clip", { text: " kitchen ", voice: "male" });
+  assert.equal(made.statusCode, 200);
+  assert.deepEqual(made.json(), { folder: "kokoro-1.0-v4-am_liam", key, made: true });
+  assert.deepEqual(fake.calls[0].body, { text: "kitchen", voice: "am_liam", speed: 0.8, format: "mp3" });
+  const file = base.path.join(base.audio, "kokoro-1.0-v4-am_liam", `${key}.mp3`);
+  assert.equal(await base.fs.readFile(file, "utf8"), "mp3:kitchen");
+  const index = JSON.parse(await base.fs.readFile(base.path.join(base.audio, "index.json"), "utf8"));
+  assert.deepEqual(index.voices, { "kokoro-1.0-v4-af_nova": ["old"], "kokoro-1.0-v4-am_liam": [key] });
+
+  // Asked again: already saved, nothing made.
+  const again = await t.call("POST", "/api/tts/clip", { text: "kitchen", voice: "male" });
+  assert.deepEqual(again.json(), { folder: "kokoro-1.0-v4-am_liam", key, made: false });
+  assert.equal(fake.calls.length, 1);
+
+  // Example sentences are word-base texts too; anything else is not.
+  assert.equal((await t.call("POST", "/api/tts/clip", { text: "The kitchen is warm." })).statusCode, 200);
+  const other = await t.call("POST", "/api/tts/clip", { text: "Something else entirely" });
+  assert.equal(other.statusCode, 404);
+  assert.equal(other.json().error, "not_word_base");
+  assert.equal(fake.calls.length, 2);
+  await t.close();
+  await base.done();
+});
+
+test("making word-base clips needs the service and the folders; a failed one leaves nothing behind", async () => {
+  const base = await wordBase();
+  const off = setup(base.env, { tts: fakeTts() });
+  assert.equal((await off.call("POST", "/api/tts/clip", { text: "kitchen" })).statusCode, 503);
+  await off.close();
+  const noDirs = setup(TTS, { tts: fakeTts() });
+  assert.equal((await noDirs.call("POST", "/api/tts/clip", { text: "kitchen" })).statusCode, 503);
+  await noDirs.close();
+
+  const failing = setup({ ...TTS, ...base.env }, { tts: fakeTts({ fail: true }) });
+  assert.equal((await failing.call("POST", "/api/tts/clip", { text: "kitchen" })).statusCode, 502);
+  const files = await base.fs.readdir(base.audio);
+  assert.deepEqual(files, ["index.json"]);
+  await failing.close();
+  await base.done();
+});

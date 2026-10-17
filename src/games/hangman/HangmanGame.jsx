@@ -6,6 +6,7 @@ import { useRoundFinished } from "../../app/PlayTracking";
 import { fill } from "../../i18n";
 import { ACHIEVEMENTS, badgeText } from "../../lib/progress";
 import { sounds } from "../../lib/sounds";
+import { canSpeak, speakSaved } from "../../lib/speech";
 import { getAlphabet, guessPromptText, loadWordSet, meaningLabel, shuffle, wordInfo } from "../../lib/words";
 import { DailyProgress, ExtraTryOffer, Feedback, GameScreen, ScorePill, TriesMeter, WordRecap, WordTiles, useConfetti, useExtraTry } from "../../components/lingo";
 import HangmanDrawing from "./HangmanDrawing";
@@ -51,6 +52,8 @@ export default function HangmanGame() {
   // The 50-50 pair: stays marked until each letter is guessed or the word ends.
   const [highlighted, setHighlighted] = useState([]);
   const [fiftyUsed, setFiftyUsed] = useState(false);
+  // Listen was bought for this word, so hearing it again is free.
+  const [heard, setHeard] = useState(false);
   const [newlyFound, setNewlyFound] = useState([]);
   // True when the learner skipped the word: it is shown and comes back later.
   const [gaveUp, setGaveUp] = useState(false);
@@ -71,6 +74,7 @@ export default function HangmanGame() {
     setRemoved([]);
     setHighlighted([]);
     setFiftyUsed(false);
+    setHeard(false);
     setFreeHints(FREE_HINTS);
     setGaveUp(false);
     setBonus(0);
@@ -199,6 +203,7 @@ export default function HangmanGame() {
     setRemoved([]);
     setHighlighted([]);
     setFiftyUsed(false);
+    setHeard(false);
     setNewlyFound([]);
     setGaveUp(false);
     setBonus(0);
@@ -226,6 +231,7 @@ export default function HangmanGame() {
     setRemoved([]);
     setHighlighted([]);
     setFiftyUsed(false);
+    setHeard(false);
     setFreeHints(FREE_HINTS);
     setNewlyFound([]);
     setGaveUp(false);
@@ -261,20 +267,28 @@ export default function HangmanGame() {
   const playing = !roundOver && !offer;
   const hintAvailable = {
     fifty: playing && !fiftyUsed && missingLetters.length > 0 && notInWordLeft.length > 0,
-    remove: playing && notInWordLeft.length > 0,
+    listen: playing && canSpeak(),
     clear: playing && notInWordLeft.length >= 2,
   };
   // The game's free hints go first, then hints cost this session's points.
   const handleHint = (id) => {
     if (!hintAvailable[id]) return;
+    const listen = () => speakSaved(answer, { lang: guessLang });
+    if (id === "listen" && heard) {
+      listen();
+      return;
+    }
     if (freeHints > 0) setFreeHints((n) => n - 1);
     else if (points >= HINT_COSTS[id]) setPoints((p) => p - HINT_COSTS[id]);
     else return;
     if (id === "fifty") {
       setHighlighted(shuffle([missingLetters[0], shuffle(notInWordLeft)[0]]));
       setFiftyUsed(true);
+    } else if (id === "listen") {
+      setHeard(true);
+      listen();
     } else {
-      const count = id === "remove" ? 1 : Math.min(notInWordLeft.length, 2 + Math.floor(Math.random() * 5));
+      const count = Math.min(notInWordLeft.length, 2 + Math.floor(Math.random() * 5));
       const gone = shuffle(notInWordLeft).slice(0, count);
       setRemoved((r) => [...r, ...gone]);
       setHighlighted((h) => h.filter((l) => !gone.includes(l)));
@@ -347,7 +361,7 @@ export default function HangmanGame() {
         <div className="hm-stage">
           {/* An extra try takes the last part of the figure away again. */}
           <HangmanDrawing misses={misses.length - bonus} label={`${t.hangmanDrawing}: ${misses.length - bonus} / ${MAX_MISSES}`} />
-          <HintButtons points={points} free={freeHints} available={hintAvailable} onHint={handleHint} t={t} />
+          <HintButtons points={points} free={freeHints} available={hintAvailable} heard={heard} onHint={handleHint} t={t} />
         </div>
         <TriesMeter
           left={triesLeft}

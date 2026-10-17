@@ -89,37 +89,43 @@ describe("HangmanGame", () => {
     expect(screen.getByText("Round 1 / 5")).toBeInTheDocument();
   });
 
-  it("buys a hint with points earned in the session", () => {
-    jest.useFakeTimers();
-    const two = encodeWords([
-      { learning: "cat", native: "kissa" },
-      { learning: "dog", native: "koira" },
-    ]);
-    renderApp(`/play?words=${two}`);
-    const first = screen.getByTestId("native-word").textContent.includes("kissa") ? "CAT" : "DOG";
-    first.split("").forEach((l) => fireEvent.click(key(l)));
-    fireEvent.click(screen.getByRole("button", { name: "Next word" }));
-    const remove = screen.getByRole("button", { name: /^Remove a letter/ });
-    expect(remove).toBeEnabled();
-    fireEvent.click(remove);
-    expect(screen.getAllByRole("button", { name: /, removed$/ })).toHaveLength(1);
-    act(() => jest.runOnlyPendingTimers());
-    jest.useRealTimers();
+  it("says the answer with Listen, and again for free on the same word", () => {
+    const spoken = [];
+    window.SpeechSynthesisUtterance = function (text) {
+      this.text = text;
+    };
+    window.speechSynthesis = { speak: (u) => spoken.push(u.text), cancel() {}, getVoices: () => [] };
+    try {
+      renderApp(CAT_LINK);
+      const listen = screen.getByRole("button", { name: /^Listen\./ });
+      expect(listen).toHaveAccessibleName("Listen. Hear the answer said aloud; hearing it again this round is free (free)");
+      fireEvent.click(listen);
+      expect(spoken).toEqual(["cat"]);
+      expect(screen.getByText("2 free")).toBeInTheDocument();
+      const again = screen.getByRole("button", { name: "Listen. Listen again (free)" });
+      fireEvent.click(again);
+      fireEvent.click(again);
+      expect(spoken).toEqual(["cat", "cat", "cat"]);
+      expect(screen.getByText("2 free")).toBeInTheDocument();
+    } finally {
+      delete window.speechSynthesis;
+      delete window.SpeechSynthesisUtterance;
+    }
   });
 
   it("starts with three free hints, then hints cost points", () => {
     renderApp(`/play?words=${encodeWords([{ learning: "kitchen", native: "keittiö" }])}`);
     const hint = (name) => screen.getByRole("button", { name: new RegExp(`^${name}\\.`) });
     expect(screen.getByText("3 free")).toBeInTheDocument();
-    expect(hint("Remove a letter")).toHaveAccessibleName("Remove a letter. Remove one letter that is not in the word (free)");
-    fireEvent.click(hint("Remove a letter"));
-    fireEvent.click(hint("Remove a letter"));
+    expect(hint("Clear letters")).toHaveAccessibleName("Clear letters. Remove 2 to 6 letters that are not in the word (free)");
+    fireEvent.click(hint("Clear letters"));
+    fireEvent.click(hint("50-50"));
     expect(screen.getByText("1 free")).toBeInTheDocument();
     fireEvent.click(hint("Clear letters"));
     expect(screen.queryByText(/free$/)).not.toBeInTheDocument();
     expect(screen.getByLabelText(/^Points 0$/)).toBeInTheDocument();
-    expect(hint("Remove a letter")).toHaveAccessibleName("Remove a letter. Remove one letter that is not in the word (8 points)");
-    expect(hint("Remove a letter")).toBeDisabled();
+    expect(hint("Clear letters")).toHaveAccessibleName("Clear letters. Remove 2 to 6 letters that are not in the word (25 points)");
+    expect(hint("Clear letters")).toBeDisabled();
   });
 
   it("keeps the 50-50 letters marked until the word is done and sells it once per word", () => {

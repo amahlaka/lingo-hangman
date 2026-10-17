@@ -6,9 +6,9 @@ import './styles/lingo.css'
 import './styles/app.css'
 import { registerSW } from 'virtual:pwa-register';
 import { loadPublishedContent } from './lib/content';
-import { loadSpeechClips } from './lib/speech';
+import { loadSpeechClips, setClipMaker } from './lib/speech';
 import { loadSync } from './lib/sync';
-import { refreshOnDemandSpeech } from './lib/tts';
+import { makeWordClip, refreshOnDemandSpeech } from './lib/tts';
 import { refreshReminders } from './lib/push';
 import { loadDifficulty } from './lib/difficulty';
 
@@ -26,6 +26,9 @@ registerSW();
 
 // Recorded voice clips; the browser's own voice is used until they load.
 loadSpeechClips();
+// A word-base text whose clip isn't made yet gets one from the backend when a
+// learner asks to hear it (Hangman's Listen hint); nothing is called before.
+setClipMaker(makeWordClip);
 // How hard words are for learners in general, for Quick play (none without
 // the backend).
 loadDifficulty();

@@ -2,7 +2,7 @@ import { getContent } from '../lib/content';
 import { getSentences, getSoundLessons, filterCommonWords, sentenceFor } from '../lib/words';
 import { lessonWords } from '../games/sounds/soundsLogic';
 import { clipKey, spokenTexts, wordByWordTexts, wordsKey } from '../lib/speechClips';
-import { RATE_SLOW, loadSpeechClips, resetSpeechClips, setOnDemandSpeech, setSpeechVoice, speak, speakOnDemand, speakWords, stopSpeaking } from '../lib/speech';
+import { RATE_SLOW, loadSpeechClips, resetSpeechClips, setClipMaker, setOnDemandSpeech, setSpeechVoice, speak, speakOnDemand, speakSaved, speakWords, stopSpeaking } from '../lib/speech';
 
 describe('spokenTexts', () => {
   const texts = new Set(spokenTexts(getContent().raw, 'en').values());
@@ -129,6 +129,34 @@ describe('speak', () => {
       finish({ blob: { text: 'late' }, left: 3 });
       await flush();
       expect(players[0].played).toEqual([`/content/audio/${NOVA}/${knife}.mp3`]);
+    });
+  });
+
+  describe('saved clips', () => {
+    it('has a missing word-base clip made, then plays it like a recorded one', async () => {
+      install();
+      await loadSpeechClips({ fetchImpl: fetchImpl([knife]) });
+      const fork = clipKey('fork', 'en');
+      const maker = jest.fn(async () => ({ folder: NOVA, key: fork }));
+      setClipMaker(maker);
+      await speakSaved('knife');
+      expect(maker).not.toHaveBeenCalled();
+      await speakSaved(' fork ');
+      await speakSaved('fork');
+      expect(maker.mock.calls).toEqual([['fork', 'female']]);
+      expect(players[0].played).toEqual([
+        `/content/audio/${NOVA}/${knife}.mp3`,
+        `/content/audio/${NOVA}/${fork}.mp3`,
+        `/content/audio/${NOVA}/${fork}.mp3`,
+      ]);
+    });
+
+    it('falls back to speak when no clip can be made', async () => {
+      install();
+      await loadSpeechClips({ fetchImpl: fetchImpl([]) });
+      setClipMaker(async () => null);
+      await speakSaved('spoon');
+      expect(spoken.map((u) => u.text)).toEqual(['spoon']);
     });
   });
 

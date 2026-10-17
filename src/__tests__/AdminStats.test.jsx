@@ -58,7 +58,8 @@ test("the Statistics page shows totals, days, games and hard words", async () =>
 });
 
 test("the Statistics page shows visits, popular games, sessions and give-ups", async () => {
-  const hour = (h) => `2026-10-17T${String(h).padStart(2, "0")}:00:00Z`;
+  // The 48 hours up to the end of 2026-10-17, each its own bar.
+  const hour = (i) => new Date(Date.UTC(2026, 9, 16) + i * 3_600_000).toISOString().replace(".000", "");
   mockApi({
     "/health": health,
     "/admin/stats": {
@@ -74,7 +75,7 @@ test("the Statistics page shows visits, popular games, sessions and give-ups", a
         play: {
           zone: "Europe/Helsinki",
           days: 30,
-          recentHours: Array.from({ length: 48 }, (_, i) => ({ hour: hour(i % 24), visits: i === 47 ? 9 : 1 })),
+          recentHours: Array.from({ length: 48 }, (_, i) => ({ hour: hour(i), visits: i === 47 ? 9 : 1 })),
           hourOfDay: Array(24).fill(2),
           daily: [{ day: "2026-10-17", visits: 56, gamesAnon: 14, gamesAccount: 6, sessions: 4, learners: 2, avgMs: 600_000 }],
           popular: [{ id: "hangman", anon: 10, account: 3, total: 13 }],

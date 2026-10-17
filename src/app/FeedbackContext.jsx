@@ -36,10 +36,12 @@ export function FeedbackProvider({ children }) {
   // Send anything left from an earlier visit, once the backend answers.
   useEffect(() => {
     let live = true;
+    // Only a reachable backend changes anything: `available` starts false,
+    // so an unreachable one needs no state update (and no re-render).
     backendAvailable().then((ok) => {
-      if (!live) return;
-      setAvailable(ok);
-      if (ok) flushFeedback();
+      if (!live || !ok) return;
+      setAvailable(true);
+      flushFeedback();
     });
     return () => {
       live = false;

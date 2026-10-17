@@ -2,6 +2,7 @@ import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "re
 import { Link } from "react-router-dom";
 import { useSettings } from "../../app/SettingsContext";
 import { useProgress } from "../../app/ProgressContext";
+import { useRoundFinished } from "../../app/PlayTracking";
 import i18n, { fill } from "../../i18n";
 import { ACHIEVEMENTS } from "../../lib/progress";
 import { DailyProgress, Feedback, GameScreen, ScorePill, WordRecap, useConfetti } from "../../components/lingo";
@@ -126,6 +127,7 @@ export default function PracticeSession({
   const skipping = useRef(false);
 
   const finished = questions.length > 0 && index >= questions.length;
+  useRoundFinished(finished);
 
   // What "Report a problem" is about: the question on screen and, once
   // answered, how it went.

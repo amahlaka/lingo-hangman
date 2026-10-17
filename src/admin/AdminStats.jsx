@@ -5,6 +5,7 @@ import { api, backendAvailable } from "../lib/backend";
 import { GAMES } from "../games/registry";
 import { GATES } from "./AdminReports";
 import { kindRows, mistakeLabel } from "./mistakeLabels";
+import AdminPlayStats from "./AdminPlayStats";
 
 // /admin/stats: numbers over all learners (server/src/stats/aggregate.js),
 // never about one learner. English only, like the other admin pages.
@@ -146,7 +147,7 @@ export default function AdminStats() {
     <GameScreen title="Statistics">
       <main className="lg-board lg-page">
         <p className="lg-body-lg">
-          How learners with an account are doing, all together. Words show only after {data?.rules.minAnswers ?? 5} answers from {data?.rules.minLearners ?? 3} different
+          How learners with an account are doing, all together, plus visits and games played by everyone. Words show only after {data?.rules.minAnswers ?? 5} answers from {data?.rules.minLearners ?? 3} different
           learners. See also <Link to="/admin/reports">reports</Link> and <Link to="/admin/users">users</Link>.
         </p>
         {gate ? (
@@ -169,6 +170,8 @@ export default function AdminStats() {
                 {data.updatedAt ? `Updated ${new Date(data.updatedAt).toLocaleString("en-GB")}; recounted every few hours.` : "Not counted yet; the first count runs shortly after the server starts."}
               </p>
             </section>
+
+            <AdminPlayStats play={data.play} />
 
             {days.length > 0 && (
               <section className="lg-section">

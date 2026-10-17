@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useSettings } from "../../app/SettingsContext";
 import { useProgress } from "../../app/ProgressContext";
+import { useRoundFinished } from "../../app/PlayTracking";
 import { fill } from "../../i18n";
 import { DailyProgress, Feedback, GameScreen, ScorePill, WordRecap, useConfetti } from "../../components/lingo";
 import { sounds } from "../../lib/sounds";
@@ -29,6 +30,7 @@ export default function RushGame() {
   }, [search]);
 
   const [phase, setPhase] = useState("ready"); // ready | playing | done
+  useRoundFinished(phase === "done");
   const [questions, setQuestions] = useState([]);
   const [index, setIndex] = useState(0);
   const [endsAt, setEndsAt] = useState(0);

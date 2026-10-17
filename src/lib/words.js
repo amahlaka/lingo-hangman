@@ -230,8 +230,9 @@ export const getTopic = getItem;
 
 // Pronunciation lessons ("sound" items), in word bank order: `{ id, kind,
 // title, explanation, words: [{ text, say, meaning, sound, note, speak }],
-// sounds, level }`. `kind` is "silent", "sound" or "letters"; in `text`,
-// square brackets mark the letters the lesson is about ("[k]nife").
+// sounds, spellings, level }`. `kind` is "silent", "sound", "spell", "pairs"
+// or "letters"; in `text`, square brackets mark the letters the lesson is
+// about ("[k]nife").
 export function getSoundLessons() {
   return getItems({ type: "sound" });
 }

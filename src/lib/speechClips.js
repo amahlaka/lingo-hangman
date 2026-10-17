@@ -89,7 +89,7 @@ export function spokenTexts({ languages = [], packs = [] }, lang = "en") {
         if (typeof item.sentence === "string" && item.answers?.length) add(item.sentence.replace("___", item.answers[0]));
       }
       if (item.type === "sound" && english) {
-        const marked = item.kind === "silent" || item.kind === "sound";
+        const marked = item.kind === "silent" || item.kind === "sound" || item.kind === "spell";
         for (const w of item.words || []) {
           const m = marked && typeof w.text === "string" ? MARKED.exec(w.text) : null;
           add(w.speak || (m ? m[1] + m[2] + m[3] : w.text));

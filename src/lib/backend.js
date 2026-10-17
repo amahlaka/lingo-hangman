@@ -31,7 +31,8 @@ export function resetBackendCache() {
 
 // Calls the API. Resolves to { ok, status, data }; status 0 means the API
 // could not be reached. Writes send the header the API requires of the app.
-export async function api(path, { method = "GET", body } = {}) {
+// keepalive lets a call made as the page closes still go out.
+export async function api(path, { method = "GET", body, keepalive = false } = {}) {
   const headers = { Accept: "application/json" };
   if (method !== "GET") headers["X-Lingo"] = "1";
   if (body !== undefined) headers["Content-Type"] = "application/json";
@@ -41,6 +42,7 @@ export async function api(path, { method = "GET", body } = {}) {
       headers,
       body: body === undefined ? undefined : JSON.stringify(body),
       credentials: "same-origin",
+      ...(keepalive ? { keepalive: true } : {}),
     });
     let data = null;
     try {

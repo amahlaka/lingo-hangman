@@ -435,6 +435,7 @@ a { color: var(--lake); }
 .snd-tile--shown { border-color: var(--cloudberry); background: var(--cloudberry-soft); }
 .snd-tile--silent { color: var(--ink-muted); text-decoration: line-through; text-decoration-thickness: 3px; }
 .snd-word-big .snd-mark { padding: 0; box-shadow: 0 0 0 3px var(--lake-soft); }
+.snd-gap { display: inline-block; min-width: 1.4em; margin: 0 2px; border-bottom: 3px solid var(--lake); color: var(--lake); text-align: center; }
 .snd-letter .pg-choice__text { font: 700 28px/32px var(--font-display); }
 .snd-after { display: flex; flex-direction: column; align-items: center; gap: var(--space-1); text-align: center; }
 .snd-say { margin: 0; font-size: 18px; line-height: 26px; }

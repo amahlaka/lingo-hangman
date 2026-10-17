@@ -1,4 +1,4 @@
-import { fireEvent, screen, within } from '@testing-library/react';
+import { act, fireEvent, screen, within } from '@testing-library/react';
 import { renderApp } from '../test-utils';
 import { encodeWords } from '../lib/words';
 import { resetPreferences, setPreferences } from '../lib/preferences';
@@ -144,7 +144,7 @@ describe('Build the phrase', () => {
       expect(within(bank()).getAllByRole('button')).toHaveLength(2);
     } finally {
       random.mockRestore();
-      resetPreferences();
+      act(() => resetPreferences());
     }
   });
 });

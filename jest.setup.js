@@ -15,3 +15,8 @@ if (typeof window !== 'undefined' && !window.matchMedia) {
     };
   };
 }
+
+// jsdom has window.scrollBy but only logs "Not implemented" (keepInView uses it)
+if (typeof window !== 'undefined') {
+  window.scrollBy = function scrollBy() {};
+}

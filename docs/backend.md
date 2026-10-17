@@ -383,24 +383,48 @@ reports and suggestions, mark reports fixed, and plan new content from them.
 The API serves a [Model Context Protocol](https://modelcontextprotocol.io)
 endpoint for that at `/api/mcp`; the app itself never calls it.
 
-- **Tokens:** `/admin/ai` (admin only, linked from Account) makes a token
+- **Tokens:** `/admin/ai` (admin only, linked from Account) explains how to
+  add the claude.ai connector and makes a token
   for 30, 90 or 365 days, shows it once with the Claude Code command, lists
   tokens with when they were last used, and revokes them. Only a hash is kept
   (`api_tokens`). The client sends `Authorization: Bearer <token>`. A token
   works only while its account is still an admin; expired tokens are deleted
   by housekeeping.
-- **Connecting:** Claude Code:
+- **claude.ai (OAuth):** Settings → Connectors → Add custom connector with
+  the URL `https://lingo.bololoo.com/api/mcp` and no advanced settings. Claude
+  finds the sign-in from the endpoint's 401 (`WWW-Authenticate`
+  `resource_metadata`), registers itself (`POST /api/oauth/register`, dynamic
+  client registration) and opens `/api/oauth/authorize`: a small page of the
+  API's own that asks a signed-in admin (sign-in from the last day) to Allow
+  or Deny. Signed out, it links to `/account?next=oauth`, which after
+  sign-in opens `/api/oauth/continue`: that returns to the page the server
+  remembered under a short-lived cookie (the app never handles its address). Then `POST /api/oauth/token` swaps the code (PKCE S256 required)
+  for an access token (1 hour) and a refresh token (90 days, replaced on each
+  use). An approval is one `api_tokens` row named after the client, shown on
+  `/admin/ai` as a connector; Disconnect ends both tokens. Redirects go only
+  to claude.ai's callback, loopback addresses (local tools), and any in
+  `OAUTH_REDIRECT_URIS`. Logic in `server/src/mcp/oauth.js`, routes and page
+  in `server/src/routes/oauth.js`.
+- **Discovery files:** clients read the authorization server's metadata from
+  the site root (`/.well-known/oauth-authorization-server`, also
+  `openid-configuration` and `oauth-protected-resource`), which the reverse
+  proxy sends to the static nginx, not the API. `deploy/preview/nginx.conf`
+  returns fixed copies of `/api/oauth/metadata` and
+  `/api/oauth/protected-resource` for lingo.bololoo.com; a server test fails
+  if they drift. `PUBLIC_URL` (default: the first of `ORIGINS`) is the
+  address the API puts in them.
+- **Tokens by hand:** Claude Code:
   `claude mcp add --transport http lingo-admin https://lingo.bololoo.com/api/mcp --header "Authorization: Bearer <token>"`.
   Clients that only run local servers (Claude Desktop's config file) can go
   through `mcp-remote`:
   `{"command": "npx", "args": ["mcp-remote", "https://lingo.bololoo.com/api/mcp", "--header", "Authorization:${LINGO_TOKEN}"], "env": {"LINGO_TOKEN": "Bearer <token>"}}`.
-  Never commit a token: the repositories are public. claude.ai's own
-  connectors need OAuth, which this endpoint doesn't offer yet.
+  Never commit a token: the repositories are public.
 - **Protocol:** Streamable HTTP without sessions or an event stream: each
   POST is one JSON-RPC message answered with JSON (`server/src/mcp/protocol.js`),
   versions 2025-03-26 to 2025-11-25. GET answers 405. Browsers' requests
-  must come from an origin in `ORIGINS`; it is exempt from the app's
-  `X-Lingo` header check because it uses a token, not the cookie.
+  must come from an origin in `ORIGINS`. It and `/api/oauth/` are exempt
+  from the app's `X-Lingo` header check: they use tokens or plain forms, and
+  the approval form checks its Origin and request id itself.
 - **Admin tools** (`server/src/mcp/adminTools.js`): `get_overview`,
   `get_statistics` (days, games, words, mistakes or play), `list_reports`,
   `set_report_status`, `list_suggestions`, `set_suggestion_status`,

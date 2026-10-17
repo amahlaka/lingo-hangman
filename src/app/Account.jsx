@@ -352,6 +352,13 @@ function SignedIn({ t, lang, me, reload, onSignedOut }) {
   );
 }
 
+// After signing in for an AI connector's approval page (/api/oauth/authorize,
+// server/src/routes/oauth.js), go back there. The server remembers which page;
+// the link only says "oauth", so it can't send anyone elsewhere.
+export function oauthReturn(search) {
+  return new URLSearchParams(search).get("next") === "oauth" ? "/api/oauth/continue" : null;
+}
+
 export default function Account() {
   const { t, lang } = useSettings();
   const { sync } = useProgress();
@@ -384,7 +391,10 @@ export default function Account() {
     await load();
     sync.connect();
     refreshOnDemandSpeech();
+    const back = oauthReturn(window.location.search);
+    if (back) window.location.assign(back);
   };
+  const back = oauthReturn(typeof window === "undefined" ? "" : window.location.search);
   const signedOut = (message) => {
     // The progress stays on this device; it just isn't sent any more.
     sync.disconnect();
@@ -411,6 +421,9 @@ export default function Account() {
               load();
             }}
           />
+        )}
+        {view === "signedIn" && back && (
+          <p className="lg-row"><a className="lg-btn lg-btn--primary" href={back}>{a.oauthContinue}</a></p>
         )}
         {view === "signedIn" && me && <SignedIn t={t} lang={lang} me={me} reload={load} onSignedOut={signedOut} />}
         <p className="lg-caption"><Link to="/privacy">{a.privacy}</Link></p>

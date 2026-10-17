@@ -4,10 +4,11 @@ import { GameScreen } from "../components/lingo";
 import { api, backendAvailable } from "../lib/backend";
 import { GATES } from "./AdminReports";
 
-// /admin/ai: tokens for AI tools that use the API's MCP endpoint
-// (server/src/routes/mcp.js): read statistics, reports, suggestions and
-// learners' progress, and mark reports fixed. The token is shown once, when
-// it is made. English only, like the other admin pages.
+// /admin/ai: AI tools that use the API's MCP endpoint (server/src/routes/mcp.js)
+// to read statistics, reports, suggestions and learners' progress, and mark
+// reports fixed. claude.ai connects through OAuth (server/src/routes/oauth.js);
+// other tools use a token made here, shown once. Both are listed and can be
+// revoked. English only, like the other admin pages.
 
 const day = (iso) => new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
 
@@ -78,7 +79,14 @@ export default function AdminAi() {
         ) : (
           <>
             <section className="lg-section">
+              <h2 className="lg-heading">Connect claude.ai</h2>
+              <p>
+                In Claude, open Settings → Connectors → Add custom connector, give it a name (Lingo) and the URL {url}, and leave the advanced settings empty. Claude then sends you to Lingo to allow it, signed in as an admin. It shows up under your tokens below, where you can disconnect it.
+              </p>
+            </section>
+            <section className="lg-section">
               <h2 className="lg-heading">New token</h2>
+              <p className="lg-caption">For tools that take a token instead, such as Claude Code.</p>
               <form className="lg-row" onSubmit={create}>
                 <input className="lg-input" aria-label="Token name" placeholder="Name, like Claude Code on my laptop" maxLength={60} value={name} onChange={(e) => setName(e.target.value)} />
                 <select className="lg-input" aria-label="Valid for" value={days} onChange={(e) => setDays(Number(e.target.value))}>
@@ -110,13 +118,13 @@ export default function AdminAi() {
                   {tokens.map((tk) => (
                     <li key={tk.id} className="fb-group">
                       <div className="fb-group__head">
-                        <span className="fb-group__title">{tk.name}</span>
+                        <span className="fb-group__title">{tk.name}{tk.connector ? " (connector)" : ""}</span>
                         <span className="lg-caption">
                           made {day(tk.createdAt)} · works until {day(tk.expiresAt)} · {tk.lastUsedAt ? `last used ${day(tk.lastUsedAt)}` : "not used yet"}
                         </span>
                       </div>
                       <div className="lg-row">
-                        <button type="button" className="lg-btn lg-btn--quiet" disabled={busy} onClick={() => revoke(tk.id)}>Revoke</button>
+                        <button type="button" className="lg-btn lg-btn--quiet" disabled={busy} onClick={() => revoke(tk.id)}>{tk.connector ? "Disconnect" : "Revoke"}</button>
                       </div>
                     </li>
                   ))}

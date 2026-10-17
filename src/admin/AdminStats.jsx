@@ -148,7 +148,7 @@ export default function AdminStats() {
       <main className="lg-board lg-page">
         <p className="lg-body-lg">
           How learners with an account are doing, all together, plus visits and games played by everyone. Words show only after {data?.rules.minAnswers ?? 5} answers from {data?.rules.minLearners ?? 3} different
-          learners. See also <Link to="/admin/reports">reports</Link> and <Link to="/admin/users">users</Link>.
+          learners. See also <Link to="/admin/reports">reports</Link>, <Link to="/admin/users">users</Link> and <Link to="/admin/ai">AI tools</Link>.
         </p>
         {gate ? (
           <section className="lg-section">

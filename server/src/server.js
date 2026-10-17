@@ -12,6 +12,7 @@ import { createPushSender } from "./push/sender.js";
 import { startReminders } from "./push/reminders.js";
 import { startStats } from "./stats/aggregate.js";
 import { prunePlay } from "./stats/play.js";
+import { deleteExpiredTokens } from "./mcp/tokens.js";
 
 const config = loadConfig();
 const db = openDatabase(config.dbPath);
@@ -26,6 +27,7 @@ const stopReminders = push ? startReminders(db, push, { intervalMs: config.pushI
 const housekeeping = setInterval(() => {
   deleteExpired(db);
   prunePlay(db);
+  deleteExpiredTokens(db);
   limiter.sweep(86400_000);
 }, 10 * 60_000);
 housekeeping.unref();

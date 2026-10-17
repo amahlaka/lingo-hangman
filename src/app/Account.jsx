@@ -324,6 +324,7 @@ function SignedIn({ t, lang, me, reload, onSignedOut }) {
             <Link to="/admin/reports" className="lg-btn lg-btn--secondary">{a.adminQueue}</Link>
             <Link to="/admin/users" className="lg-btn lg-btn--secondary">{a.adminUsers}</Link>
             <Link to="/admin/stats" className="lg-btn lg-btn--secondary">{a.adminStats}</Link>
+            <Link to="/admin/ai" className="lg-btn lg-btn--secondary">{a.adminAi}</Link>
           </div>
         </section>
       )}

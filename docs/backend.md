@@ -354,6 +354,51 @@ shows the same one.
   day the account's. A device reads the account's path before sending its
   own, so a new device doesn't replace it.
 
+## AI tools (MCP)
+
+Arttu (2026-10-17): admins can let an AI assistant review the statistics,
+reports and suggestions, mark reports fixed, and plan new content from them.
+The API serves a [Model Context Protocol](https://modelcontextprotocol.io)
+endpoint for that at `/api/mcp`; the app itself never calls it.
+
+- **Tokens:** `/admin/ai` (admin only, linked from Account) makes a token
+  for 30, 90 or 365 days, shows it once with the Claude Code command, lists
+  tokens with when they were last used, and revokes them. Only a hash is kept
+  (`api_tokens`). The client sends `Authorization: Bearer <token>`. A token
+  works only while its account is still an admin; expired tokens are deleted
+  by housekeeping.
+- **Connecting:** Claude Code:
+  `claude mcp add --transport http lingo-admin https://lingo.bololoo.com/api/mcp --header "Authorization: Bearer <token>"`.
+  Clients that only run local servers (Claude Desktop's config file) can go
+  through `mcp-remote`:
+  `{"command": "npx", "args": ["mcp-remote", "https://lingo.bololoo.com/api/mcp", "--header", "Authorization:${LINGO_TOKEN}"], "env": {"LINGO_TOKEN": "Bearer <token>"}}`.
+  Never commit a token: the repositories are public. claude.ai's own
+  connectors need OAuth, which this endpoint doesn't offer yet.
+- **Protocol:** Streamable HTTP without sessions or an event stream: each
+  POST is one JSON-RPC message answered with JSON (`server/src/mcp/protocol.js`),
+  versions 2025-03-26 to 2025-11-25. GET answers 405. Browsers' requests
+  must come from an origin in `ORIGINS`; it is exempt from the app's
+  `X-Lingo` header check because it uses a token, not the cookie.
+- **Admin tools** (`server/src/mcp/adminTools.js`): `get_overview`,
+  `get_statistics` (days, games, words, mistakes or play), `list_reports`,
+  `set_report_status`, `list_suggestions`, `set_suggestion_status`,
+  `list_learners` and `get_learner`. They give the same numbers as the admin
+  pages (`server/src/adminData.js`), but learners appear by account id only:
+  no emails or devices. Status changes are logged with the token id. Prompts
+  `triage_reports` and `plan_content` walk the assistant through reviewing
+  reports and planning lessons.
+- **Content stays reviewed:** the tools never write word base content. The
+  instructions and prompts send new and fixed items to
+  [lingo-wordbase](https://github.com/amahlaka/lingo-wordbase) as a pull
+  request following its AUTHORING.md, and say to mark a report fixed only
+  after the fix is merged ("fixed" shows "Fixed, thanks" to the learner).
+- **Later: personalised content.** A token has a `scope`; `routes/mcp.js`
+  maps each scope to its tools. A learner scope (for example tools that read
+  one learner's weak words and save a personal practice set) can be added
+  there without changing the protocol or the token table. The privacy page
+  already says the maintainer may use an AI assistant and that it never sees
+  email addresses.
+
 ## Deploying the API
 
 *Production deploy* (`.github/workflows/production.yml`) also tests the API,

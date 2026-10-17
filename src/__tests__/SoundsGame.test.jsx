@@ -31,6 +31,18 @@ const cSounds = {
     { text: '[c]up', say: { fi: 'kap' }, meaning: { fi: 'kuppi' }, sound: 'k' },
   ],
 };
+const ckK = {
+  id: 'test-ck', type: 'sound', kind: 'spell',
+  title: { en: 'Test ck or k', fi: 'Testi ck vai k' },
+  explanation: { en: 'ck after a short vowel.', fi: 'ck lyhyen vokaalin jälkeen.' },
+  spellings: ['ck', 'k'],
+  words: [
+    { text: 'ba[ck]', say: { fi: 'bäk' }, meaning: { fi: 'selkä' } },
+    { text: 'du[ck]', say: { fi: 'dak' }, meaning: { fi: 'ankka' } },
+    { text: 'mil[k]', say: { fi: 'milk' }, meaning: { fi: 'maito' } },
+    { text: 'boo[k]', say: { fi: 'buk' }, meaning: { fi: 'kirja' } },
+  ],
+};
 const letters = {
   id: 'test-letters', type: 'sound', kind: 'letters',
   title: { en: 'Test letters', fi: 'Testikirjaimet' },
@@ -48,7 +60,7 @@ const shipSheep = {
     { text: 'seat', meaning: { fi: 'istuin' }, pair: 'sit' },
   ],
 };
-const pack = { id: 'test-sounds', title: { en: 'Test sounds' }, items: [silentK, cSounds, letters, shipSheep] };
+const pack = { id: 'test-sounds', title: { en: 'Test sounds' }, items: [silentK, cSounds, ckK, letters, shipSheep] };
 
 beforeAll(() => {
   setContent({ ...bundled, index: { ...bundled.index, packs: [...bundled.index.packs, pack.id] }, packs: [...bundled.packs, pack] });
@@ -67,9 +79,10 @@ function fakeSpeech() {
 }
 
 describe('sound items in the word bank', () => {
-  it('accepts the three kinds of lesson', () => {
+  it('accepts every kind of lesson', () => {
     expect(validateItem(silentK)).toEqual([]);
     expect(validateItem(cSounds)).toEqual([]);
+    expect(validateItem(ckK)).toEqual([]);
     expect(validateItem(letters)).toEqual([]);
     expect(validateItem(shipSheep)).toEqual([]);
   });
@@ -87,6 +100,15 @@ describe('sound items in the word bank', () => {
     const marked = { ...letters, words: [...letters.words.slice(1), { text: '[A]' }] };
     expect(validateItem(marked).join(' ')).toMatch(/letter names don't use/);
     expect(validateItem({ ...silentK, kind: 'other' }).join(' ')).toMatch(/kind must be one of/);
+  });
+
+  it('wants spelling lessons to mark one of their spellings', () => {
+    expect(validateItem({ ...ckK, spellings: ['ck'] }).join(' ')).toMatch(/spellings needs at least two/);
+    expect(validateItem({ ...ckK, spellings: ['ck', 'CK'] }).join(' ')).toMatch(/"CK" is listed twice/);
+    const wrong = { ...ckK, words: [...ckK.words.slice(1), { text: 'ri[ch]' }] };
+    expect(validateItem(wrong).join(' ')).toMatch(/must be one of the spellings/);
+    const unmarked = { ...ckK, words: [...ckK.words.slice(1), { text: 'back' }] };
+    expect(validateItem(unmarked).join(' ')).toMatch(/letters the learner picks/);
   });
 });
 
@@ -107,6 +129,15 @@ describe('admin editing of lessons', () => {
     fireEvent.change(screen.getByRole('combobox', { name: /Kind/ }), { target: { value: 'silent' } });
     expect(changes.at(-1).kind).toBe('silent');
     expect(changes.at(-1).sounds).toBeUndefined();
+  });
+
+  it('has a spellings field for spelling lessons', () => {
+    const changes = [];
+    render(<ItemForm item={ckK} onChange={(i) => changes.push(i)} languages={[]} topics={[]} categories={[]} />);
+    const field = screen.getByRole('textbox', { name: /Spellings to choose from/ });
+    expect(field).toHaveValue('ck, k');
+    fireEvent.change(field, { target: { value: 'ck, k, c' } });
+    expect(changes.at(-1).spellings).toEqual(['ck', 'k', 'c']);
   });
 });
 
@@ -145,6 +176,13 @@ describe('soundsLogic', () => {
   it('wants two words for every sound', () => {
     const one = { ...cSounds, words: cSounds.words.filter((w) => w.text !== '[c]up') };
     expect(validateItem(one).join(' ')).toMatch(/sound "k" needs at least two words/);
+  });
+
+  it('asks a spelling with every spelling of the lesson as an option', () => {
+    const q = lessonQuestions(ckK).find((x) => x.word.text === 'back');
+    expect(q.options.map((o) => o.id)).toEqual(['ck', 'k']);
+    expect(q.answer).toBe('ck');
+    expect(q.word.parts).toEqual({ before: 'ba', marked: 'ck', after: '', plain: 'back' });
   });
 
   it('asks a sound-alike word against its own pair', () => {
@@ -212,6 +250,23 @@ describe('Sounds of English', () => {
     const answer = cSounds.words.find((w) => w.text.replace(/[[\]]/g, '') === word).sound;
     fireEvent.click(within(group).getByRole('button', { name: new RegExp(`^${answer}, as in`) }));
     expect(screen.getByText(`Yes, "${word}" is right.`)).toBeInTheDocument();
+  });
+
+  it('practises spelling: hear the word and pick the missing letters', () => {
+    const spoken = fakeSpeech();
+    renderApp('/sounds?set=test-ck&practise=1');
+    const heard = spoken[spoken.length - 1].text;
+    const lesson = ckK.words.map((w) => lessonWord(ckK, w)).find((w) => w.text === heard);
+    expect(screen.queryByText(heard)).not.toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'missing letters' })).toBeInTheDocument();
+    expect(screen.getByText(lesson.fi)).toHaveAttribute('lang', 'fi');
+    expect(screen.getByText('Which letters are missing?')).toBeInTheDocument();
+    const group = screen.getByRole('group', { name: 'Spellings to choose from' });
+    const wrong = lesson.parts.marked === 'ck' ? 'k' : 'ck';
+    fireEvent.click(within(group).getByRole('button', { name: wrong }));
+    expect(screen.getByText(`Not this time. The answer was "${heard}".`)).toBeInTheDocument();
+    expect(screen.getByText((_, el) => el?.classList?.contains('snd-word-big'))).toHaveTextContent(heard);
+    expect(screen.queryByRole('img', { name: 'missing letters' })).not.toBeInTheDocument();
   });
 
   it('practises letter names by ear and shows how each is said', () => {

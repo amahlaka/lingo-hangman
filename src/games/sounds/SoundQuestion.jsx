@@ -24,6 +24,20 @@ export function MarkedWord({ word, silent = false, className = "" }) {
   );
 }
 
+// A spelling question's word with the letters to pick left out: "ba[ck]"
+// shows as "ba ? ". One mark whatever the letters, so the gap doesn't tell
+// ck from k.
+function GapWord({ word, label, className = "" }) {
+  const { before, after } = word.parts;
+  return (
+    <span className={className} lang="en">
+      {before}
+      <span className="snd-gap" role="img" aria-label={label}>?</span>
+      {after}
+    </span>
+  );
+}
+
 export function ListenButtons({ text, s, autoPlay = false }) {
   useEffect(() => {
     if (!autoPlay) return undefined;
@@ -62,10 +76,11 @@ function Both({ text, lang, className = "" }) {
 // travels with the rule (see RuleBox), so the bottom bar never covers it.
 function AfterAnswer({ question, showRule, lang, s }) {
   const { word } = question;
-  // Heard-word questions already show the reading and meaning on each option.
+  // Heard-word questions already show the reading and meaning on each option,
+  // and spelling questions show the meaning as the clue.
   const onOptions = BY_EAR.includes(question.kind);
   const say = !onOptions && word.say;
-  const meaning = !onOptions && word.fi;
+  const meaning = !onOptions && question.kind !== "spell" && word.fi;
   const lead = say || meaning ? (
     <div className="snd-after__lead">
       {say && (
@@ -93,7 +108,7 @@ function AfterAnswer({ question, showRule, lang, s }) {
 }
 
 // One pronunciation question; see lessonQuestions in ./soundsLogic.js for the
-// three kinds. A miss strikes that option out; when the misses run out the
+// kinds. A miss strikes that option out; when the misses run out the
 // answer is shown. Either way the word's Finnish reading and meaning appear.
 export default function SoundQuestion({ question, done, onDone, showRule = false }) {
   const { t, lang } = useSettings();
@@ -159,6 +174,7 @@ export default function SoundQuestion({ question, done, onDone, showRule = false
   const ask =
     kind === "silent" ? [s.askSilent, fi.askSilent]
     : kind === "sound" ? [fill(s.askSound, { letters: word.parts?.marked }), fill(fi.askSound, { letters: word.parts?.marked })]
+    : kind === "spell" ? [s.askSpell, fi.askSpell]
     : kind === "pairs" ? [s.askPair, fi.askPair]
     : [s.askLetter, fi.askLetter];
 
@@ -170,6 +186,10 @@ export default function SoundQuestion({ question, done, onDone, showRule = false
           {helper && question.title.fi && <span lang="fi"> · {question.title.fi}</span>}
         </span>
         {kind === "sound" && <MarkedWord word={word} className="pg-prompt__word snd-word-big" />}
+        {kind === "spell" && word.parts && (done
+          ? <MarkedWord word={word} className="pg-prompt__word snd-word-big" />
+          : <GapWord word={word} label={s.missingLetters} className="pg-prompt__word snd-word-big" />)}
+        {kind === "spell" && word.fi && <p className="snd-meaning" lang="fi">{word.fi}</p>}
         {BY_EAR.includes(kind) && done && <span className="pg-prompt__word snd-word-big" lang="en">{word.text}</span>}
         <ListenButtons text={word.speak} s={s} autoPlay />
         <p className="lg-body-lg snd-ask">{ask[0]}</p>
@@ -198,7 +218,7 @@ export default function SoundQuestion({ question, done, onDone, showRule = false
       )}
 
       {kind !== "silent" && (
-        <div className="pg-choices snd-choices" role="group" aria-label={kind === "sound" ? s.soundChoices : kind === "pairs" ? s.pairChoices : s.letterChoices}>
+        <div className="pg-choices snd-choices" role="group" aria-label={kind === "sound" ? s.soundChoices : kind === "spell" ? s.spellChoices : kind === "pairs" ? s.pairChoices : s.letterChoices}>
           {question.options.map((option, i) => {
             const state = stateOf(option.id);
             const label = lang === "fi" && option.label.fi ? option.label.fi : option.label.en;
@@ -206,8 +226,8 @@ export default function SoundQuestion({ question, done, onDone, showRule = false
               <button
                 key={option.id}
                 type="button"
-                lang={BY_EAR.includes(kind) ? "en" : undefined}
-                className={`pg-choice${choiceClass(option.id)}${kind === "letters" ? " snd-letter" : ""}`}
+                lang={BY_EAR.includes(kind) || kind === "spell" ? "en" : undefined}
+                className={`pg-choice${choiceClass(option.id)}${kind === "letters" || kind === "spell" ? " snd-letter" : ""}`}
                 onClick={() => choose(option.id)}
                 disabled={done || state === "miss"}
                 aria-label={state === "miss" ? `${label}, ${t.practice.notThisOne}` : undefined}

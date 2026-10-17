@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useSettings } from "../../app/SettingsContext";
 import { fill } from "../../i18n";
 import { sounds } from "../../lib/sounds";
-import { getAlphabet, languageLabel } from "../../lib/words";
+import { getAlphabet, guessPromptText } from "../../lib/words";
 import { TriesMeter, WordTiles } from "../../components/lingo";
 import { useQuestionControls } from "../practice/questionControls";
 import HangmanDrawing from "./HangmanDrawing";
@@ -79,7 +79,7 @@ export default function HangmanQuestion({ question, done, onDone, learningLang, 
   return (
     <div className="lg-stack pg-question hq-question">
       <p className="hm-prompt" data-testid="native-word">
-        {fill(t.guessPrompt, { language: languageLabel(learningLang) })}{" "}
+        {guessPromptText(t, learningLang)}{" "}
         <strong lang={nativeLang}>{question.target.native}</strong>
       </p>
       <div className="hm-stage">

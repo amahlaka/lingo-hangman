@@ -8,6 +8,9 @@ import { validateItem } from '../lib/contentSchema';
 import { blankItem, tidyItem } from '../admin/adminDraft';
 import { buildSoundRound, lessonProgress, lessonQuestions, lessonWord, markedIndexes, soundName } from '../games/sounds/soundsLogic';
 
+// A quoted answer that ends a sentence gets no extra full stop.
+const answerWas = (a) => `Not this time. The answer was "${a}"${/[.?!]$/.test(a) ? '' : '.'}`;
+
 // Lessons of their own, so the tests don't depend on what the word base holds.
 const silentK = {
   id: 'test-silent-k', type: 'sound', kind: 'silent',
@@ -264,7 +267,7 @@ describe('Sounds of English', () => {
     const group = screen.getByRole('group', { name: 'Spellings to choose from' });
     const wrong = lesson.parts.marked === 'ck' ? 'k' : 'ck';
     fireEvent.click(within(group).getByRole('button', { name: wrong }));
-    expect(screen.getByText(`Not this time. The answer was "${heard}".`)).toBeInTheDocument();
+    expect(screen.getByText(answerWas(heard))).toBeInTheDocument();
     expect(screen.getByText((_, el) => el?.classList?.contains('snd-word-big'))).toHaveTextContent(heard);
     expect(screen.queryByRole('img', { name: 'missing letters' })).not.toBeInTheDocument();
   });

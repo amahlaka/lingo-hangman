@@ -19,7 +19,6 @@ export default function MistakeQuestion({ question, done, onDone }) {
   const [fixed, setFixed] = useState(false);
   const [wobble, setWobble] = useState(null);
   const [peeked, setPeeked] = useState(false);
-  const misses = missedTiles.length + missedFixes.length;
 
   const finish = (solved, wrongs) =>
     onDone({
@@ -133,7 +132,10 @@ export default function MistakeQuestion({ question, done, onDone }) {
           </div>
         </>
       )}
-      {!done && misses > 0 && <p className="pg-hint" role="status">{found ? p.tryAnother : k.notThatWord}</p>}
+      {/* Only the step the learner is on: a wrong tap before finding the mistake says nothing once it is found. */}
+      {!done && (found ? missedFixes.length > 0 : missedTiles.length > 0) && (
+        <p className="pg-hint" role="status">{found ? p.tryAnother : k.notThatWord}</p>
+      )}
       {done && <Explanation parts={[question.why, question.rule].filter(Boolean)} lang={lang} p={p} />}
       {!done && peeked && <Explanation parts={[question.rule]} lang={lang} p={p} />}
       {!done && !peeked && question.rule && <RulePeek onPeek={() => setPeeked(true)} />}

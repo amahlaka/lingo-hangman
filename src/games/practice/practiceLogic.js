@@ -4,6 +4,7 @@
 
 import { DEFAULT_LEARNING_LANG, DEFAULT_NATIVE_LANG, decodeWords, filterCommonWords, getWordGroups } from "../../lib/words";
 import { sentenceWords } from "../../lib/contentSchema";
+import { wordClassOf } from "../../lib/wordTypes";
 import { gapItemChoices } from "../../lib/decoys";
 import { getPreferences } from "../../lib/preferences";
 
@@ -59,8 +60,8 @@ const norm = (s) => s.trim().toLowerCase();
 
 // Pick `count` wrong options for `target`. Options never share the target's
 // text in either language (so "hän" never offers both "he" and "she"), match
-// its shape (single word vs phrase), and prefer the same category so the
-// choice is about meaning, not about spotting the odd one out.
+// its shape (single word vs phrase), and prefer the same word class and
+// category so the choice is about meaning, not about spotting the odd one out.
 export function pickDistractors(target, pool, count = 3, random = Math.random) {
   const seenLearning = new Set([norm(target.learning)]);
   const seenNative = new Set([norm(target.native)]);
@@ -76,9 +77,15 @@ export function pickDistractors(target, pool, count = 3, random = Math.random) {
 
   const sameShape = candidates.filter((p) => isPhrase(p) === isPhrase(target));
   const otherShape = candidates.filter((p) => isPhrase(p) !== isPhrase(target));
+  // A single word's options are the same kind of word (nouns for a noun), so
+  // "tired" never turns up among jobs: same class and topic first.
+  const cls = isPhrase(target) ? null : wordClassOf(target.learning);
+  const sameClass = (p) => !cls || wordClassOf(p.learning) === cls;
   const ranked = [
-    ...sameShape.filter((p) => sharesCategory(p, target)),
-    ...sameShape.filter((p) => !sharesCategory(p, target)),
+    ...sameShape.filter((p) => sameClass(p) && sharesCategory(p, target)),
+    ...sameShape.filter((p) => sameClass(p) && !sharesCategory(p, target)),
+    ...sameShape.filter((p) => !sameClass(p) && sharesCategory(p, target)),
+    ...sameShape.filter((p) => !sameClass(p) && !sharesCategory(p, target)),
     ...otherShape,
   ];
   return ranked.slice(0, count);
@@ -163,8 +170,9 @@ export function emptyTally() {
 }
 
 // result: { solved, firstTry, xp }
+// A run is answers right on the first try in a row, like the word streak.
 export function addResult(tally, result) {
-  const run = result.solved ? tally.run + 1 : 0;
+  const run = result.solved && result.firstTry ? tally.run + 1 : 0;
   return {
     answered: tally.answered + 1,
     correct: tally.correct + (result.solved ? 1 : 0),

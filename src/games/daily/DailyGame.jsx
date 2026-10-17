@@ -5,7 +5,7 @@ import { useSettings } from "../../app/SettingsContext";
 import { useProgress } from "../../app/ProgressContext";
 import { useRoundFinished } from "../../app/PlayTracking";
 import { fill } from "../../i18n";
-import { DailyProgress, Feedback, GameScreen, useConfetti } from "../../components/lingo";
+import { DailyProgress, Feedback, GameScreen, keepInView, useConfetti } from "../../components/lingo";
 import { addDays, dayKey } from "../../lib/progress";
 import { sounds } from "../../lib/sounds";
 import { canSpeak, speak } from "../../lib/speech";
@@ -56,6 +56,7 @@ export default function DailyGame() {
   const [message, setMessage] = useState(null);
   const [copied, setCopied] = useState(false);
   const startedAt = useRef(Date.now());
+  const resultRef = useRef(null);
 
   const word = state.word;
   const answer = word?.word || "";
@@ -84,6 +85,11 @@ export default function DailyGame() {
     } else {
       sounds.shown();
     }
+  }, [over]);
+  // The result (and the XP it earned) appears under the keyboard's place:
+  // bring it up above the bottom bar.
+  useEffect(() => {
+    if (over) keepInView(resultRef.current);
   }, [over]);
   // After the effect above, so the answer is in before the round ends.
   useRoundFinished(over);
@@ -180,7 +186,7 @@ export default function DailyGame() {
           </p>
         )}
         {over && (
-          <div className="dw-result">
+          <div className="dw-result" ref={resultRef}>
             {won ? (
               <Feedback variant="correct" title={fill(k.wonTitle, { word: answer.toLowerCase() })}>
                 {state.guesses.length === 1 ? k.wonFirst : fill(k.wonBody, { n: state.guesses.length })}

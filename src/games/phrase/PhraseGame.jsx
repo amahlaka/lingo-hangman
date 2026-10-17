@@ -153,7 +153,7 @@ export function PhraseQuestion({ puzzle, done, onDone, p, learningLang, nativeLa
       title={isLocked ? p.phraseLocked : undefined}
     >
       <span className="pg-chip__word">{chip.word}</span>
-      {label && <TypeLabel type={typeOf(chip)} />}
+      {label && <TypeLabel type={typeOf(chip)} place />}
     </button>
     );
   };
@@ -229,7 +229,17 @@ export function PhraseQuestion({ puzzle, done, onDone, p, learningLang, nativeLa
       {!done && !offer && (
         <>
           <div className="pg-bank" role="group" aria-label={p.wordsToUse} lang={learningLang}>
-            {bank.map((chip, i) => chipButton(chip, i, { inBank: true, label: showOptions }))}
+            {/* A used word leaves an empty space of its size, so the other words never move under the finger. */}
+            {puzzle.chips.map((chip, i) =>
+              bank.includes(chip) ? (
+                chipButton(chip, i, { inBank: true, label: showOptions })
+              ) : (
+                <span key={chip.id} className={`pg-chip pg-chip--gap${showOptions ? " pg-chip--typed" : ""}`} aria-hidden="true">
+                  <span className="pg-chip__word">{chip.word}</span>
+                  {showOptions && <TypeLabel type={typeOf(chip)} place />}
+                </span>
+              )
+            )}
           </div>
           {hint && <p className="pg-hint" role="status">{hint}</p>}
           <div className="lg-row">

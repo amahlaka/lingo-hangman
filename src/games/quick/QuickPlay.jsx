@@ -210,6 +210,7 @@ export default function QuickPlay() {
       learningLang={learningLang}
       nativeLang={nativeLang}
       endTitleKey="endTitleQuick"
+      countQuestions
       recapTitleKey="recapQuick"
       buildQuestions={() => buildQuickRound(targets, stateRef.current, { include: preferenceFilter(targets), difficulty: getDifficulty() })}
       renderQuestion={({ question, done, onDone, onItem }) => (

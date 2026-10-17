@@ -63,6 +63,47 @@ function AnswerStats({ state, t, lang }) {
   );
 }
 
+// The game cards, grouped by what they practise. Every registry skill is in
+// one group; a game with a skill not listed here isn't shown.
+const GAME_GROUPS = [
+  { id: "words", skills: ["Vocabulary", "Spelling"] },
+  { id: "sentences", skills: ["Sentences", "Grammar"] },
+  { id: "sound", skills: ["Listening", "Speaking", "Pronunciation"] },
+  { id: "reading", skills: ["Conversation", "Reading"] },
+];
+
+// The learner's words, counted the same way as on the profile: known well
+// (the last answers were quick first tries), still in practice, and learned
+// for good (solved on 3 different days).
+function YourWords({ state, learnedWords, t }) {
+  const counts = { known: 0, practising: 0 };
+  for (const entry of Object.values(state.words)) {
+    const standing = wordStanding(entry);
+    if (standing === "known") counts.known += 1;
+    else if (standing !== "new") counts.practising += 1;
+  }
+  const seen = counts.known + counts.practising;
+  return (
+    <section className="lg-section">
+      <h2 className="lg-heading">{t.yourWords}</h2>
+      {seen === 0 ? (
+        <p className="lg-caption">{t.yourWordsEmpty}</p>
+      ) : (
+        <>
+          <p className="lg-learned">
+            <span className="lg-learned__n">{counts.known}</span> {t.knownWell}
+          </p>
+          <div className="lg-bar" role="img" aria-label={`${counts.known} / ${seen}`}>
+            <div className="lg-bar__fill lg-bar__fill--pine" style={{ width: `${Math.round((counts.known / seen) * 100)}%` }} />
+          </div>
+          <p className="lg-caption">{fill(t.yourWordsMore, { seen, practising: counts.practising, learned: learnedWords })}</p>
+        </>
+      )}
+      <p className="lg-caption">{t.yourWordsHint}</p>
+    </section>
+  );
+}
+
 // Home screen: progress, Quick play, one card per game and achievements.
 export default function Home() {
   const { t, lang } = useSettings();
@@ -100,19 +141,23 @@ export default function Home() {
 
         <section className="lg-section">
           <h2 className="lg-heading">{t.chooseGame}</h2>
-          <div className="lg-cards">
-            {GAMES.filter((game) => !game.featured).map((game) => (
-              <GameCard key={game.id} game={game} lang={lang} />
-            ))}
-          </div>
+          {GAME_GROUPS.map((group) => {
+            const games = GAMES.filter((game) => !game.featured && group.skills.includes(game.skill));
+            if (!games.length) return null;
+            return (
+              <div key={group.id} className="lg-game-group">
+                <h3 className="lg-game-group__title">{t.gameGroups[group.id]}</h3>
+                <div className="lg-cards">
+                  {games.map((game) => (
+                    <GameCard key={game.id} game={game} lang={lang} />
+                  ))}
+                </div>
+              </div>
+            );
+          })}
         </section>
 
-        <section className="lg-section">
-          <p className="lg-learned">
-            <span className="lg-learned__n">{learnedWords}</span> {t.learnedWords}
-          </p>
-          <p className="lg-caption">{t.learnedWordsHint}</p>
-        </section>
+        <YourWords state={state} learnedWords={learnedWords} t={t} />
 
         <ShopCard />
 
@@ -124,7 +169,7 @@ export default function Home() {
 
         <section className="lg-section">
           <h2 className="lg-heading">{t.achievementsTitle}</h2>
-          <Achievements items={achievementList(state, { gameIds: PLAYABLE_GAME_IDS })} soFarLabel={t.soFar} />
+          <Achievements items={achievementList(state, { gameIds: PLAYABLE_GAME_IDS })} soFarLabel={t.soFar} lang={lang} />
         </section>
       </main>
     </div>

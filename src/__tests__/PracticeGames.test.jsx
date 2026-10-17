@@ -3,6 +3,9 @@ import { renderApp } from '../test-utils';
 import { encodeWords } from '../lib/words';
 import { resetPreferences, setPreferences } from '../lib/preferences';
 
+// A quoted answer that ends a sentence gets no extra full stop.
+const answerWas = (a) => `Not this time. The answer was "${a}"${/[.?!]$/.test(a) ? '' : '.'}`;
+
 const words = [
   { learning: 'dog', native: 'koira' },
   { learning: 'cat', native: 'kissa' },
@@ -44,7 +47,7 @@ describe('Pick the meaning', () => {
     expect(screen.getByText('Not quite. Try another one.')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Next' })).not.toBeInTheDocument();
     fireEvent.click(wrong[1]);
-    expect(screen.getByText(`Not this time. The answer was "${answer}".`)).toBeInTheDocument();
+    expect(screen.getByText(answerWas(answer))).toBeInTheDocument();
     expect(screen.getByText(/\+2 XP/)).toBeInTheDocument();
   });
 
@@ -52,7 +55,7 @@ describe('Pick the meaning', () => {
     renderApp(link('/meaning'));
     const answer = byNative[prompt()];
     fireEvent.click(screen.getByRole('button', { name: 'Skip this one' }));
-    expect(screen.getByText(`Not this time. The answer was "${answer}".`)).toBeInTheDocument();
+    expect(screen.getByText(answerWas(answer))).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Skip this one' })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Next' }));
     expect(screen.getByText('2 of 5')).toBeInTheDocument();
@@ -257,7 +260,7 @@ describe('Fill the Gap', () => {
     fireEvent.click(wrong[0]);
     expect(screen.getByText('Not quite. Try another one.')).toBeInTheDocument();
     fireEvent.click(wrong[1]);
-    expect(screen.getByText(`Not this time. The answer was "${sentenceFor(fi).learning}".`)).toBeInTheDocument();
+    expect(screen.getByText(answerWas(sentenceFor(fi).learning))).toBeInTheDocument();
     expect(screen.getByTestId('gap-sentence')).toHaveTextContent(sentenceFor(fi).learning);
   });
 });

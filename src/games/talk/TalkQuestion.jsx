@@ -5,6 +5,7 @@ import { fill } from "../../i18n";
 import { sounds } from "../../lib/sounds";
 import { canSpeak, speak, stopSpeaking } from "../../lib/speech";
 import { MAX_MISSES } from "../practice/practiceLogic";
+import { keepInView } from "../../components/lingo";
 import { nextTurn } from "./talkLogic";
 
 // How long the other speaker "types" before their line appears.
@@ -12,11 +13,11 @@ export const REPLY_DELAY = 900;
 
 // One line of the conversation. Tapping it reads it aloud again; the Finnish
 // has its own button so hearing a line again doesn't give its meaning away.
-function Bubble({ line, state, open, onTap, onFinnish, i }) {
+function Bubble({ line, who, state, open, onTap, onFinnish, i }) {
   const { t } = useSettings();
   return (
     <li className={`tk-line${line.mine ? " tk-line--mine" : ""}`}>
-      <span className="tk-line__who">{line.speaker}</span>
+      <span className="tk-line__who">{who}</span>
       <button
         type="button"
         className={`tk-bubble${state ? ` tk-bubble--${state}` : ""}${line.mine ? " lg-pop" : " lg-reveal"}`}
@@ -54,14 +55,23 @@ export default function TalkQuestion({ question, onItem, onDone }) {
   const [open, setOpen] = useState(() => new Set());
   const timer = useRef(null);
   const finished = useRef(false);
+  const endRef = useRef(null);
 
   const turn = shown < lines.length && lines[shown].mine ? lines[shown] : null;
+  // A role ("Waiter") in the UI language; people's names stay as they are.
+  const roleName = (name) => k.roles?.[name] || name;
 
   // Read the other speaker's newest line aloud as it appears.
   useEffect(() => {
     const last = lines[shown - 1];
     if (last && !last.mine) speak(last.en, { lang: "en" });
   }, [shown, lines]);
+
+  // Keep the newest line (and the replies to pick from) on screen.
+  const firstShown = useRef(shown);
+  useEffect(() => {
+    if (shown > firstShown.current) keepInView(endRef.current);
+  }, [shown, typing]);
 
   useEffect(() => {
     if (shown >= lines.length && !typing && !finished.current) {
@@ -147,12 +157,12 @@ export default function TalkQuestion({ question, onItem, onDone }) {
           {question.title}
           {question.titleFi && <span lang="fi"> · {question.titleFi}</span>}
         </span>
-        <p className="tk-role">{fill(k.youAre, { name: question.you, partner: question.partner })}</p>
+        <p className="tk-role">{fill(k.youAre, { name: roleName(question.you), partner: roleName(question.partner) })}</p>
         <p className="lg-caption">{k.tapLines}</p>
       </div>
       <ol className="tk-chat" aria-live="polite">
         {lines.slice(0, shown).map((line, i) => (
-          <Bubble key={i} i={0} line={line} state={results[i]} open={open.has(i)} onTap={() => hear(i)} onFinnish={() => toggleFinnish(i)} />
+          <Bubble key={i} i={0} line={line} who={roleName(line.speaker)} state={results[i]} open={open.has(i)} onTap={() => hear(i)} onFinnish={() => toggleFinnish(i)} />
         ))}
         {typing && (
           <li className="tk-line" aria-hidden="true">
@@ -184,9 +194,12 @@ export default function TalkQuestion({ question, onItem, onDone }) {
               );
             })}
           </div>
-          {missed.length > 0 && <p className="pg-hint" role="status">{k.tryAnother}</p>}
+          {missed.length > 0 && (
+            <p className="pg-hint" role="status">{k.why[turn.why?.[missed[missed.length - 1]]] || k.tryAnother}</p>
+          )}
         </>
       )}
+      <span ref={endRef} aria-hidden="true" />
     </div>
   );
 }

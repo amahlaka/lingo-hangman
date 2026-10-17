@@ -28,6 +28,26 @@ describe("practice preferences", () => {
     expect(applyPreferences(items, { prefs: { focus: ["nothing"], difficulty: "any" } })).toHaveLength(items.length);
   });
 
+  it("leaves hobby topics out until the learner picks one, and then adds them to the mix", () => {
+    const hobby = Array.from({ length: 6 }, (_, i) => ({ id: `g${i}`, categories: ["games"], level: 1 }));
+    const all = [...items, ...hobby, { id: "both", categories: ["games", "food"] }];
+    const ids = (prefs) => applyPreferences(all, { prefs: { difficulty: "any", ...prefs }, optIn: ["games"] }).map((i) => i.id);
+    expect(ids({ focus: [] })).not.toContain("g0");
+    expect(ids({ focus: [] })).toEqual(expect.arrayContaining(["f0", "m0", "x", "both"]));
+    // Picking only a hobby keeps the everyday topics too.
+    expect(ids({ focus: ["games"] })).toEqual(expect.arrayContaining(["g0", "f0", "m0"]));
+    // With an everyday focus as well, it narrows to the picked topics.
+    expect(ids({ focus: ["games", "food"] }).sort()).toEqual([...hobby.map((h) => h.id), "both", "f0", "f1", "f2", "f3", "f4", "f5"].sort());
+  });
+
+  it("marks the word bank's hobby groups as opt-in", () => {
+    const groups = categoryGroups("en");
+    expect(groups.find((g) => g.categories.includes("video-games")).optIn).toBe(true);
+    expect(groups.find((g) => g.categories.includes("food")).optIn).toBe(false);
+    setPreferences({ focus: [] });
+    expect(filterCommonWords({ preferences: true }).some((w) => w.categories.includes("video-games"))).toBe(false);
+  });
+
   it("guesses a level for words without one", () => {
     expect(itemLevel({}, "cat")).toBe(1);
     expect(itemLevel({}, "kitchen")).toBe(2);

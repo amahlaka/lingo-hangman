@@ -69,6 +69,19 @@ export function slotKind(type) {
   return type ? type.role || type.cls : null;
 }
 
+// The plain question a place in the sentence answers, for learners who don't
+// know grammar terms: "who / what" for the subject, "does what" for verbs,
+// "where / when / how" for adverbs and prepositions … (t.placeCues).
+const CUE = {
+  subject: "who", object: "whatObject", verb: "does", auxiliary: "does", adverb: "where", preposition: "where",
+  adjective: "whatKind", number: "howMany", article: "article", question: "question", conjunction: "joins",
+  noun: "thing", pronoun: "thing", particle: "small", interjection: "small",
+};
+export function placeCue(type) {
+  const kind = slotKind(type);
+  return kind ? CUE[kind] || null : null;
+}
+
 // The `wordTypes` of a sentence pair from the word bank, parsed, when they
 // line up with `words` (the puzzle's words). null when there are none.
 export function sentenceTypes(pair, words) {

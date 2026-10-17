@@ -32,6 +32,18 @@ describe('Your turn', () => {
     expect(pickReplies('For here.', ['A latte, please.', 'For here.'], ['Thanks.', 'Excuse me.'])).not.toContain('A latte, please.');
   });
 
+  it('does not offer the same wrong reply turn after turn, and says why each one is wrong', () => {
+    const replies = pickReplies('A latte, please.', ['A latte, please.', 'For here.'], ['Thanks.', 'Excuse me.'], 2, Math.random, new Set(['for here.', 'thanks.']));
+    expect(replies[0]).toBe('Excuse me.');
+    const q = buildTalk(cafe, [cafe, way]);
+    const turns = q.lines.filter((l) => l.mine);
+    turns.forEach((l) => {
+      const wrong = l.options.filter((o) => o !== l.en);
+      expect(Object.keys(l.why).sort()).toEqual(wrong.sort());
+      wrong.forEach((w) => expect(['later', 'other']).toContain(l.why[w]));
+    });
+  });
+
   it('builds options only on the learner\'s lines and finds the next turn', () => {
     const q = buildTalk(cafe, [cafe, way]);
     expect(q.you).toBe('Anna');

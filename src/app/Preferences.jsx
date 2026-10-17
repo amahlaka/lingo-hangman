@@ -101,6 +101,7 @@ export default function Preferences() {
                     </button>
                   )}
                 </div>
+                {group.optIn && <p className="lg-caption">{t.focusOptIn}</p>}
                 <div className="lg-chips">
                   {group.categories.map((cat) => {
                     const on = prefs.focus.includes(cat);

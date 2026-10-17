@@ -1,10 +1,11 @@
 // Pure helpers for "Type it": see the Finnish and type the English word, or
 // hear an English sentence and type it (dictation). The check is strict about
 // spelling, since that is what the game practises, but not about capitals,
-// punctuation, contractions ("I'm" / "I am") or British and American spelling.
+// punctuation, contractions ("I'm" / "I am"), numbers and times written with
+// digits ("6" / "six", "6:30" / "six thirty") or British and American spelling.
 // No React here.
 
-import { CONTRACTIONS, editDistance } from "../say/sayLogic";
+import { CONTRACTIONS, editDistance, numberWords } from "../say/sayLogic";
 import { shuffle, usableWords, wordCount } from "../practice/practiceLogic";
 
 export const TYPE_ROUND = 10;
@@ -43,14 +44,38 @@ export function normWord(word = "") {
   return CANON.get(w) || w;
 }
 
-// Text to comparable words, with contractions spelt out.
+const MERIDIEM = { "a.m": "am", "p.m": "pm" };
+
+// A number or time typed with digits, as words: "6" -> "six", "6:30" -> "six
+// thirty", "6:05" -> "six oh five", "6:00" -> "six o'clock", "6pm" -> "six pm".
+// Null when `w` isn't one.
+function digitsAsWords(w) {
+  const m = /^(\d{1,2})(?:[:.](\d{2}))?(am|pm)?$/.exec(w);
+  if (!m) return null;
+  const hour = numberWords(Number(m[1]));
+  if (!hour) return null;
+  const out = [hour];
+  if (m[2] !== undefined) {
+    const min = Number(m[2]);
+    if (min > 59) return null;
+    if (min === 0) out.push("o'clock");
+    else out.push(min < 10 ? `oh ${numberWords(min)}` : numberWords(min));
+  }
+  if (m[3]) out.push(m[3]);
+  return out.join(" ");
+}
+
+// Text to comparable words, with contractions, numbers and times spelt out.
 export function typeTokens(text = "") {
   const out = [];
-  for (const raw of String(text).replace(/[-–—/]/g, " ").split(/\s+/)) {
-    const w = normWord(raw);
+  for (const raw of String(text).replace(/[–—/]|-(?!\d)/g, " ").split(/\s+/)) {
+    let w = normWord(raw);
     if (!w) continue;
-    if (CONTRACTIONS[w]) out.push(...CONTRACTIONS[w].split(" "));
-    else out.push(w);
+    w = MERIDIEM[w] || w;
+    const spelt = digitsAsWords(w);
+    if (spelt) out.push(...spelt.split(" "));
+    else if (CONTRACTIONS[w]) out.push(...CONTRACTIONS[w].split(" "));
+    else out.push(...w.split("-"));
   }
   return out;
 }
@@ -94,9 +119,11 @@ export function checkTyped(target, typed, alternatives = []) {
   const answers = [target, ...alternatives].filter(Boolean);
   const correct = typedTokens.length > 0 && answers.some((a) => sameTokens(typeTokens(a), typedTokens));
 
+  // Word by word, each spelt out the same way ("6" and "six" match).
+  const wordKey = (w) => typeTokens(w).join(" ");
   const shown = String(typed).trim().split(/\s+/).filter(Boolean);
-  const targetWords = String(target).trim().split(/\s+/).map(normWord).filter(Boolean);
-  const hits = matchedIndexes(shown.map(normWord), targetWords);
+  const targetWords = String(target).trim().split(/\s+/).map(wordKey).filter(Boolean);
+  const hits = matchedIndexes(shown.map(wordKey), targetWords);
   const words = shown.map((text, i) => ({ text, ok: correct || hits.has(i) }));
 
   const joined = (list) => list.join(" ");

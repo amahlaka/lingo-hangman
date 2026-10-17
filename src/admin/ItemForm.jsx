@@ -2,6 +2,11 @@ import React from "react";
 import { Plus, X } from "lucide-react";
 import { CONTEXTS, FEATURES, PARTS_OF_SPEECH, REGISTERS, TEXT_KINDS, WORD_CLASSES } from "../lib/contentSchema";
 
+const ALIKE_LABELS = {
+  sound: "Sound the same (Say it accepts any of them)",
+  spelling: "Two right spellings (Say it and Type it accept any of them)",
+};
+
 // Form for one word bank item. Edits go straight to onChange(newItem); empty
 // optional fields are dropped when the files are written (see tidyItem).
 
@@ -464,6 +469,19 @@ export default function ItemForm({ item, onChange, languages, topics, categories
       )}
 
       {item.type === "text" && <TextItem item={item} set={set} />}
+
+      {item.type === "alike" && (
+        <>
+          <Field label="Kind">
+            <select className="lg-input" value={item.kind ?? ""} onChange={(e) => set({ kind: e.target.value })}>
+              {Object.entries(ALIKE_LABELS).map(([k, label]) => <option key={k} value={k}>{label}</option>)}
+            </select>
+          </Field>
+          <Field label="Words" hint="Comma separated, one word each. A learner's answer counts as right when it is any of these.">
+            <ListInput value={item.words} onChange={(words) => set({ words })} spellCheck={false} />
+          </Field>
+        </>
+      )}
 
       {(item.type === "word" || item.type === "gap" || item.type === "text") && <Metadata item={item} set={set} />}
     </div>

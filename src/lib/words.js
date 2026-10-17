@@ -33,11 +33,6 @@ function wordItems(content = getContent()) {
 // Everyday categories pre-selected so "Start game" works in one tap.
 export const DEFAULT_CATEGORIES = ["food", "home", "shopping"];
 
-const FALLBACK_WORDS = [
-  { learning: "car", native: "auto" },
-  { learning: "traffic light", native: "liikennevalo" },
-];
-
 export function languageLabel(code) {
   return LANGUAGE_OPTIONS.find((o) => o.code === code)?.label.replace(/ \(.*\)$/, "") || code;
 }
@@ -154,20 +149,15 @@ export function loadWordSet(params, { count = 5 } = {}) {
   const learningLang = params.get("learningLang") || DEFAULT_LEARNING_LANG;
   const nativeLang = params.get("nativeLang") || DEFAULT_NATIVE_LANG;
   const encoded = params.get("words");
-  let pairs;
-  let fromLink = false;
-  if (encoded) {
-    pairs = decodeWords(encoded) || FALLBACK_WORDS;
-    fromLink = true;
-  } else {
-    pairs = pickCommonWords({ count, learningLang, nativeLang, preferences: true });
-  }
+  // A link that can't be read plays random word bank words instead.
+  const linked = encoded ? decodeWords(encoded) : null;
+  const pairs = linked?.length ? linked : pickCommonWords({ count, learningLang, nativeLang, preferences: true });
   return {
     pairs: shuffle(pairs),
     learningLang,
     nativeLang,
     swap: params.get("swap") === "1",
-    fromLink,
+    fromLink: Boolean(linked?.length),
   };
 }
 
@@ -203,7 +193,7 @@ export function categoryGroups(uiLang = "en", otherLabel = "Other") {
   return groups;
 }
 
-// Every item of one type from the word bank: "word", "gap", "rule", "confusable", "group" or "sound".
+// Every item of one type from the word bank: "word", "gap", "rule", "confusable", "group", "sound", "text" or "alike".
 export function getItems({ type } = {}) {
   const { items } = getContent();
   return type ? items.filter((i) => i.type === type) : items;
@@ -261,6 +251,27 @@ export function getTexts({ kind } = {}) {
 // words, for picking believable wrong options.
 export function getWordGroups() {
   return getItems({ type: "group" }).map((g) => g.words);
+}
+
+// Words that count as the same answer ("alike" items) as a Map from each
+// lowercase word to the first word of its set, for the answer checks.
+// `kinds`: "sound" (to / too / two) and / or "spelling" (color / colour).
+const alikeMaps = new Map();
+onContentChange(() => alikeMaps.clear());
+export function alikeWords(kinds = ["sound", "spelling"]) {
+  const key = [...kinds].sort().join(",");
+  if (!alikeMaps.has(key)) {
+    const map = new Map();
+    for (const item of getItems({ type: "alike" })) {
+      if (!kinds.includes(item.kind)) continue;
+      const words = item.words.map((w) => w.trim().toLowerCase());
+      // Sets that share a word ("to / too / two", "two / 2") join into one.
+      const head = words.map((w) => map.get(w)).find(Boolean) || words[0];
+      for (const w of words) map.set(w, head);
+    }
+    alikeMaps.set(key, map);
+  }
+  return alikeMaps.get(key);
 }
 
 // Every whole sentence in the word bank as pairs `{ learning, native, id }`:

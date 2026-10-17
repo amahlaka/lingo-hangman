@@ -63,6 +63,15 @@ describe("item checks", () => {
     expect(validateItem({ ...shoes, otherOrders: { sv: ["Ta av dig skorna."] } })[0]).toMatch(/no sv text/);
   });
 
+  it("checks words that count as the same answer", () => {
+    const alike = { id: "spelling-color", type: "alike", kind: "spelling", words: ["color", "colour"] };
+    expect(validateItem(alike)).toEqual([]);
+    expect(validateItem({ ...alike, kind: "meaning" })[0]).toMatch(/kind must be one of sound, spelling/);
+    expect(validateItem({ ...alike, words: ["color"] })[0]).toMatch(/at least 2/);
+    expect(validateItem({ ...alike, words: ["color", "Color"] })[0]).toMatch(/twice/);
+    expect(validateItem({ ...alike, words: ["ice cream", "ice-cream"] })[0]).toMatch(/one word/);
+  });
+
   it("finds duplicate ids and unlisted packs across files", () => {
     const raw = clone(bundled);
     raw.packs[0].items.push(clone(raw.packs[1].items[0]));

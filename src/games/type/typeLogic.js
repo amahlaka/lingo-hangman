@@ -2,11 +2,13 @@
 // hear an English sentence and type it (dictation). The check is strict about
 // spelling, since that is what the game practises, but not about capitals,
 // punctuation, contractions ("I'm" / "I am"), numbers and times written with
-// digits ("6" / "six", "6:30" / "six thirty") or British and American spelling.
+// digits ("6" / "six", "6:30" / "six thirty") or the other right spelling of a
+// word (the word bank's "alike" items).
 // No React here.
 
 import { CONTRACTIONS, editDistance, numberWords } from "../say/sayLogic";
 import { shuffle, usableWords, wordCount } from "../practice/practiceLogic";
+import { alikeWords } from "../../lib/words";
 
 export const TYPE_ROUND = 10;
 // Dictation sentences in a round, when the browser can read them aloud.
@@ -18,19 +20,9 @@ export const MAX_DICTATION_WORDS = 8;
 // Points from this round each paid hint costs.
 export const TYPE_HINT_COSTS = { shape: 2, letter: 3, word: 4, hear: 4 };
 
-// Both spellings are right. British is what Lingo teaches, but the learner
-// may well have learnt the American one.
-const UK_US = [
-  ["colour", "color"], ["favourite", "favorite"], ["centre", "center"], ["theatre", "theater"],
-  ["grey", "gray"], ["metre", "meter"], ["litre", "liter"], ["neighbour", "neighbor"],
-  ["travelling", "traveling"], ["travelled", "traveled"], ["cheque", "check"], ["jewellery", "jewelry"],
-  ["flavour", "flavor"], ["honour", "honor"], ["humour", "humor"], ["labour", "labor"],
-  ["behaviour", "behavior"], ["organise", "organize"], ["realise", "realize"], ["apologise", "apologize"],
-  ["cancelled", "canceled"], ["programme", "program"], ["mum", "mom"], ["pyjamas", "pajamas"],
-  ["tyre", "tire"], ["aeroplane", "airplane"], ["moustache", "mustache"], ["catalogue", "catalog"],
-];
-const CANON = new Map();
-for (const group of UK_US) for (const w of group) CANON.set(w, group[0]);
+// Words with two right spellings (color / colour), from the word bank's
+// "alike" items: the learner may well have learned the other one.
+const canon = (w) => alikeWords(["spelling"]).get(w) || w;
 
 const APOSTROPHES = /[‘’ʼ`´]/g;
 
@@ -41,7 +33,7 @@ export function normWord(word = "") {
     .toLowerCase()
     .replace(APOSTROPHES, "'")
     .replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, "");
-  return CANON.get(w) || w;
+  return canon(w);
 }
 
 const MERIDIEM = { "a.m": "am", "p.m": "pm" };

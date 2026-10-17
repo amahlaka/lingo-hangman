@@ -69,8 +69,8 @@ describe('speak', () => {
     };
   }
 
-  const NOVA = 'kokoro-1.0-v4-af_nova';
-  const LIAM = 'kokoro-1.0-v4-am_liam';
+  const NOVA = 'kokoro-1.0-v5-af_nova';
+  const LIAM = 'kokoro-1.0-v5-am_liam';
   const fetchImpl = (keys, male = keys) =>
     jest.fn(async () => ({ ok: true, json: async () => ({ voices: { [NOVA]: keys, [LIAM]: male } }) }));
   const flush = () => new Promise((r) => setTimeout(r, 0));

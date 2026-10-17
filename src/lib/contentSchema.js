@@ -170,6 +170,29 @@ function checkExamples(examples, problems) {
   }
 }
 
+// `otherOrders` on a sentence: { "en": ["Please take off your shoes."] },
+// the same words as its text in another order that is just as right.
+function checkOtherOrders(item, problems) {
+  if (item.otherOrders === undefined) return;
+  if (!isObject(item.otherOrders)) {
+    problems.push('otherOrders must be like { "en": ["Please take off your shoes."] }');
+    return;
+  }
+  const words = (text) => sentenceWords(text).map((w) => w.toLowerCase());
+  for (const [lang, list] of Object.entries(item.otherOrders)) {
+    const own = isObject(item.text) ? item.text[lang] : undefined;
+    if (!isText(own)) problems.push(`otherOrders.${lang}: the item has no ${lang} text`);
+    else if (!Array.isArray(list) || !list.length || !list.every(isText)) problems.push(`otherOrders.${lang} must be a list of sentences`);
+    else {
+      const sorted = words(own).sort().join(" ");
+      for (const text of list) {
+        if (words(text).sort().join(" ") !== sorted) problems.push(`otherOrders.${lang}: "${text}" must have the same words as the text`);
+        else if (words(text).join(" ") === words(own).join(" ")) problems.push(`otherOrders.${lang}: "${text}" is the text's own order`);
+      }
+    }
+  }
+}
+
 const CHECKS = {
   word(item, problems, ctx) {
     checkTextMap(item.text, "text", problems, { mustHave: ["en"] });
@@ -183,6 +206,7 @@ const CHECKS = {
     }
     checkExamples(item.examples, problems);
     checkTextMap(item.note, "note", problems, { required: false });
+    checkOtherOrders(item, problems);
     if (isObject(item.text)) checkWordTypes(item.wordTypes, [item.text.en, item.text["en-GB"]], "wordTypes", problems);
   },
 

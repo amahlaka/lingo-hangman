@@ -2,7 +2,7 @@
 // phrase, listen and choose). Words are pairs `{ learning, native, categories }`
 // as returned by src/lib/words.js. No React here so the rules are easy to test.
 
-import { DEFAULT_LEARNING_LANG, DEFAULT_NATIVE_LANG, decodeWords, filterCommonWords, getWordGroups } from "../../lib/words";
+import { DEFAULT_LEARNING_LANG, DEFAULT_NATIVE_LANG, decodeWords, filterCommonWords, getItem, getWordGroups } from "../../lib/words";
 import { sentenceWords } from "../../lib/contentSchema";
 import { wordClassOf } from "../../lib/wordTypes";
 import { gapItemChoices } from "../../lib/decoys";
@@ -135,12 +135,23 @@ export function givenPlaces(answer, random = Math.random) {
   return shuffle(answer.map((_, i) => i), random).slice(0, count).sort((a, b) => a - b);
 }
 
+// The other right orders of a sentence from its word bank item
+// (`otherOrders`, "Please take off your shoes."), as phrase tokens.
+function otherOrdersOf(target) {
+  const item = target.id ? getItem(target.id) : null;
+  if (!item?.otherOrders || !item.text) return [];
+  const lang = Object.keys(item.text).find((l) => item.text[l] === target.learning);
+  return (item.otherOrders[lang] || []).map(phraseTokens);
+}
+
 // Chips with stable ids so repeated words ("the … the") stay distinct; a
 // chip's id is its place in the answer. `given` lists the places whose chips
 // start out locked in place (see givenPlaces); by default beginners get them.
+// `orders` are the other right orders the check accepts.
 export function buildPhrasePuzzle(target, random = Math.random, { easy = getPreferences().difficulty === "easy" } = {}) {
   const text = target.learning;
   const answer = phraseTokens(text);
+  const orders = otherOrdersOf(target);
   const chips = answer.map((word, id) => ({ id, word }));
   const inOrder = (list) => list.every((c, i) => c.word === answer[i]);
   let shuffled = shuffle(chips, random);
@@ -148,13 +159,29 @@ export function buildPhrasePuzzle(target, random = Math.random, { easy = getPref
   for (let tries = 0; tries < 5 && inOrder(shuffled); tries++) shuffled = shuffle(chips, random);
   if (inOrder(shuffled) && shuffled.length > 1) shuffled = [...shuffled.slice(1), shuffled[0]];
   const given = easy ? givenPlaces(answer, random) : [];
-  return { target, text, answer, ending: phraseEnding(text), chips: shuffled, given };
+  return { target, text, answer, orders, ending: phraseEnding(text), chips: shuffled, given };
 }
 
 const sameWord = (a, b) => a.toLowerCase() === b.toLowerCase();
 
-export function checkPhrase(placedWords, answer) {
-  return placedWords.length === answer.length && placedWords.every((w, i) => sameWord(w, answer[i]));
+// Every right order: the answer, the item's other orders, and each of them
+// with "please" moved to the other end, as a request can have it at either
+// ("Please take your shoes off" or "Take your shoes off, please").
+export function phraseOrders(answer, others = []) {
+  const orders = [];
+  for (const order of [answer, ...others]) {
+    orders.push(order);
+    const last = order.length - 1;
+    if (order.length > 2 && sameWord(order[0], "please")) orders.push([...order.slice(1), order[0]]);
+    if (order.length > 2 && sameWord(order[last], "please")) orders.push([order[last], ...order.slice(0, last)]);
+  }
+  return orders;
+}
+
+export function checkPhrase(placedWords, answer, others = []) {
+  return phraseOrders(answer, others).some(
+    (order) => placedWords.length === order.length && placedWords.every((w, i) => sameWord(w, order[i])),
+  );
 }
 
 // The places where the placed word is the right one, wherever they are in the

@@ -157,7 +157,7 @@ async function wordBase() {
   );
   const audio = path.join(content, "audio");
   await fs.mkdir(audio);
-  await fs.writeFile(path.join(audio, "index.json"), JSON.stringify({ voices: { "kokoro-1.0-v4-af_nova": ["old"] } }));
+  await fs.writeFile(path.join(audio, "index.json"), JSON.stringify({ voices: { "kokoro-1.0-v5-af_nova": ["old"] } }));
   return { fs, path, audio, env: { CONTENT_DIR: content, CLIP_DIR: audio }, done: () => fs.rm(root, { recursive: true, force: true }) };
 }
 
@@ -170,16 +170,16 @@ test("a word-base text without a clip gets one saved like a recorded clip, for a
 
   const made = await t.call("POST", "/api/tts/clip", { text: " kitchen ", voice: "male" });
   assert.equal(made.statusCode, 200);
-  assert.deepEqual(made.json(), { folder: "kokoro-1.0-v4-am_liam", key, made: true });
+  assert.deepEqual(made.json(), { folder: "kokoro-1.0-v5-am_liam", key, made: true });
   assert.deepEqual(fake.calls[0].body, { text: "kitchen", voice: "am_liam", speed: 0.8, format: "mp3" });
-  const file = base.path.join(base.audio, "kokoro-1.0-v4-am_liam", `${key}.mp3`);
+  const file = base.path.join(base.audio, "kokoro-1.0-v5-am_liam", `${key}.mp3`);
   assert.equal(await base.fs.readFile(file, "utf8"), "mp3:kitchen");
   const index = JSON.parse(await base.fs.readFile(base.path.join(base.audio, "index.json"), "utf8"));
-  assert.deepEqual(index.voices, { "kokoro-1.0-v4-af_nova": ["old"], "kokoro-1.0-v4-am_liam": [key] });
+  assert.deepEqual(index.voices, { "kokoro-1.0-v5-af_nova": ["old"], "kokoro-1.0-v5-am_liam": [key] });
 
   // Asked again: already saved, nothing made.
   const again = await t.call("POST", "/api/tts/clip", { text: "kitchen", voice: "male" });
-  assert.deepEqual(again.json(), { folder: "kokoro-1.0-v4-am_liam", key, made: false });
+  assert.deepEqual(again.json(), { folder: "kokoro-1.0-v5-am_liam", key, made: false });
   assert.equal(fake.calls.length, 1);
 
   // Example sentences are word-base texts too; anything else is not.

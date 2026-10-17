@@ -55,6 +55,14 @@ describe("item checks", () => {
     expect(validateItem({ id: "w", type: "word", text: { fi: "kissa" } })).toEqual(['text needs "en"']);
   });
 
+  it("checks a sentence's other word orders", () => {
+    const shoes = { id: "shoes-off", type: "word", text: { en: "Please take your shoes off.", fi: "Ota kengät pois." } };
+    expect(validateItem({ ...shoes, otherOrders: { en: ["Please take off your shoes."] } })).toEqual([]);
+    expect(validateItem({ ...shoes, otherOrders: { en: ["Please remove your shoes."] } })[0]).toMatch(/same words/);
+    expect(validateItem({ ...shoes, otherOrders: { en: ["please take your shoes off"] } })[0]).toMatch(/own order/);
+    expect(validateItem({ ...shoes, otherOrders: { sv: ["Ta av dig skorna."] } })[0]).toMatch(/no sv text/);
+  });
+
   it("finds duplicate ids and unlisted packs across files", () => {
     const raw = clone(bundled);
     raw.packs[0].items.push(clone(raw.packs[1].items[0]));

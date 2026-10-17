@@ -15,3 +15,4 @@ export { default as CategoryChips } from "./CategoryChips";
 export { default as ExampleText, plainText } from "./ExampleText";
 export { TypeKey, TypeLabel, typeClass, useAutoTypeHelp, useLooseWordType, useTypePrefs } from "./WordTypes";
 export { keepInView } from "./keepInView";
+export { default as ExtraTryOffer, useExtraTry } from "./ExtraTryOffer";

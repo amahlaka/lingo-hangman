@@ -11,6 +11,10 @@
 // - figure: something the hangman figure wears.
 // The first item of each kind is free and in use by default.
 //
+// Besides these, the shop sells extra tries (EXTRA_TRY): a stock kept in
+// `shop.extraTries`, each one used up when a learner who ran out of tries on a
+// word keeps going (Hangman, Type it, Build the phrase).
+//
 // The shop lives in the progress state under `shop`; everything here is a pure
 // function over that state, like src/lib/progress.js.
 
@@ -70,6 +74,9 @@ export const SHOP_ITEMS = [
   { id: "figure-crown", kind: "figure", value: "crown", price: 120 },
 ];
 
+// An extra try: bought into a stock of at most `max`, used one at a time.
+export const EXTRA_TRY = { id: "extra-try", price: 10, max: 5 };
+
 export function shopItem(id) {
   return SHOP_ITEMS.find((item) => item.id === id) || null;
 }
@@ -85,6 +92,8 @@ export function emptyShop() {
     owned: [],
     // kind -> item id in use
     equipped: Object.fromEntries(FREE_ITEMS.map((item) => [item.kind, item.id])),
+    // Extra tries bought and not used yet.
+    extraTries: 0,
   };
 }
 
@@ -124,6 +133,7 @@ export function equippedValues(state) {
 // Buy an item and put it in use. Returns { state, ok, reason }; reason is
 // "unknown", "owned" or "gems" when nothing changed.
 export function buyItem(state, id) {
+  if (id === EXTRA_TRY.id) return buyExtraTry(state);
   const item = shopItem(id);
   if (!item) return { state, ok: false, reason: "unknown" };
   if (ownsItem(state, id)) return { state, ok: false, reason: "owned" };
@@ -133,6 +143,7 @@ export function buyItem(state, id) {
     state: {
       ...state,
       shop: {
+        ...shop,
         gems: gemBalance(state) - item.price,
         owned: [...shop.owned, id],
         equipped: { ...shop.equipped, [item.kind]: id },
@@ -148,4 +159,30 @@ export function equipItem(state, id) {
   if (!item || !ownsItem(state, id)) return state;
   const shop = shopOf(state);
   return { ...state, shop: { ...shop, equipped: { ...shop.equipped, [item.kind]: id } } };
+}
+
+// Extra tries the learner has.
+export function extraTryCount(state) {
+  return Math.max(0, Math.floor(shopOf(state).extraTries || 0));
+}
+
+// Buy one extra try. Returns { state, ok, reason }; reason is "full" when the
+// stock is at EXTRA_TRY.max or "gems" when there aren't enough.
+export function buyExtraTry(state) {
+  const have = extraTryCount(state);
+  if (have >= EXTRA_TRY.max) return { state, ok: false, reason: "full" };
+  if (gemBalance(state) < EXTRA_TRY.price) return { state, ok: false, reason: "gems" };
+  const shop = shopOf(state);
+  return {
+    state: { ...state, shop: { ...shop, gems: gemBalance(state) - EXTRA_TRY.price, extraTries: have + 1 } },
+    ok: true,
+  };
+}
+
+// Use one extra try. Returns { state, ok }; ok is false when there are none.
+export function useExtraTry(state) {
+  const have = extraTryCount(state);
+  if (have < 1) return { state, ok: false };
+  const shop = shopOf(state);
+  return { state: { ...state, shop: { ...shop, extraTries: have - 1 } }, ok: true };
 }

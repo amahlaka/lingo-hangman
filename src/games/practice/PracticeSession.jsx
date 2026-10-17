@@ -7,7 +7,7 @@ import i18n, { fill } from "../../i18n";
 import { ACHIEVEMENTS, badgeText } from "../../lib/progress";
 import { DailyProgress, Feedback, GameScreen, ScorePill, WordRecap, keepInView, useConfetti } from "../../components/lingo";
 import { sounds } from "../../lib/sounds";
-import { RULE_PEEK_COST, addResult, emptyTally } from "./practiceLogic";
+import { FREE_HINTS, RULE_PEEK_COST, addResult, emptyTally } from "./practiceLogic";
 import { RuleContext } from "./RuleBox";
 import { ReportButton, useReportSubject } from "../../app/FeedbackContext";
 import { QuestionControls } from "./questionControls";
@@ -115,6 +115,7 @@ export default function PracticeSession({
   const [results, setResults] = useState([]);
   const [marks, setMarks] = useState([]);
   const [tally, setTally] = useState(emptyTally);
+  const [freeHints, setFreeHints] = useState(FREE_HINTS);
   const [current, setCurrent] = useState(null);
   const [plus, setPlus] = useState(null);
   const [roundKey, setRoundKey] = useState(0);
@@ -296,23 +297,34 @@ export default function PracticeSession({
     setMarks([]);
     board.current = { items: [], banner: null };
     setTally(emptyTally());
+    setFreeHints(FREE_HINTS);
     setCurrent(null);
     setRuleStep(false);
     setRoundKey((k) => k + 1);
   };
 
-  // Help before answering (seeing the rule, word-type hints) costs some of
-  // this round's points. `pay(cost)` returns false when there aren't enough.
+  // Help before answering (seeing the rule, word-type hints) uses one of the
+  // round's free hints, then costs some of this round's points. `pay(cost)`
+  // returns false when there aren't enough.
   const pay = (cost) => {
+    if (freeHints > 0) {
+      setFreeHints((n) => n - 1);
+      return true;
+    }
     if (tally.xp < cost) return false;
     setTally((s) => ({ ...s, xp: s.xp - cost }));
     setPlus({ n: -cost, key: Date.now() });
     return true;
   };
-  const points = current ? null : { xp: tally.xp, pay };
+  const points = current ? null : { xp: tally.xp, free: freeHints, pay };
   const peek = current
     ? null
-    : { cost: RULE_PEEK_COST, canAfford: tally.xp >= RULE_PEEK_COST, pay: () => pay(RULE_PEEK_COST) };
+    : {
+        cost: RULE_PEEK_COST,
+        free: freeHints > 0,
+        canAfford: freeHints > 0 || tally.xp >= RULE_PEEK_COST,
+        pay: () => pay(RULE_PEEK_COST),
+      };
   const ruleContext = { mode: rule.mode, inlineRef: rule.inlineRef, traySlot, stepSlot, peek, points };
 
   const score = <ScorePill label={t.pointsLabel} value={tally.xp} plus={plus?.n} plusKey={plus?.key} />;

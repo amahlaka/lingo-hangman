@@ -1,12 +1,12 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
-import { Gem } from "lucide-react";
+import { Gem, RotateCcw } from "lucide-react";
 import { useSettings } from "./SettingsContext";
 import { useProgress } from "./ProgressContext";
 import { fill } from "../i18n";
 import { Feedback, GameScreen, ScorePill, useConfetti } from "../components/lingo";
 import { FigurePreview } from "../games/hangman/HangmanDrawing";
-import { CONFETTI, SHOP_ITEMS, SHOP_KINDS, accentVars, ownsItem } from "../lib/cosmetics";
+import { CONFETTI, EXTRA_TRY, SHOP_ITEMS, SHOP_KINDS, accentVars, ownsItem } from "../lib/cosmetics";
 import { GEMS, STREAK_MILESTONE_GEMS } from "../lib/progress";
 
 // A small still scatter of a confetti set.
@@ -45,6 +45,35 @@ function ItemPreview({ item, dark }) {
   );
 }
 
+// Extra tries: a stock to keep going on a word after running out of tries.
+function ExtraTries({ s, gems, have, onBuy }) {
+  const short = EXTRA_TRY.price - gems;
+  const full = have >= EXTRA_TRY.max;
+  return (
+    <section className="lg-section" aria-labelledby="sh-extra-try">
+      <h2 id="sh-extra-try" className="lg-heading">{s.extraTriesTitle}</h2>
+      <p className="lg-caption">{fill(s.extraTriesHint, { max: EXTRA_TRY.max })}</p>
+      <ul className="sh-items">
+        <li className="sh-item">
+          <span className="sh-preview sh-preview--extra" aria-hidden="true"><RotateCcw size={28} strokeWidth={2} /></span>
+          <span className="sh-item__name">{s.extraTryName}</span>
+          <span className="lg-caption">{fill(s.extraTriesHave, { n: have })} · {fill(s.price, { n: EXTRA_TRY.price })}</span>
+          <div className="sh-item__actions">
+            {full ? (
+              <span className="lg-caption">{s.extraTriesFull}</span>
+            ) : (
+              <button type="button" className="lg-btn lg-btn--primary" disabled={short > 0} onClick={onBuy}
+                aria-label={fill(s.buyAria, { name: s.extraTryName, n: EXTRA_TRY.price })}>
+                {short > 0 ? fill(s.more, { n: short }) : fill(s.buy, { n: EXTRA_TRY.price })}
+              </button>
+            )}
+          </div>
+        </li>
+      </ul>
+    </section>
+  );
+}
+
 // How gems are earned, from the rules in progress.js.
 function EarnList({ g }) {
   const milestones = Object.entries(STREAK_MILESTONE_GEMS);
@@ -72,7 +101,7 @@ function EarnList({ g }) {
 // figure. See src/lib/cosmetics.js for how the balance works.
 export default function Shop() {
   const { t, dark } = useSettings();
-  const { state, gems, cosmetics, buyItem, equipItem } = useProgress();
+  const { state, gems, cosmetics, buyItem, equipItem, extraTries } = useProgress();
   const { celebrate, confetti } = useConfetti();
   const [news, setNews] = useState(null);
   const [spent, setSpent] = useState(null);
@@ -85,6 +114,13 @@ export default function Shop() {
     setSpent({ n: -item.price, key: Date.now() });
     setNews({ id: item.id, title: fill(s.bought, { name: nameOf(item) }) });
     celebrate("large", item.kind === "confetti" ? item.value : undefined);
+  };
+
+  const buyExtraTry = () => {
+    const { ok } = buyItem(EXTRA_TRY.id);
+    if (!ok) return;
+    setSpent({ n: -EXTRA_TRY.price, key: Date.now() });
+    setNews({ id: EXTRA_TRY.id, title: fill(s.extraTryBought, { n: extraTries + 1 }) });
   };
 
   const use = (item) => {
@@ -150,6 +186,8 @@ export default function Shop() {
             </ul>
           </section>
         ))}
+
+        <ExtraTries s={s} gems={gems} have={extraTries} onBuy={buyExtraTry} />
 
         <EarnList g={t.gems} />
 

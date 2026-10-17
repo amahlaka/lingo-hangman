@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Volume2 } from "lucide-react";
-import { TriesMeter } from "../../components/lingo";
+import { ExtraTryOffer, TriesMeter, useExtraTry } from "../../components/lingo";
 import { fill } from "../../i18n";
 import { sounds } from "../../lib/sounds";
 import { RATE_SLOW, canSpeak, speak, stopSpeaking } from "../../lib/speech";
@@ -76,6 +76,11 @@ export default function TypeQuestion({ question, done, onDone, p, learningLang, 
   const [firstLetters, setFirstLetters] = useState(false);
   const [revealed, setRevealed] = useState(0);
   const [solved, setSolved] = useState(false);
+  // Extra tries from the shop used here, and whether one is being offered.
+  const [bonus, setBonus] = useState(0);
+  const [offer, setOffer] = useState(false);
+  const extraTry = useExtraTry();
+  const maxTries = MAX_TYPE_TRIES + bonus;
   const inputRef = useRef(null);
 
   // A sentence to type is heard first.
@@ -98,7 +103,7 @@ export default function TypeQuestion({ question, done, onDone, p, learningLang, 
       wrong: typed.current,
       firstTry: solved && missCount === 0,
       tries: missCount + 1,
-      triesLeft: Math.max(0, MAX_TYPE_TRIES - missCount),
+      triesLeft: Math.max(0, maxTries - missCount),
       answer: text,
       meaning: target.native,
     });
@@ -106,7 +111,7 @@ export default function TypeQuestion({ question, done, onDone, p, learningLang, 
 
   const submit = (e) => {
     e.preventDefault();
-    if (done || !value.trim()) return;
+    if (done || offer || !value.trim()) return;
     const checked = checkTyped(text, value, alternatives);
     if (checked.correct) {
       setResult(null);
@@ -118,7 +123,12 @@ export default function TypeQuestion({ question, done, onDone, p, learningLang, 
     typed.current = [...typed.current, value.trim()];
     const next = misses + 1;
     setMisses(next);
-    if (next >= MAX_TYPE_TRIES) finish(false, next);
+    if (next >= maxTries) {
+      if (extraTry.available) {
+        sounds.miss();
+        setOffer(true);
+      } else finish(false, next);
+    }
     else {
       sounds.miss();
       focusInput();
@@ -138,17 +148,23 @@ export default function TypeQuestion({ question, done, onDone, p, learningLang, 
   const nextWord = revealNextWord(text, value, revealed);
   const hints = [];
   if (!firstLetters) {
-    hints.push({ id: "shape", label: fill(p.typeHintShape, { n: TYPE_HINT_COSTS.shape }), cost: TYPE_HINT_COSTS.shape, onBuy: () => setFirstLetters(true) });
+    hints.push({ id: "shape", label: p.typeHintShape, cost: TYPE_HINT_COSTS.shape, onBuy: () => {
+      setFirstLetters(true);
+      setTimeout(focusInput, 0);
+    } });
   }
   if (dictation) {
-    if (nextWord) hints.push({ id: "word", label: fill(p.typeHintWord, { n: TYPE_HINT_COSTS.word }), cost: TYPE_HINT_COSTS.word, onBuy: () => reveal(revealNextWord(text, value, revealed)) });
+    if (nextWord) hints.push({ id: "word", label: p.typeHintWord, cost: TYPE_HINT_COSTS.word, onBuy: () => reveal(revealNextWord(text, value, revealed)) });
   } else {
-    if (nextLetter) hints.push({ id: "letter", label: fill(p.typeHintLetter, { n: TYPE_HINT_COSTS.letter }), cost: TYPE_HINT_COSTS.letter, onBuy: () => reveal(revealNextLetter(text, value, revealed)) });
-    if (canSpeak()) hints.push({ id: "hear", label: fill(p.typeHintHear, { n: TYPE_HINT_COSTS.hear }), cost: TYPE_HINT_COSTS.hear, onBuy: () => speak(text, { lang: learningLang }) });
+    if (nextLetter) hints.push({ id: "letter", label: p.typeHintLetter, cost: TYPE_HINT_COSTS.letter, onBuy: () => reveal(revealNextLetter(text, value, revealed)) });
+    if (canSpeak()) hints.push({ id: "hear", label: p.typeHintHear, cost: TYPE_HINT_COSTS.hear, onBuy: () => {
+      speak(text, { lang: learningLang });
+      focusInput();
+    } });
   }
 
   const showShape = !done && (firstLetters || revealed > 0);
-  const left = MAX_TYPE_TRIES - misses;
+  const left = maxTries - misses;
   const isPhrase = text.includes(" ");
 
   return (
@@ -194,7 +210,7 @@ export default function TypeQuestion({ question, done, onDone, p, learningLang, 
               setValue(e.target.value);
               if (result) setResult(null);
             }}
-            readOnly={done}
+            readOnly={done || offer}
             lang={learningLang}
             autoComplete="off"
             autoCorrect="off"
@@ -203,7 +219,7 @@ export default function TypeQuestion({ question, done, onDone, p, learningLang, 
             enterKeyHint="done"
             autoFocus
           />
-          <button type="submit" className="lg-btn lg-btn--primary" disabled={done || !value.trim()}>
+          <button type="submit" className="lg-btn lg-btn--primary" disabled={done || offer || !value.trim()}>
             {p.check}
           </button>
         </div>
@@ -221,13 +237,27 @@ export default function TypeQuestion({ question, done, onDone, p, learningLang, 
         </p>
       )}
 
-      {!done && misses > 0 && (
+      {!done && offer && (
+        <ExtraTryOffer
+          onUse={() => {
+            setBonus((b) => b + 1);
+            setOffer(false);
+            setTimeout(focusInput, 0);
+          }}
+          onDecline={() => {
+            setOffer(false);
+            finish(false, misses);
+          }}
+        />
+      )}
+
+      {!done && !offer && misses > 0 && (
         <div className="sy-after-miss">
-          <TriesMeter left={left} total={MAX_TYPE_TRIES} label={left === 1 ? p.sayTryLeft : fill(p.sayTriesLeft, { n: left })} />
+          <TriesMeter left={left} total={maxTries} label={left === 1 ? p.sayTryLeft : fill(p.sayTriesLeft, { n: left })} />
         </div>
       )}
 
-      {!done && <PaidHints hints={hints} />}
+      {!done && !offer && <PaidHints hints={hints} />}
     </div>
   );
 }

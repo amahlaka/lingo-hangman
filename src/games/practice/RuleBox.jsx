@@ -1,6 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useSettings } from "../../app/SettingsContext";
+import { Lock } from "lucide-react";
 import { fill } from "../../i18n";
 
 // Where PracticeSession puts the explanation once a question is answered, so
@@ -10,7 +11,8 @@ import { fill } from "../../i18n";
 //   step     its own view after "Next", on short screens
 // Outside a PracticeSession the box always stays in place.
 // The context also carries the round's points while a question is open:
-// `peek` for RulePeek and `points: { xp, pay(cost) }` for other paid hints.
+// `peek` for RulePeek and `points: { xp, free, pay(cost) }` for other paid
+// hints, where `free` is how many free hints the round has left.
 export const RuleContext = createContext(null);
 
 // Scrolling down while the bar holds a cut-off rule opens it: the learner is
@@ -120,58 +122,72 @@ export function RuleBox({ label, className = "", lead = null, children }) {
   );
 }
 
-// "Show the rule" before answering, for a few of this round's points. Only
-// shown inside a PracticeSession; `onPeek` is called once the points are paid.
+// What a hint costs, after its label: "free" while the round has free hints.
+function costTag(p, free, cost) {
+  return free ? p.hintFree : fill(p.hintCost, { n: cost });
+}
+
+// A hint button; one the learner can't afford yet shows a lock.
+function HintButton({ label, disabled, onClick }) {
+  return (
+    <button type="button" className="lg-btn lg-btn--quiet pg-hint-btn" disabled={disabled} onClick={onClick}>
+      {disabled && <Lock size={14} strokeWidth={2} aria-hidden="true" />}
+      {label}
+    </button>
+  );
+}
+
+// "Show the rule" before answering, for a free hint or a few of this round's
+// points. Only shown inside a PracticeSession; `onPeek` is called once paid.
 export function RulePeek({ onPeek }) {
   const ctx = useContext(RuleContext);
   const { t } = useSettings();
   const p = t.practice;
   if (!ctx?.peek) return null;
-  const { cost, canAfford, pay } = ctx.peek;
+  const { cost, free, canAfford, pay } = ctx.peek;
   return (
     <div className="pg-peek">
-      <button
-        type="button"
-        className="lg-btn lg-btn--quiet"
+      <HintButton
+        label={`${p.rulePeek} (${costTag(p, free, cost)})`}
         disabled={!canAfford}
         onClick={() => {
           if (pay()) onPeek();
         }}
-      >
-        {fill(p.rulePeek, { n: cost })}
-      </button>
+      />
       {!canAfford && <p className="lg-caption">{fill(p.rulePeekLater, { n: cost })}</p>}
     </div>
   );
 }
 
-// Hints bought with this round's points before answering, as one row of quiet
-// buttons: [{ id, label, cost, onBuy }]. Only shown inside a PracticeSession.
+// Hints used before answering, as one row of quiet buttons:
+// [{ id, label, cost, onBuy }]. The round's free hints go first, then hints
+// cost this round's points. Only shown inside a PracticeSession.
 export function PaidHints({ hints }) {
   const ctx = useContext(RuleContext);
   const { t } = useSettings();
   const p = t.practice;
   if (!ctx?.points || !hints.length) return null;
-  const { xp, pay } = ctx.points;
+  const { xp, free = 0, pay } = ctx.points;
   const cheapest = Math.min(...hints.map((h) => h.cost));
   return (
     <div className="pg-peek">
       <div className="pg-peek__row">
         {hints.map((h) => (
-          <button
+          <HintButton
             key={h.id}
-            type="button"
-            className="lg-btn lg-btn--quiet"
-            disabled={xp < h.cost}
+            label={`${h.label} (${costTag(p, free > 0, h.cost)})`}
+            disabled={free === 0 && xp < h.cost}
             onClick={() => {
               if (pay(h.cost)) h.onBuy();
             }}
-          >
-            {h.label}
-          </button>
+          />
         ))}
       </div>
-      {xp < cheapest && <p className="lg-caption">{fill(p.hintsLater, { n: cheapest })}</p>}
+      {free > 0 ? (
+        <p className="lg-caption">{fill(p.freeHintsLeft, { n: free })}</p>
+      ) : (
+        xp < cheapest && <p className="lg-caption">{fill(p.hintsLater, { n: cheapest })}</p>
+      )}
     </div>
   );
 }

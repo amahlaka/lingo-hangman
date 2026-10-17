@@ -258,7 +258,9 @@ word (`"noun:subject"`, `"auxiliary"`, `"verb"`…; the list is `WORD_CLASSES` i
   an easy one (level 1-2) when sentences of its level have been hard lately, or
   this sentence has been (`hardLevels`, `autoHints`).
 - Paid hints go through `PaidHints` (`src/games/practice/RuleBox.jsx`), which
-  spends this round's points; costs are `SLOT_HINT_COST` and `OPTION_HINT_COST`.
+  uses the round's free hints first (`FREE_HINTS`, 3 per game, also used by
+  Hangman and `RulePeek`) and then spends this round's points; costs are
+  `SLOT_HINT_COST` and `OPTION_HINT_COST`.
 
 Build the phrase uses all of it: labelled places (8 points), word types on the
 chips (5), colours, and the sentence-structure rule each sentence practises
@@ -350,3 +352,11 @@ The rules are pure functions in `src/lib/insights.js`. Days also keep
 - **Read and understand** (`read/`, `/read`): texts with `questions`; tap a
   sentence to hear it and see the Finnish, then answer the questions one at a
   time (each recorded with `onItem`). `?set=<text id>`.
+
+## Extra tries
+
+The shop sells extra tries (`EXTRA_TRY` in `src/lib/cosmetics.js`, a stock in
+`shop.extraTries`). When a learner runs out of tries in Hangman, Type it or
+Build the phrase and has one (or the gems for one), the game shows
+`ExtraTryOffer` instead of the answer; `useExtraTry().available` says when.
+Using one adds a try to that word; it syncs as a `use` event.

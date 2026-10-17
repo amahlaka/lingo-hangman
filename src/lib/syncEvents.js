@@ -9,16 +9,17 @@
 //                              `wrong` (what was answered on wrong tries) and
 //                              `skipped`
 //   goal     { goal }          daily goal changed
-//   buy      { id }            shop item bought
+//   buy      { id }            shop item bought (or one extra try)
+//   use      { id }            one extra try used ("extra-try")
 //   equip    { id }            owned item put in use
 //   baseline { state }         the whole progress, replacing what was before
 //                              (a device's progress joining an empty account)
 //   merge    { state }         a device's progress added to the account's
 
 import { mergeProgress, normalizeProgress, recordWord, setDailyGoal } from "./progress.js";
-import { buyItem, equipItem } from "./cosmetics.js";
+import { buyItem, equipItem, useExtraTry } from "./cosmetics.js";
 
-export const EVENT_TYPES = ["answer", "goal", "buy", "equip", "baseline", "merge"];
+export const EVENT_TYPES = ["answer", "goal", "buy", "equip", "use", "baseline", "merge"];
 const DAY_RE = /^\d{4}-\d{2}-\d{2}$/;
 const ID_RE = /^[A-Za-z0-9_-]{8,64}$/;
 const MAX_WRONG = 8;
@@ -67,6 +68,7 @@ export function cleanEvent(e) {
       break;
     case "buy":
     case "equip":
+    case "use":
       if (!str(p.id, 60)) return null;
       payload = { id: p.id };
       break;
@@ -89,6 +91,8 @@ export function applyEvent(state, event, ctx = {}) {
       return buyItem(state, p.id).state;
     case "equip":
       return equipItem(state, p.id);
+    case "use":
+      return p.id === "extra-try" ? useExtraTry(state).state : state;
     case "baseline":
       return normalizeProgress(p.state);
     case "merge":

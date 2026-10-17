@@ -6,17 +6,17 @@ export const HINT_COSTS = { fifty: 5, remove: 8, clear: 25 };
 
 // Hints for this game: the first few are free (`free` left), then they are
 // bought with this session's points. Each is an icon with its cost (a gift
-// while free, a lock when out of reach) and a full description as its
-// accessible name.
+// while free, a lock when out of reach) over a short line saying what it
+// does, with the full description as its accessible name.
 export default function HintButtons({ points, free = 0, available, onHint, t }) {
   const hints = [
-    { id: "fifty", Icon: Dices, name: t.hintFifty, desc: t.hintFiftyDesc },
-    { id: "remove", Icon: Eraser, name: t.hintRemove, desc: t.hintRemoveDesc },
-    { id: "clear", Icon: Wand2, name: t.hintClear, desc: t.hintClearDesc },
+    { id: "fifty", Icon: Dices, name: t.hintFifty, short: t.hintFiftyShort, desc: t.hintFiftyDesc },
+    { id: "remove", Icon: Eraser, name: t.hintRemove, short: t.hintRemoveShort, desc: t.hintRemoveDesc },
+    { id: "clear", Icon: Wand2, name: t.hintClear, short: t.hintClearShort, desc: t.hintClearDesc },
   ];
   return (
     <div className="hm-hints" role="group" aria-label={t.hints}>
-      {hints.map(({ id, Icon, name, desc }) => {
+      {hints.map(({ id, Icon, name, short, desc }) => {
         const cost = HINT_COSTS[id];
         const affordable = free > 0 || points >= cost;
         const enabled = available[id] && affordable;
@@ -31,14 +31,11 @@ export default function HintButtons({ points, free = 0, available, onHint, t }) 
             aria-label={`${name}. ${description}`}
             title={affordable ? description : `${description}. ${t.hintNeedPoints}`}
           >
-            <Icon size={18} strokeWidth={2} aria-hidden="true" />
-            {free > 0 ? (
-              <Gift size={14} strokeWidth={2} aria-hidden="true" />
-            ) : affordable ? (
-              <span aria-hidden="true">{cost}</span>
-            ) : (
-              <Lock size={14} strokeWidth={2} aria-hidden="true" />
-            )}
+            <span className="hm-hint__top" aria-hidden="true">
+              <Icon size={18} strokeWidth={2} />
+              {free > 0 ? <Gift size={14} strokeWidth={2} /> : affordable ? <span>{cost}</span> : <Lock size={14} strokeWidth={2} />}
+            </span>
+            <span className="hm-hint__what" aria-hidden="true">{short}</span>
           </button>
         );
       })}

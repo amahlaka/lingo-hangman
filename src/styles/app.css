@@ -232,8 +232,10 @@ a { color: var(--lake); }
 .hm-figure > * { stroke-dasharray: 1; stroke-dashoffset: 0; animation: hm-draw 0.35s ease-out both; }
 @keyframes hm-draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
 
-.hm-hints { display: flex; flex-direction: column; gap: var(--space-2); }
-.hm-hint { min-width: var(--space-12); padding: 0 var(--space-3); font-size: 13px; gap: var(--space-1); }
+.hm-hints { display: flex; flex-direction: column; gap: var(--space-2); width: 7.5rem; }
+.hm-hint { flex-direction: column; min-width: var(--space-12); padding: var(--space-1) var(--space-2); font-size: 13px; gap: 2px; }
+.hm-hint__top { display: inline-flex; align-items: center; gap: var(--space-1); }
+.hm-hint__what { font-size: 12px; line-height: 15px; font-weight: 600; }
 .hm-hint--free:not(:disabled) { border-color: var(--lake); }
 .hm-hints__free { margin: 0; text-align: center; }
 

@@ -10,6 +10,7 @@ import { wordStanding } from "../lib/adaptive";
 import { Achievements, DailyProgress, Feedback, GameCard, SettingsMenu } from "../components/lingo";
 import { ShopCard } from "./Shop";
 import { RemindersOffer } from "./Reminders";
+import AccountOffer from "./AccountOffer";
 import MyPathCard from "./MyPath";
 
 // Show answer statistics once there are enough answers to say something.
@@ -134,6 +135,7 @@ export default function Home() {
         <DailyProgress />
         <Feedback variant={nudge.variant} icon={nudge.icon} title={nudge.title} />
         <RemindersOffer />
+        <AccountOffer />
 
         <MyPathCard />
 

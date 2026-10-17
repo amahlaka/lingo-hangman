@@ -468,6 +468,12 @@ const i18n = {
       signIn: "Sign in",
       errors: { not_joined: "You're not on the board.", too_many_requests: "That's a lot of new nicknames. Try again later." },
     },
+    accountOffer: {
+      title: "Keep your progress safe?",
+      text: "You've played on a few days now. Your progress is saved only on this device. A free account keeps it safe and lets you carry on on your phone or computer. There's no password: you sign in with an email code or a passkey.",
+      yes: "Create an account",
+      no: "No thanks",
+    },
     reminders: {
       title: "Reminders",
       intro: "A short note on your device if you haven't played yet that day. At most one a day, and none once you've played.",
@@ -1277,6 +1283,12 @@ const i18n = {
       signedOut: "Viikon taulukko vaatii tilin, jotta XP:si on sama kaikilla laitteillasi.",
       signIn: "Kirjaudu",
       errors: { not_joined: "Et ole taulukossa.", too_many_requests: "Paljon uusia lempinimiä. Yritä myöhemmin uudelleen." },
+    },
+    accountOffer: {
+      title: "Haluatko pitää edistymisesi tallessa?",
+      text: "Olet pelannut jo useana päivänä. Edistymisesi on tallessa vain tällä laitteella. Ilmaisella tilillä se pysyy tallessa, ja voit jatkaa puhelimella tai tietokoneella. Salasanaa ei tarvita: kirjaudut sähköpostiin tulevalla koodilla tai pääsyavaimella.",
+      yes: "Luo tili",
+      no: "Ei kiitos",
     },
     reminders: {
       title: "Muistutukset",

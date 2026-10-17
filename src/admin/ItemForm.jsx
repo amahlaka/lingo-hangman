@@ -139,6 +139,7 @@ function Examples({ item, set }) {
 const SOUND_KIND_HINTS = {
   silent: "Silent letters: learners tap the letter they don't hear.",
   sound: "Tricky letters: learners pick which sound the marked letters make.",
+  spell: "Spelling: learners hear the word and pick the marked letters from the spellings.",
   pairs: "Sound-alike words: learners hear a word and pick it or its pair.",
   letters: "Letter names: learners hear a letter and pick it.",
 };
@@ -155,11 +156,16 @@ function SoundLesson({ item, set }) {
           value={kind ?? ""}
           onChange={(e) => {
             const next = e.target.value;
-            set({ kind: next, sounds: next === "sound" ? (sounds.length ? sounds : [{ id: "", label: { en: "", fi: "" } }, { id: "", label: { en: "", fi: "" } }]) : undefined });
+            set({
+              kind: next,
+              sounds: next === "sound" ? (sounds.length ? sounds : [{ id: "", label: { en: "", fi: "" } }, { id: "", label: { en: "", fi: "" } }]) : undefined,
+              spellings: next === "spell" ? item.spellings || [] : undefined,
+            });
           }}
         >
           <option value="silent">Silent letters</option>
           <option value="sound">Tricky letters (more than one sound)</option>
+          <option value="spell">Spelling (ck or k)</option>
           <option value="pairs">Sound-alike words (ship / sheep)</option>
           <option value="letters">Letter names</option>
         </select>
@@ -184,6 +190,11 @@ function SoundLesson({ item, set }) {
           )}
         />
       )}
+      {kind === "spell" && (
+        <Field label="Spellings to choose from" hint="Separated by commas, like ck, k. Each word's [ ] letters must be one of them.">
+          <ListInput value={item.spellings || []} onChange={(spellings) => set({ spellings })} spellCheck={false} />
+        </Field>
+      )}
       <Rows
         label="Words"
         addLabel="Add word"
@@ -194,7 +205,12 @@ function SoundLesson({ item, set }) {
           <>
             <Field
               label={kind === "letters" ? "Letter" : "Word"}
-              hint={kind === "silent" ? "Put [ ] around the silent letters: [k]nife" : kind === "sound" ? "Put [ ] around the letters that make the sound: [c]ity" : undefined}
+              hint={
+                kind === "silent" ? "Put [ ] around the silent letters: [k]nife"
+                : kind === "sound" ? "Put [ ] around the letters that make the sound: [c]ity"
+                : kind === "spell" ? "Put [ ] around the letters the learner picks: ba[ck]"
+                : undefined
+              }
             >
               <TextInput value={w.text} onChange={(text) => change({ ...w, text })} spellCheck={false} />
             </Field>

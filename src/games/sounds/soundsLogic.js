@@ -8,7 +8,10 @@ import { wordKey } from "../../lib/progress";
 import { MAX_MISSES, ROUND_LENGTH, shuffle } from "../practice/practiceLogic";
 
 // Order of the sections on the lesson list.
-export const KINDS = ["silent", "sound", "pairs", "letters"];
+export const KINDS = ["silent", "sound", "spell", "pairs", "letters"];
+
+// Lessons whose words have letters marked with [ ].
+const MARKED = ["silent", "sound", "spell"];
 
 // Lessons whose questions can only be asked out loud.
 export const BY_EAR = ["pairs", "letters"];
@@ -16,7 +19,7 @@ export const BY_EAR = ["pairs", "letters"];
 // One lesson word, ready to show and say:
 // { text: "knife", parts: { before, marked, after } | null, say, fi, note, speak, sound }
 export function lessonWord(lesson, word) {
-  const parts = lesson.kind === "silent" || lesson.kind === "sound" ? parseMarked(word.text) : null;
+  const parts = MARKED.includes(lesson.kind) ? parseMarked(word.text) : null;
   const text = parts ? parts.plain : word.text;
   return {
     text,
@@ -82,6 +85,8 @@ export function soundOptions(lesson, words, asked, random = Math.random) {
 //   silent:  tap the letter you don't hear (`letters` are the word's letters)
 //   sound:   pick the sound the marked letters make (`options` are the lesson's
 //            sounds, each with an example word other than the one asked)
+//   spell:   hear the word and pick the letters missing from it (`options`
+//            are the lesson's spellings, in lesson order)
 //   pairs:   hear a word and pick it or the word it sounds like (`options` are the two)
 //   letters: hear a letter name and pick the letter (`options` are letters of the lesson)
 export function lessonQuestions(lesson, random = Math.random) {
@@ -98,6 +103,10 @@ export function lessonQuestions(lesson, random = Math.random) {
     if (lesson.kind === "silent") return { ...base, letters: word.text.split("") };
     if (lesson.kind === "sound") {
       return { ...base, options: soundOptions(lesson, words, word, random), answer: word.sound };
+    }
+    if (lesson.kind === "spell") {
+      const options = lesson.spellings.map((sp) => ({ id: sp.toLowerCase(), label: { en: sp } }));
+      return { ...base, options, answer: word.parts?.marked.toLowerCase() };
     }
     const others =
       lesson.kind === "pairs"

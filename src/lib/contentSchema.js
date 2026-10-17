@@ -72,12 +72,13 @@ export const TEXT_KINDS = ["dialogue", "story", "message", "email", "notice", "i
 // IPA between slashes: "/ˈkɪtʃɪn/".
 const IPA_PATTERN = /^\/[^/]+\/$/;
 
-// Pronunciation lessons ("sound" items) come in three kinds:
+// Pronunciation lessons ("sound" items) come in five kinds:
 //   silent   words with a letter you don't say: "[k]nife"
 //   sound    letters with more than one sound; each word names its `sound`
+//   spell    which letters write a sound: "ba[ck]", picked from `spellings`
 //   pairs    words that sound alike (ship / sheep); each word names its `pair`
 //   letters  English letter names: "A" is said "ei"
-export const SOUND_KINDS = ["silent", "sound", "pairs", "letters"];
+export const SOUND_KINDS = ["silent", "sound", "spell", "pairs", "letters"];
 
 // Square brackets mark the letters a pronunciation word is about: "[k]nife".
 const MARK_PATTERN = /^([^[\]]*)\[([^[\]]+)\]([^[\]]*)$/;
@@ -261,6 +262,17 @@ const CHECKS = {
         });
       }
     }
+    const spellings = new Set();
+    if (item.kind === "spell") {
+      if (!Array.isArray(item.spellings) || item.spellings.length < 2) problems.push("spellings needs at least two spellings to choose from");
+      else {
+        item.spellings.forEach((sp, i) => {
+          if (!isText(sp)) return problems.push(`spellings[${i + 1}] is empty`);
+          if (spellings.has(norm(sp))) problems.push(`spellings: "${sp}" is listed twice`);
+          spellings.add(norm(sp));
+        });
+      }
+    }
     if (!Array.isArray(item.words) || item.words.length < 3) {
       problems.push("words needs at least three words");
       return;
@@ -286,10 +298,14 @@ const CHECKS = {
       } else if (item.kind === "letters") {
         if (/[[\]]/.test(w.text)) problems.push(`${name}: letter names don't use [ ]`);
       } else if (!parseMarked(w.text)) {
-        problems.push(`${name}: put [ ] around the ${item.kind === "silent" ? "silent letters" : "letters that make the sound"}, once, like "[k]nife"`);
+        problems.push(`${name}: put [ ] around the ${item.kind === "silent" ? "silent letters" : item.kind === "spell" ? "letters the learner picks" : "letters that make the sound"}, once, like "[k]nife"`);
       }
       if (item.kind === "sound" && !soundIds.has(w.sound)) {
         problems.push(`${name}: sound must be one of the ids in sounds`);
+      }
+      const marked = parseMarked(w.text)?.marked;
+      if (item.kind === "spell" && spellings.size && marked && !spellings.has(norm(marked))) {
+        problems.push(`${name}: the letters in [ ] must be one of the spellings`);
       }
       const plain = norm(parseMarked(w.text)?.plain ?? w.text);
       if (seen.has(plain)) problems.push(`"${w.text}" is in words twice`);

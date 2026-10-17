@@ -18,6 +18,7 @@ import statsRoutes from "./routes/stats.js";
 import leaderboardRoutes from "./routes/leaderboard.js";
 import pathRoutes from "./routes/path.js";
 import playRoutes from "./routes/play.js";
+import mcpRoutes, { MCP_PATH } from "./routes/mcp.js";
 
 const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
 
@@ -47,9 +48,11 @@ export function buildApp({ db, config, logger = true, limiter = createRateLimite
 
   // Requests that change something must come from the app itself: the custom
   // header can't be sent cross-site without a CORS preflight, which this API
-  // never allows, and a browser's Origin must be one of the app's.
+  // never allows, and a browser's Origin must be one of the app's. The MCP
+  // endpoint is for AI tools, not the app: it takes a bearer token instead of
+  // the cookie and checks the Origin itself (routes/mcp.js).
   app.addHook("onRequest", async (req, reply) => {
-    if (SAFE_METHODS.has(req.method)) return;
+    if (SAFE_METHODS.has(req.method) || req.url.split("?")[0] === MCP_PATH) return;
     const origin = req.headers.origin;
     if (req.headers["x-lingo"] !== "1" || (origin && !config.origins.includes(origin))) {
       return reply.code(403).send({ error: "forbidden" });
@@ -87,6 +90,7 @@ export function buildApp({ db, config, logger = true, limiter = createRateLimite
   app.register(leaderboardRoutes, { db, limiter });
   app.register(pathRoutes, { db, limiter });
   app.register(playRoutes, { db, limiter });
+  app.register(mcpRoutes, { db, config });
 
   app.setNotFoundHandler((req, reply) => {
     reply.code(404).send({ error: "not_found" });

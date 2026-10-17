@@ -16,6 +16,7 @@ import ContentAdmin from "./admin/ContentAdmin";
 import AdminUsers from "./admin/AdminUsers";
 import AdminStats from "./admin/AdminStats";
 import AdminLearner from "./admin/AdminLearner";
+import AdminAi from "./admin/AdminAi";
 import HearSentence from "./app/HearSentence";
 import { TrackedGame } from "./app/PlayTracking";
 import { GAMES, PLAYABLE_GAME_IDS } from "./games/registry";
@@ -39,6 +40,7 @@ export function AppRoutes() {
       <Route path="/admin/users" element={<AdminUsers />} />
       <Route path="/admin/stats" element={<AdminStats />} />
       <Route path="/admin/users/:id" element={<AdminLearner />} />
+      <Route path="/admin/ai" element={<AdminAi />} />
       {GAMES.flatMap((game) =>
         (game.routes || []).map(({ path, Component }) => (
           <Route key={path} path={path} element={<TrackedGame id={game.id}><Component /></TrackedGame>} />

@@ -13,6 +13,10 @@ export const MAX_MISSES = 2;
 // Points from this round it costs to see a question's rule before answering.
 export const RULE_PEEK_COST = 5;
 
+// Hints every game starts with for free, so a learner can get help on the
+// first question (before any points) and try a hint without risking points.
+export const FREE_HINTS = 3;
+
 // The pairs a practice game draws from: a shared `?words=...` link if there is
 // one, otherwise every built-in word in the chosen languages.
 export function practicePool(params) {

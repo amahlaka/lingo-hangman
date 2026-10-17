@@ -13,8 +13,11 @@ import {
   streakStatus,
 } from "../lib/progress";
 import {
+  EXTRA_TRY,
   accentVars,
   buyItem as buyItemPure,
+  extraTryCount,
+  useExtraTry as useExtraTryPure,
   equipItem as equipItemPure,
   equippedValues,
   gemBalance,
@@ -238,6 +241,24 @@ export function ProgressProvider({ children, storage, gameIds = [] }) {
     queueEvent("equip", { id });
   }, [queueEvent]);
 
+  // Keep going after running out of tries on a word: uses an extra try, or
+  // buys one with gems first when there is none left. Returns true when used.
+  const spendExtraTry = useCallback(() => {
+    let current = stateRef.current;
+    if (extraTryCount(current) < 1) {
+      const bought = buyItemPure(current, EXTRA_TRY.id);
+      if (!bought.ok) return false;
+      current = bought.state;
+      queueEvent("buy", { id: EXTRA_TRY.id });
+    }
+    const { state: next, ok } = useExtraTryPure(current);
+    if (!ok) return false;
+    stateRef.current = next;
+    setState(next);
+    queueEvent("use", { id: EXTRA_TRY.id });
+    return true;
+  }, [queueEvent]);
+
   // The bought accent colour replaces the lake tokens on <html>.
   const cosmetics = useMemo(() => equippedValues(state), [state]);
   const { dark } = useSettings();
@@ -267,9 +288,11 @@ export function ProgressProvider({ children, storage, gameIds = [] }) {
       cosmetics,
       buyItem,
       equipItem,
+      extraTries: extraTryCount(state),
+      spendExtraTry,
       sync: { user: syncUser, connect: connectSync, disconnect: disconnectSync, flush: flushSync },
     };
-  }, [state, wordStreak, recordWord, setDailyGoal, cosmetics, buyItem, equipItem, syncUser, connectSync, disconnectSync, flushSync]);
+  }, [state, wordStreak, recordWord, setDailyGoal, cosmetics, buyItem, equipItem, spendExtraTry, syncUser, connectSync, disconnectSync, flushSync]);
 
   return (
     <ProgressContext.Provider value={value}>

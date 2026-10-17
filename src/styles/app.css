@@ -264,6 +264,11 @@ a { color: var(--lake); }
 /* ---- Practice games (pick the meaning, build the phrase, listen and choose) ---- */
 .pg-board { gap: var(--space-3); }
 .pg-intro { margin: 0; }
+.pg-topics { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-2); }
+.pg-topics__toggle { gap: var(--space-1); margin-left: calc(-1 * var(--space-3)); }
+.pg-topics__toggle strong { font-weight: 700; }
+.pg-topics__panel { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-3); width: 100%; box-sizing: border-box; padding: var(--space-4); background: var(--surface-raised); border-radius: var(--radius-lg); box-shadow: var(--shadow-raised); }
+.pg-topics__panel .lg-caption { margin: 0; }
 .pg-card { position: relative; padding: var(--space-6) var(--space-4); background: var(--surface-raised); border-radius: var(--radius-lg); box-shadow: var(--shadow-raised); }
 .pg-question { position: relative; z-index: 1; }
 .pg-result { display: flex; flex-direction: column; align-items: center; gap: var(--space-3); }

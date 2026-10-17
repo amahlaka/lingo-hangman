@@ -75,6 +75,7 @@ function bannerFor(events, { t, lang, dailyGoal, answer }) {
 //
 // Props:
 //   gameId, title, intro   game identity and its one-line instruction
+//   introExtra             optional element shown under the instruction
 //   learningLang           language of the answers, reported with each word
 //   nativeLang             language of the meanings, shown in the end-of-round word list
 //   buildQuestions()       returns this round's questions
@@ -94,7 +95,7 @@ function bannerFor(events, { t, lang, dailyGoal, answer }) {
 //   endNote(results)       optional element under the end screen numbers; each
 //                          result carries the `question` it answered
 export default function PracticeSession({
-  gameId, title, intro, learningLang, nativeLang, buildQuestions, renderQuestion, empty,
+  gameId, title, intro, introExtra = null, learningLang, nativeLang, buildQuestions, renderQuestion, empty,
   endTitleKey = "endTitle", recapTitleKey = "recapTitle", meaningInFeedback = true, keys, endExtra = null,
   endNote = null, countQuestions = false,
 }) {
@@ -387,6 +388,7 @@ export default function PracticeSession({
     <GameScreen title={title} score={score} menuActions={menuActions} className="pg-screen">
       <main className="lg-board pg-board">
         <p className="lg-body-lg pg-intro">{intro}</p>
+        {introExtra}
         <div className="pg-dots" aria-label={progressLabel}>
           {questions.map((_, i) => {
             const state = marks[i] || (i === index ? "now" : "");

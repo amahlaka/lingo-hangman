@@ -1,4 +1,21 @@
 import { allowedMisses, checkSaid, similarity, speechTokens } from '../games/say/sayLogic';
+import bundled from '../lib/bundledContent';
+import { setContent } from '../lib/content';
+
+// The word bank's "alike" items the checks below rely on, so they don't
+// depend on what the published word base holds.
+const alikePack = {
+  id: 'alike-test',
+  title: { en: 'Same answers' },
+  items: [
+    { id: 'sound-for-four', type: 'alike', kind: 'sound', words: ['for', 'four'] },
+    { id: 'sound-there-their', type: 'alike', kind: 'sound', words: ['there', 'their'] },
+    { id: 'sound-see-sea', type: 'alike', kind: 'sound', words: ['see', 'sea'] },
+    { id: 'spelling-color', type: 'alike', kind: 'spelling', words: ['color', 'colour'] },
+  ],
+};
+beforeAll(() => setContent({ ...bundled, index: { ...bundled.index, packs: [...bundled.index.packs, 'alike-test'] }, packs: [...bundled.packs, alikePack] }));
+afterAll(() => setContent(bundled));
 
 describe('speechTokens', () => {
   it('lowercases, drops punctuation and spells out numbers and contractions', () => {
@@ -18,6 +35,7 @@ describe('checkSaid', () => {
     expect(checkSaid('four', ['for']).matched).toBe(true);
     expect(checkSaid('two', ['2']).matched).toBe(true);
     expect(checkSaid('colour', ['color']).matched).toBe(true);
+    expect(checkSaid('their', ['there']).matched).toBe(true);
     expect(checkSaid("I'm fine", ['I am fine']).matched).toBe(true);
   });
 

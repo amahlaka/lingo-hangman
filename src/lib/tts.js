@@ -52,3 +52,12 @@ export async function askForMoreSpeech() {
   const res = await api("/tts/request", { method: "POST" });
   return res.ok ? res.data : null;
 }
+
+// Has the backend make and save the recorded clip of a word-base text that
+// has none yet: { folder, key }, or null (not in the word base, no backend,
+// over the limit, ...). Anyone can, signed in or not.
+export async function makeWordClip(text, voice) {
+  if (!(await backendAvailable())) return null;
+  const res = await api("/tts/clip", { method: "POST", body: { text, voice } });
+  return res.ok && res.data?.key ? { folder: res.data.folder, key: res.data.key } : null;
+}

@@ -84,7 +84,7 @@ export function buildApp({ db, config, logger = true, limiter = createRateLimite
   app.register(feedbackRoutes, { db, limiter });
   app.register(adminRoutes, { db, config });
   app.register(syncRoutes, { db, limiter });
-  app.register(ttsRoutes, { db, config, ...tts });
+  app.register(ttsRoutes, { db, config, limiter, ...tts });
   app.register(pushRoutes, { db, config, limiter, send: push });
   app.register(statsRoutes, { db });
   app.register(leaderboardRoutes, { db, limiter });

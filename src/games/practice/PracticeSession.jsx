@@ -99,7 +99,7 @@ export default function PracticeSession({
   endNote = null, countQuestions = false,
 }) {
   const { t, lang } = useSettings();
-  const { recordWord, dailyGoal } = useProgress();
+  const { recordWord, resetWordStreak, dailyGoal } = useProgress();
   const { celebrate, confetti } = useConfetti();
   const p = t.practice;
   const fi = i18n.fi.practice;
@@ -159,6 +159,8 @@ export default function PracticeSession({
   useReportSubject(reportSubject);
 
   useEffect(() => () => clearTimeout(timer.current), []);
+  // "Right in a row" counts within this round only.
+  useEffect(() => resetWordStreak(), [resetWordStreak]);
 
   useEffect(() => {
     shownAt.current = Date.now();
@@ -291,6 +293,7 @@ export default function PracticeSession({
   const reportExtra = () => controls.current?.reportExtra?.();
 
   const restart = () => {
+    resetWordStreak();
     setQuestions(buildQuestions());
     setIndex(0);
     setResults([]);

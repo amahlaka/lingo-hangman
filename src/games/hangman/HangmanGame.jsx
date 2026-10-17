@@ -22,12 +22,14 @@ export const MAX_MISSES = 6;
 export default function HangmanGame() {
   const [params] = useSearchParams();
   const { t, lang } = useSettings();
-  const { recordWord, dailyGoal } = useProgress();
+  const { recordWord, resetWordStreak, dailyGoal } = useProgress();
   const { celebrate, confetti } = useConfetti();
 
   const search = params.toString();
   // Bumped to draw new random words when the set did not come from a link.
   const [draw, setDraw] = useState(0);
+  // "Right in a row" counts within this set of words only.
+  useEffect(() => resetWordStreak(), [search, draw, resetWordStreak]);
   const wordSet = useMemo(() => loadWordSet(new URLSearchParams(search)), [search, draw]);
   const { pairs: words, learningLang, nativeLang, swap: swapMode, fromLink } = wordSet;
 

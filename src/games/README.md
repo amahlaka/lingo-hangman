@@ -95,7 +95,7 @@ const events = recordWord({
 
 Use `events` to pick the celebration size (see below). The word streak
 (`wordStreak`, a banner every 5) counts answers right on the first try
-(`perfect`) in a row; a miss starts it again, even in a word solved later. The rules themselves
+(`perfect`) in a row; a miss starts it again, even in a word solved later, and so does a new round (call `resetWordStreak()` from `useProgress` when a round starts). The rules themselves
 live in `src/lib/progress.js` as pure functions, with tests in
 `src/__tests__/progress.test.js`.
 

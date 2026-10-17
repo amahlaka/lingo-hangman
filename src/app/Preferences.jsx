@@ -27,6 +27,46 @@ export default function Preferences() {
     });
   };
 
+  // One heading of the focus list. Opt-in topics (index.json "optIn") are
+  // left out of games until picked, so their chips show a + until then.
+  const renderGroup = (group) => {
+    const all = group.categories.every((c) => prefs.focus.includes(c));
+    return (
+      <div key={group.id} className="lg-focus-group" role="group" aria-labelledby={`focus-${group.id}`}>
+        <div className="lg-focus-group__head">
+          <h3 id={`focus-${group.id}`} className="lg-focus-group__title">{group.label}</h3>
+          {group.categories.length > 1 && (
+            <button
+              type="button"
+              className="lg-btn lg-btn--quiet lg-focus-group__all"
+              onClick={() => toggleGroup(group.categories)}
+              aria-label={`${all ? t.focusGroupNone : t.focusGroupAll}: ${group.label}`}
+            >
+              {all ? t.focusGroupNone : t.focusGroupAll}
+            </button>
+          )}
+        </div>
+        <div className="lg-chips">
+          {group.categories.map((cat) => {
+            const on = prefs.focus.includes(cat);
+            return (
+              <button
+                key={cat}
+                type="button"
+                className={`lg-chip${on ? " lg-chip--on" : ""}${group.optIn ? " lg-chip--extra" : ""}`}
+                aria-pressed={on}
+                onClick={() => toggleFocus(cat)}
+              >
+                {group.optIn && <span className="lg-chip__mark" aria-hidden="true">{on ? "✓" : "+"}</span>}
+                {labels[cat]}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <GameScreen title={t.preferencesTitle}>
       <main className="lg-board lg-page">
@@ -84,44 +124,16 @@ export default function Preferences() {
         <section className="lg-section">
           <h2 className="lg-heading">{t.focusAreasLabel}</h2>
           <p className="lg-caption">{t.focusAreasHint}</p>
-          {groups.map((group) => {
-            const all = group.categories.every((c) => prefs.focus.includes(c));
-            return (
-              <div key={group.id} className="lg-focus-group" role="group" aria-labelledby={`focus-${group.id}`}>
-                <div className="lg-focus-group__head">
-                  <h3 id={`focus-${group.id}`} className="lg-focus-group__title">{group.label}</h3>
-                  {group.categories.length > 1 && (
-                    <button
-                      type="button"
-                      className="lg-btn lg-btn--quiet lg-focus-group__all"
-                      onClick={() => toggleGroup(group.categories)}
-                      aria-label={`${all ? t.focusGroupNone : t.focusGroupAll}: ${group.label}`}
-                    >
-                      {all ? t.focusGroupNone : t.focusGroupAll}
-                    </button>
-                  )}
-                </div>
-                {group.optIn && <p className="lg-caption">{t.focusOptIn}</p>}
-                <div className="lg-chips">
-                  {group.categories.map((cat) => {
-                    const on = prefs.focus.includes(cat);
-                    return (
-                      <button
-                        key={cat}
-                        type="button"
-                        className={`lg-chip ${on ? "lg-chip--on" : ""}`}
-                        aria-pressed={on}
-                        onClick={() => toggleFocus(cat)}
-                      >
-                        {labels[cat]}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            );
-          })}
+          {groups.filter((g) => !g.optIn).map(renderGroup)}
         </section>
+
+        {groups.some((g) => g.optIn) && (
+          <section className="lg-section lg-extra-topics">
+            <h2 className="lg-heading">{t.extraTopicsLabel}</h2>
+            <p className="lg-caption">{t.extraTopicsHint}</p>
+            {groups.filter((g) => g.optIn).map(renderGroup)}
+          </section>
+        )}
 
         <div className="lg-row">
           <Link to="/" className="lg-btn lg-btn--primary">{t.allGames}</Link>

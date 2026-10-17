@@ -88,6 +88,15 @@ describe("practice preferences", () => {
     expect(getPreferences().focus).toEqual([]);
   });
 
+  it("lists the opt-in topics apart, under Extra topics", () => {
+    renderApp("/preferences");
+    const extra = screen.getByRole("heading", { name: "Extra topics" }).closest("section");
+    for (const group of categoryGroups("en", "Other")) {
+      const heading = screen.getByRole("heading", { name: group.label });
+      expect(extra.contains(heading)).toBe(group.optIn);
+    }
+  });
+
   it("is linked from the settings menu", () => {
     renderApp("/hangman");
     fireEvent.click(screen.getByRole("button", { name: "Settings" }));

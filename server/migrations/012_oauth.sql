@@ -21,6 +21,15 @@ CREATE TABLE oauth_requests (
   expires_at INTEGER NOT NULL
 );
 
+-- Where to come back to after signing in: the approval page's address,
+-- under a random id kept in a short-lived cookie, so the app's Account page
+-- never handles the address itself.
+CREATE TABLE oauth_resume (
+  id TEXT PRIMARY KEY,
+  url TEXT NOT NULL,
+  expires_at INTEGER NOT NULL
+);
+
 -- Approved, not yet exchanged for tokens. Used once.
 CREATE TABLE oauth_codes (
   code_hash TEXT PRIMARY KEY,

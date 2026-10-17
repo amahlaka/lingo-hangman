@@ -85,10 +85,18 @@ test("the whole flow: sign in, allow, tokens, MCP, refresh, revoke", async () =>
   const t = setup();
   const client = (await register(t)).json();
 
-  // Signed out: a link to sign in that comes back here.
+  // Signed out: a link to sign in, and after it /api/oauth/continue comes back here.
   const out = await t.app.inject({ method: "GET", url: authorizeUrl(client.client_id) });
   assert.equal(out.statusCode, 200);
-  assert.match(out.body, /href="\/account\?next=%2Fapi%2Foauth%2Fauthorize%3F/);
+  assert.match(out.body, /href="\/account\?next=oauth"/);
+  const resume = out.cookies.find((c) => c.name === "lingo_oauth_resume");
+  assert.equal(resume.path, "/api/oauth");
+  const cont = await t.app.inject({ method: "GET", url: "/api/oauth/continue", headers: { cookie: `lingo_oauth_resume=${resume.value}` } });
+  assert.equal(cont.statusCode, 303);
+  assert.equal(cont.headers.location, authorizeUrl(client.client_id));
+  // Used once; unknown ids go to the Account page.
+  const again = await t.app.inject({ method: "GET", url: "/api/oauth/continue", headers: { cookie: `lingo_oauth_resume=${resume.value}` } });
+  assert.equal(again.headers.location, "/account");
 
   await t.signIn("boss@example.com");
   const allowed = await approve(t, client.client_id);

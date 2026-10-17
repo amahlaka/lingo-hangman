@@ -374,8 +374,9 @@ endpoint for that at `/api/mcp`; the app itself never calls it.
   `resource_metadata`), registers itself (`POST /api/oauth/register`, dynamic
   client registration) and opens `/api/oauth/authorize`: a small page of the
   API's own that asks a signed-in admin (sign-in from the last day) to Allow
-  or Deny. Signed out, it links to `/account?next=…`, which comes back after
-  sign-in. Then `POST /api/oauth/token` swaps the code (PKCE S256 required)
+  or Deny. Signed out, it links to `/account?next=oauth`, which after
+  sign-in opens `/api/oauth/continue`: that returns to the page the server
+  remembered under a short-lived cookie (the app never handles its address). Then `POST /api/oauth/token` swaps the code (PKCE S256 required)
   for an access token (1 hour) and a refresh token (90 days, replaced on each
   use). An approval is one `api_tokens` row named after the client, shown on
   `/admin/ai` as a connector; Disconnect ends both tokens. Redirects go only

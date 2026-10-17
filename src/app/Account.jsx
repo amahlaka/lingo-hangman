@@ -353,11 +353,10 @@ function SignedIn({ t, lang, me, reload, onSignedOut }) {
 }
 
 // After signing in for an AI connector's approval page (/api/oauth/authorize,
-// server/src/routes/oauth.js), go back there. Only that path, so the link
-// can't send anyone elsewhere.
+// server/src/routes/oauth.js), go back there. The server remembers which page;
+// the link only says "oauth", so it can't send anyone elsewhere.
 export function oauthReturn(search) {
-  const next = new URLSearchParams(search).get("next");
-  return next && /^\/api\/oauth\/authorize\?/.test(next) ? next : null;
+  return new URLSearchParams(search).get("next") === "oauth" ? "/api/oauth/continue" : null;
 }
 
 export default function Account() {

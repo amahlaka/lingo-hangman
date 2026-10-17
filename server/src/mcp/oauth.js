@@ -148,6 +148,7 @@ export function refreshTokens(db, { client, refreshToken }, now = Date.now()) {
 export function deleteExpiredOauth(db, now = Date.now()) {
   db.prepare("DELETE FROM oauth_requests WHERE expires_at <= ?").run(now);
   db.prepare("DELETE FROM oauth_codes WHERE expires_at <= ?").run(now);
+  db.prepare("DELETE FROM oauth_resume WHERE expires_at <= ?").run(now);
   // Registrations nobody approved within a day.
   db.prepare(
     `DELETE FROM oauth_clients WHERE created_at <= ?

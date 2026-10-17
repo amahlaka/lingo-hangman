@@ -26,6 +26,7 @@ const RECENT_SIGN_IN_MS = 24 * 3600_000;
 const DAY = 24 * 3600_000;
 const REGISTRATIONS_PER_DAY = 30;
 const AUTH_METHODS = ["none", "client_secret_post", "client_secret_basic"];
+const RESUME_COOKIE = "lingo_oauth_resume";
 
 const esc = (s) =>
   String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
@@ -132,9 +133,17 @@ export default async function oauthRoutes(app, { db, config, limiter }) {
     }
     if (q.scope && !String(q.scope).split(" ").every((s) => s === SCOPE)) return fail("invalid_scope", `Only the "${SCOPE}" scope`);
 
-    const signIn = `/account?next=${encodeURIComponent(req.url)}`;
+    // Signing in happens in the app; /account?next=oauth then opens
+    // /api/oauth/continue, which comes back to this page.
+    const signIn = "/account?next=oauth";
+    const remember = () => {
+      const id = randomToken();
+      db.prepare("INSERT INTO oauth_resume (id, url, expires_at) VALUES (?, ?, ?)").run(id, req.url, Date.now() + REQUEST_MS);
+      reply.setCookie(RESUME_COOKIE, id, { path: "/api/oauth", httpOnly: true, secure: config.cookieSecure, sameSite: "lax", maxAge: REQUEST_MS / 1000 });
+    };
     const s = findSession(db, req.cookies[COOKIE]);
     if (!s) {
+      remember();
       return page(reply, {
         title: "Sign in to Lingo",
         body: `<p>${esc(client.name)} wants to connect to Lingo. Sign in with your admin account first; you'll come back here.</p><div class="row"><a class="btn" href="${esc(signIn)}">Sign in</a></div>`,
@@ -144,6 +153,7 @@ export default async function oauthRoutes(app, { db, config, limiter }) {
       return page(reply, { status: 403, title: "Not an admin", body: "<p>Only Lingo's admins can connect AI tools.</p>" });
     }
     if (Date.now() - s.auth_at > RECENT_SIGN_IN_MS) {
+      remember();
       return page(reply, {
         title: "Sign in again",
         body: `<p>Connecting an AI tool needs a sign-in from the last day. On the Account page, sign out and sign in again; you'll come back here.</p><div class="row"><a class="btn" href="${esc(signIn)}">Account</a></div>`,
@@ -167,6 +177,16 @@ export default async function oauthRoutes(app, { db, config, limiter }) {
 <p class="small">Only allow this if you just started connecting it yourself. You can disconnect it any time under Account → AI tools.</p>
 <form method="post" action="/api/oauth/authorize"><input type="hidden" name="request" value="${esc(id)}"><div class="row"><button class="primary" name="decision" value="allow">Allow</button><button name="decision" value="deny">Deny</button></div></form>`,
     });
+  });
+
+  // Back to the approval page after signing in (see `remember` above).
+  app.get("/api/oauth/continue", async (req, reply) => {
+    const id = req.cookies[RESUME_COOKIE];
+    const row = typeof id === "string" && db.prepare("SELECT url, expires_at FROM oauth_resume WHERE id = ?").get(id);
+    if (row) db.prepare("DELETE FROM oauth_resume WHERE id = ?").run(id);
+    reply.clearCookie(RESUME_COOKIE, { path: "/api/oauth" });
+    const ok = row && row.expires_at > Date.now() && row.url.startsWith("/api/oauth/authorize?");
+    return reply.code(303).header("Location", ok ? row.url : "/account").send();
   });
 
   app.post("/api/oauth/authorize", async (req, reply) => {

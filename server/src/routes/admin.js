@@ -6,6 +6,7 @@ import { reportView, suggestionView } from "./feedback.js";
 import { ttsDay } from "./tts.js";
 import { DAILY_DAYS, MIN_ANSWERS, MIN_LEARNERS, cached } from "../stats/aggregate.js";
 import { accountProgress } from "./sync.js";
+import { playStats } from "../stats/play.js";
 import { gemBalance } from "../../../src/lib/cosmetics.js";
 import { answerSummary, levelInfo, progressSummary } from "../../../src/lib/progress.js";
 import { answerMistakes } from "../../../src/lib/mistakes.js";
@@ -142,6 +143,8 @@ export default async function adminRoutes(app, { db, config }) {
       games: cached(db, "games")?.value || [],
       words: words?.value || { hardest: [], slowest: [], tracked: 0 },
       mistakes: cached(db, "mistakes")?.value || { games: [], common: [] },
+      // Visits, games started, play sessions and unfinished rounds, counted now.
+      play: playStats(db),
       totals: {
         accounts: db.prepare("SELECT COUNT(*) AS n FROM users").get().n,
         activeWeek: db.prepare("SELECT COUNT(DISTINCT user_id) AS n FROM sync_events WHERE type = 'answer' AND at >= ?").get(weekAgo).n,

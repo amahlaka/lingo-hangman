@@ -17,6 +17,7 @@ import AdminUsers from "./admin/AdminUsers";
 import AdminStats from "./admin/AdminStats";
 import AdminLearner from "./admin/AdminLearner";
 import HearSentence from "./app/HearSentence";
+import { TrackedGame } from "./app/PlayTracking";
 import { GAMES, PLAYABLE_GAME_IDS } from "./games/registry";
 
 // Providers and routes, without the router, so tests can wrap it in a MemoryRouter.
@@ -40,7 +41,7 @@ export function AppRoutes() {
       <Route path="/admin/users/:id" element={<AdminLearner />} />
       {GAMES.flatMap((game) =>
         (game.routes || []).map(({ path, Component }) => (
-          <Route key={path} path={path} element={<Component />} />
+          <Route key={path} path={path} element={<TrackedGame id={game.id}><Component /></TrackedGame>} />
         ))
       )}
       <Route path="*" element={<Home />} />

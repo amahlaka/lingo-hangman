@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { Link, useSearchParams } from "react-router-dom";
 import { useSettings } from "../../app/SettingsContext";
 import { useProgress } from "../../app/ProgressContext";
+import { useRoundFinished } from "../../app/PlayTracking";
 import { fill } from "../../i18n";
 import { ACHIEVEMENTS } from "../../lib/progress";
 import { sounds } from "../../lib/sounds";
@@ -64,6 +65,7 @@ export default function HangmanGame() {
   useEffect(() => () => clearTimeout(highlightTimer.current), []);
 
   const allDone = queue.length === 0;
+  useRoundFinished(allDone && words.length > 0);
 
   useEffect(() => {
     if (allDone && words.length > 0) sounds.celebrate();

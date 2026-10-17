@@ -272,6 +272,41 @@ an account are counted, since only they sync.
   get right can be an easy win while the learner knows few words of their
   own. A learner's own answers always win once they exist.
 
+## Play statistics
+
+Arttu's request, 2026-10-17: how long people play, what they play, when they
+give up, and visits and games for everyone. Rules in `src/lib/playSession.js`
+(shared with the API), the app's side in `src/lib/playTracker.js`, the
+numbers in `server/src/stats/play.js`, shown on `/admin/stats`.
+
+- **Counts, for everyone** (`POST /api/play/count`, no sign-in): `{ visit:
+  true }` once per browser tab (`sessionStorage` `lingo.visit.v1`) and `{ game
+  }` at each round's first answer. The API adds 1 to `play_counts` for the
+  current UTC hour: `visits`, or `games_anon` / `games_account` keyed by game,
+  whether signed in read from the session cookie. Nothing about the device or
+  person is stored; the client address is only used by the in-memory rate
+  limit. The admin page shows visits per hour for 48 hours, visits by hour of
+  the day, games played per day without an account, and the most popular games
+  (all in Finnish time).
+- **Play sessions, signed in only** (`POST /api/play/sessions`): a session runs
+  from the first game opened, across any games after it, until 30 minutes pass
+  without play (`SESSION_GAP_MS`) or the page closes (`pagehide`). It is sent
+  with its start, end (the last play), the learner's day and `{ gameId: {
+  rounds, finished } }`. A round is one go at a game, from its first answer to
+  its end screen (games call `useRoundFinished`); every game page is wrapped
+  in `TrackedGame` (`src/app/PlayTracking.jsx`).
+- **Giving up, signed in only**: leaving a round before its end screen sends a
+  `give_ups` row with a reason guessed from how it was going: `before_first`
+  (no answer, after 5 s or more), `stuck` (a minute without answering),
+  `many_wrong` (2 of the last 3 wrong), `after_wrong`, `after_skip`, or
+  `mid_round` (doing fine), and whether the learner went elsewhere in the app
+  (`left`) or closed it (`closed`).
+- The open session and round are kept in `lingo.play.v1`, so if the app is
+  killed without `pagehide` they are sent at the next start. Without an
+  account nothing but the counts leaves the device. Sessions and give-ups are
+  in the learner's data export and go with the account.
+- Housekeeping removes play data older than 90 days (`prunePlay`).
+
 ## Leaderboards
 
 Opt-in weekly boards (`server/src/leaderboard/board.js`,

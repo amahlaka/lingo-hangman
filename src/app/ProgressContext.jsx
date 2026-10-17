@@ -25,6 +25,7 @@ import SyncChoice from "./SyncChoice";
 import { api, backendAvailable } from "../lib/backend";
 import { MAX_BATCH, emptySync, loadSync, saveSync } from "../lib/sync";
 import { applyEvents, cleanEvent, makeEvent } from "../lib/syncEvents";
+import { playTracker, startPlayTracking } from "../lib/playTracker";
 
 // Shared progress for every game. See src/lib/progress.js for the rules and
 // src/games/README.md for how a game reports a finished word.
@@ -164,6 +165,13 @@ export function ProgressProvider({ children, storage, gameIds = [] }) {
     writeSync({ ...syncRef.current, paused: true });
   }, [writeSync]);
 
+  // Play statistics: sessions and unfinished rounds are kept only while
+  // signed in (src/lib/playTracker.js).
+  useEffect(() => {
+    playTracker().signedInChanged();
+  }, [syncUser]);
+  useEffect(() => startPlayTracking(), []);
+
   useEffect(() => {
     let live = true;
     backendAvailable().then((ok) => live && ok && connectSync());
@@ -191,6 +199,7 @@ export function ProgressProvider({ children, storage, gameIds = [] }) {
     stateRef.current = next;
     setState(next);
     queueEvent("answer", { result, day });
+    playTracker().answer(result);
     if (events.gemsGained) setGemToast({ n: events.gemsGained, reasons: events.gemReasons, key: Date.now() });
     const nextWordStreak = result.solved ? wordStreakRef.current + 1 : 0;
     wordStreakRef.current = nextWordStreak;

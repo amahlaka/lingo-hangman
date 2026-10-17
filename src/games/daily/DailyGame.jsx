@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { Delete, Volume2 } from "lucide-react";
 import { useSettings } from "../../app/SettingsContext";
 import { useProgress } from "../../app/ProgressContext";
+import { useRoundFinished } from "../../app/PlayTracking";
 import { fill } from "../../i18n";
 import { DailyProgress, Feedback, GameScreen, useConfetti } from "../../components/lingo";
 import { addDays, dayKey } from "../../lib/progress";
@@ -84,6 +85,8 @@ export default function DailyGame() {
       sounds.shown();
     }
   }, [over]);
+  // After the effect above, so the answer is in before the round ends.
+  useRoundFinished(over);
 
   const type = (letter) => {
     if (over || typed.length >= WORD_LENGTH) return;

@@ -17,6 +17,7 @@ import pushRoutes from "./routes/push.js";
 import statsRoutes from "./routes/stats.js";
 import leaderboardRoutes from "./routes/leaderboard.js";
 import pathRoutes from "./routes/path.js";
+import playRoutes from "./routes/play.js";
 
 const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
 
@@ -85,6 +86,7 @@ export function buildApp({ db, config, logger = true, limiter = createRateLimite
   app.register(statsRoutes, { db });
   app.register(leaderboardRoutes, { db, limiter });
   app.register(pathRoutes, { db, limiter });
+  app.register(playRoutes, { db, limiter });
 
   app.setNotFoundHandler((req, reply) => {
     reply.code(404).send({ error: "not_found" });

@@ -1,5 +1,6 @@
 // The learner's practice preferences, shared by every game:
-// - `focus`: word bank categories to practise ([] = everything).
+// - `focus`: word bank categories to practise ([] = every everyday topic;
+//   hobby topics in `optIn` groups only when picked, see applyPreferences).
 // - `difficulty`: "any", "easy", "normal" or "hard".
 // - `typeColors`: colour words by their word type (src/lib/wordTypes.js).
 // - `typeHelp`: show word types by themselves on easy sentences the learner
@@ -8,7 +9,15 @@
 // applyPreferences(); when too few items match, a preference is ignored for
 // that pool so no game runs out of questions.
 
+import { getContent } from "./content";
+
 const STORAGE_KEY = "lingoPreferences";
+
+// Categories of the word bank groups marked `optIn` (hobbies, special fields).
+export function optInCategories() {
+  const groups = getContent()?.categoryGroups || [];
+  return groups.filter((g) => g?.optIn === true).flatMap((g) => (Array.isArray(g.categories) ? g.categories : []));
+}
 
 export const DIFFICULTIES = ["any", "easy", "normal", "hard"];
 const DEFAULTS = { focus: [], difficulty: "any", typeColors: false, typeHelp: true };
@@ -75,10 +84,20 @@ export function itemLevel(item, text) {
 // `items` narrowed to the focus areas and difficulty, each step skipped if it
 // would leave fewer than `min` items. `textOf(item)` gives the English text
 // used to guess a level for items without one.
-export function applyPreferences(items, { prefs = current, min = MIN_POOL, textOf = () => "" } = {}) {
+//
+// `optIn` lists the hobby and niche categories (word bank groups marked
+// `optIn`): their items only come up when the learner picks one of them. They
+// add to the mix: with only opt-in focus areas the everyday topics stay in.
+export function applyPreferences(items, { prefs = current, min = MIN_POOL, textOf = () => "", optIn = optInCategories() } = {}) {
   let pool = items;
-  if (prefs.focus.length > 0) {
-    const focused = pool.filter((i) => (i.categories || []).some((c) => prefs.focus.includes(c)));
+  const hidden = new Set(optIn.filter((c) => !prefs.focus.includes(c)));
+  const everyday = prefs.focus.filter((c) => !optIn.includes(c));
+  const cats = (i) => i.categories || [];
+  const keep = everyday.length
+    ? (i) => cats(i).some((c) => prefs.focus.includes(c))
+    : (i) => !cats(i).every((c) => hidden.has(c)) || !cats(i).length;
+  if (prefs.focus.length > 0 || hidden.size > 0) {
+    const focused = pool.filter(keep);
     if (focused.length >= min) pool = focused;
   }
   const levels = LEVELS[prefs.difficulty];

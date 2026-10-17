@@ -104,7 +104,7 @@ export default function RushGame() {
     });
     shownAt.current = at;
     setResults((r) => [...r, { learning: question.target.learning, native: question.target.native, solved }]);
-    if (events.goalReached || events.levelUp || events.wordStreakMilestone) celebrate("large");
+    if (events.goalReached || events.wordStreakMilestone) celebrate("large");
   };
 
   const next = () => {

@@ -93,7 +93,7 @@ export default function Shop() {
   };
 
   return (
-    <GameScreen title={s.title} score={<ScorePill label={t.gems.label} value={gems} plus={spent?.n} plusKey={spent?.key} />}>
+    <GameScreen title={s.title} score={<ScorePill label={t.gems.label} value={gems} plus={spent?.n} plusKey={spent?.key} Icon={Gem} />}>
       <main className="lg-board lg-page sh-page">
         {confetti}
         <div className="lg-stack">

@@ -15,6 +15,14 @@ const NUMBER_WORDS = [
   "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen",
   "nineteen", "twenty",
 ];
+const TENS = ["", "", "twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety"];
+
+// A number from 0 to 99 as words ("forty five"), or null for anything else.
+export function numberWords(n) {
+  if (!Number.isInteger(n) || n < 0 || n > 99) return null;
+  if (n <= 20) return NUMBER_WORDS[n];
+  return n % 10 ? `${TENS[Math.floor(n / 10)]} ${NUMBER_WORDS[n % 10]}` : TENS[n / 10];
+}
 
 export const CONTRACTIONS = {
   "i'm": "i am", "you're": "you are", "we're": "we are", "they're": "they are",

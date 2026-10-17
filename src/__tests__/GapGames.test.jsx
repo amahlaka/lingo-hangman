@@ -3,6 +3,9 @@ import { renderApp } from '../test-utils';
 import { getGapItems, getTopics } from '../lib/words';
 import { gapQuestions } from '../games/gap/gapLogic';
 
+// A quoted answer that ends a sentence gets no extra full stop.
+const answerWas = (a) => `Not this time. The answer was "${a}"${/[.?!]$/.test(a) ? '' : '.'}`;
+
 const borrowLend = gapQuestions({ topics: getTopics('confusable'), gaps: getGapItems() }).filter(
   (q) => q.setId === 'borrow-lend'
 );
@@ -40,7 +43,7 @@ describe('Mixed-up words', () => {
     renderApp('/mixed-up?set=borrow-lend');
     const q = current();
     fireEvent.click(options().find((b) => b.textContent !== q.answer));
-    expect(screen.getByText(`Not this time. The answer was "${q.sentence}".`)).toBeInTheDocument();
+    expect(screen.getByText(answerWas(q.sentence))).toBeInTheDocument();
     expect(screen.getByRole('region', { name: 'Why' })).toBeInTheDocument();
   });
 

@@ -21,6 +21,7 @@ import {
 } from "../lib/cosmetics";
 import { useSettings } from "./SettingsContext";
 import GemToast from "../components/lingo/GemToast";
+import LevelUpCard from "../components/lingo/LevelUpCard";
 import SyncChoice from "./SyncChoice";
 import { api, backendAvailable } from "../lib/backend";
 import { MAX_BATCH, emptySync, loadSync, saveSync } from "../lib/sync";
@@ -40,7 +41,7 @@ const SYNC_DELAY_MS = 3000;
 export function ProgressProvider({ children, storage, gameIds = [] }) {
   const store = storage === undefined ? globalThis.localStorage : storage;
   const [state, setState] = useState(() => loadProgress(store));
-  // Words solved in a row during this visit; not saved.
+  // Answers right on the first try in a row during this visit; not saved.
   const [wordStreak, setWordStreak] = useState(0);
   const wordStreakRef = useRef(0);
   const gameIdsRef = useRef(gameIds);
@@ -50,6 +51,9 @@ export function ProgressProvider({ children, storage, gameIds = [] }) {
   // The last gems earned, for the "+N gems" toast.
   const [gemToast, setGemToast] = useState(null);
   const clearGemToast = useCallback(() => setGemToast(null), []);
+  // The level just reached, for the level-up card.
+  const [levelUp, setLevelUp] = useState(null);
+  const clearLevelUp = useCallback(() => setLevelUp(null), []);
 
   useEffect(() => {
     saveProgress(state, store);
@@ -200,8 +204,16 @@ export function ProgressProvider({ children, storage, gameIds = [] }) {
     setState(next);
     queueEvent("answer", { result, day });
     playTracker().answer(result);
-    if (events.gemsGained) setGemToast({ n: events.gemsGained, reasons: events.gemReasons, key: Date.now() });
-    const nextWordStreak = result.solved ? wordStreakRef.current + 1 : 0;
+    // A level-up gets its own card with its gems; other gems get the toast.
+    const levelGems = events.gemReasons.find((r) => r.id === "level")?.n || 0;
+    if (events.levelUp) setLevelUp({ level: events.levelUp, gems: levelGems, key: Date.now() });
+    if (events.gemsGained > levelGems) {
+      const reasons = events.gemReasons.filter((r) => r.id !== "level");
+      setGemToast({ n: events.gemsGained - levelGems, reasons, key: Date.now() });
+    }
+    // The streak counts answers right on the first try in a row; a miss,
+    // even in a word solved in the end, starts it again.
+    const nextWordStreak = result.solved && result.perfect ? wordStreakRef.current + 1 : 0;
     wordStreakRef.current = nextWordStreak;
     setWordStreak(nextWordStreak);
     return {
@@ -275,6 +287,7 @@ export function ProgressProvider({ children, storage, gameIds = [] }) {
     <ProgressContext.Provider value={value}>
       {children}
       <GemToast toast={gemToast} onDone={clearGemToast} />
+      <LevelUpCard levelUp={levelUp} onDone={clearLevelUp} />
       {syncChoice && <SyncChoice choice={syncChoice} onChoose={resolveSyncChoice} />}
     </ProgressContext.Provider>
   );

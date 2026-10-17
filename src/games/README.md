@@ -93,7 +93,9 @@ const events = recordWord({
 //           wordLearned, wordStreak, wordStreakMilestone }
 ```
 
-Use `events` to pick the celebration size (see below). The rules themselves
+Use `events` to pick the celebration size (see below). The word streak
+(`wordStreak`, a banner every 5) counts answers right on the first try
+(`perfect`) in a row; a miss starts it again, even in a word solved later. The rules themselves
 live in `src/lib/progress.js` as pure functions, with tests in
 `src/__tests__/progress.test.js`.
 
@@ -116,9 +118,14 @@ Import building blocks from `src/components/lingo`:
 - `Feedback` – result banners: `variant="correct" | "retry" | "info" | "streak"`,
   `title`, body as children, optional Finnish `fi` helper line.
 - `useConfetti()` – `const { celebrate, confetti } = useConfetti()`; render
-  `{confetti}` inside a `position: relative` element and call
-  `celebrate("medium")` for a solved item or `celebrate("large")` when
-  `events.goalReached`, `events.levelUp` or `events.wordStreakMilestone`.
+  `{confetti}` anywhere (it covers the screen, wherever the page is scrolled)
+  and call `celebrate("medium")` for a solved item or `celebrate("large")` when
+  `events.goalReached` or `events.wordStreakMilestone`. A new level
+  (`events.levelUp`) gets its own card with confetti from `ProgressProvider`
+  (`LevelUpCard`), so games only show a small banner for it.
+- `keepInView(el)` – scrolls just enough that `el` ends above the bottom bar,
+  for content that appears at the bottom of a screen (PracticeSession does it
+  for the question when the result bar opens).
 - `WordTiles`, `TriesMeter`, `ScorePill`, `CategoryChips`, `DailyProgress`,
   `Achievements`.
 
@@ -300,7 +307,11 @@ Targets carry the `categories` and `levels` of their word bank items, and
 `buildQuickRound(targets, state, { include })` keeps only targets that pass
 `include`. QuickPlay passes `preferenceFilter(targets)`, which applies the
 learner's focus areas and difficulty (`src/lib/preferences.js`) to the whole
-mix; grammar and sounds targets have no categories, so focus areas leave them in.
+mix; grammar and sounds targets have no categories, so focus areas leave them in. Hobby
+topics (word bank groups marked `optIn`) stay out of every game until the
+learner picks one as a focus area, and then add to the mix. Quick play passes
+`countQuestions` to PracticeSession, so its end screen counts questions as the
+progress dots do (a Word Pairs board is one).
 
 ## Learner profile
 

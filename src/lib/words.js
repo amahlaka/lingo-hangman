@@ -9,6 +9,7 @@
 
 import { getContent, onContentChange } from "./content";
 import { applyPreferences } from "./preferences";
+import { fill } from "../i18n";
 
 export const DEFAULT_LEARNING_LANG = "en";
 export const DEFAULT_NATIVE_LANG = "fi";
@@ -39,6 +40,17 @@ const FALLBACK_WORDS = [
 
 export function languageLabel(code) {
   return LANGUAGE_OPTIONS.find((o) => o.code === code)?.label.replace(/ \(.*\)$/, "") || code;
+}
+
+// "Guess the English word for" / "Arvaa englanniksi:" in the UI language `t`.
+export function guessPromptText(t, code) {
+  return fill(t.guessPrompt, { language: languageLabel(code), inLanguage: t.inLanguage?.[code] || languageLabel(code) });
+}
+
+// The label over a word's meaning: "Suomeksi" in a Finnish UI, otherwise the
+// language's name.
+export function meaningLabel(t, code) {
+  return code === "fi" ? t.practice.finnish : languageLabel(code);
 }
 
 // Fisher-Yates shuffle; returns a new array.
@@ -176,7 +188,7 @@ export function categoryLabels(uiLang = "en") {
 }
 
 // The categories under the headings of the focus area list, from
-// index.json `categoryGroups`: [{ id, label, categories }], in content order.
+// index.json `categoryGroups`: [{ id, label, categories, optIn }], in content order.
 // Categories no group names come last under "other" (label `otherLabel`).
 export function categoryGroups(uiLang = "en", otherLabel = "Other") {
   const used = new Set();
@@ -184,7 +196,7 @@ export function categoryGroups(uiLang = "en", otherLabel = "Other") {
   for (const g of getContent().categoryGroups || []) {
     const cats = (Array.isArray(g?.categories) ? g.categories : []).filter((c) => ALL_CATEGORIES.includes(c) && !used.has(c));
     cats.forEach((c) => used.add(c));
-    if (cats.length) groups.push({ id: g.id, label: g.title?.[uiLang] || g.title?.en || g.id, categories: cats });
+    if (cats.length) groups.push({ id: g.id, label: g.title?.[uiLang] || g.title?.en || g.id, categories: cats, optIn: g.optIn === true });
   }
   const rest = ALL_CATEGORIES.filter((c) => !used.has(c));
   if (rest.length) groups.push({ id: "other", label: otherLabel, categories: rest });

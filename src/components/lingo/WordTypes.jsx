@@ -3,7 +3,7 @@ import { useSettings } from "../../app/SettingsContext";
 import { useProgress } from "../../app/ProgressContext";
 import { getPreferences, onPreferencesChange } from "../../lib/preferences";
 import { getContent } from "../../lib/content";
-import { COLOR_FAMILIES, autoHints, colorFamily, hardLevels, pairLevel, slotKind, wordClassOf } from "../../lib/wordTypes";
+import { COLOR_FAMILIES, autoHints, colorFamily, hardLevels, pairLevel, placeCue, wordClassOf } from "../../lib/wordTypes";
 
 // Shared word-type hints for every game (rules in src/lib/wordTypes.js):
 // colour classes for word chips, the small label under a word or place, the
@@ -23,13 +23,16 @@ export function typeClass(type, colors) {
   return colors && cls ? ` lg-wt lg-wt--${colorFamily(cls)}` : "";
 }
 
-// The small label naming a word type. `place`: name the place in the sentence
-// (subject, object, or the word class elsewhere) instead of the word class.
+// The small label naming a word type. `place`: say what the place in the
+// sentence answers in plain words ("who / what", "does what") instead of
+// naming the word class, so the places and the words to put in them use the
+// same words and no grammar terms.
 export function TypeLabel({ type, place = false }) {
   const { t } = useSettings();
-  const kind = place ? slotKind(type) : type?.cls;
+  const kind = place ? placeCue(type) : type?.cls;
   if (!kind) return null;
-  return <span className={`lg-wt-label lg-wt-label--${colorFamily(type.cls)}`}>{t.wordTypes[kind] || kind}</span>;
+  const text = place ? t.placeCues[kind] : t.wordTypes[kind];
+  return <span className={`lg-wt-label lg-wt-label--${colorFamily(type.cls)}`}>{text || kind}</span>;
 }
 
 // The colour key for the word types in `types`, in a fixed order.

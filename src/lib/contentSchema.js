@@ -451,6 +451,7 @@ export function validateContent({ index, languages, packs }) {
         const p = [];
         checkTextMap(g?.title, `categoryGroups.${name}.title`, p, { mustHave: ["en"] });
         p.forEach((m) => where("index.json", m));
+        if (g?.optIn !== undefined && typeof g.optIn !== "boolean") where("index.json", `categoryGroups.${name}.optIn must be true or false`);
         if (!Array.isArray(g?.categories) || !g.categories.every(isText)) {
           where("index.json", `categoryGroups.${name} needs a list of categories`);
           return;

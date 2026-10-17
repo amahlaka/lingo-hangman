@@ -103,7 +103,7 @@ export function PairsBoard({ board, done, onItem, onDone, p, learningLang, nativ
 
   return (
     <div className="lg-stack pg-question">
-      <div className="wp-board">
+      <div className="wp-board" style={{ "--rows": Math.max(board.learning.length, board.native.length) }}>
         <div className="wp-col" role="group" aria-label={p.learningWords}>
           <span className="lg-caption wp-col__label">{learningLabel}</span>
           {board.learning.map((item, i) => tile("learning", item, i))}

@@ -32,7 +32,7 @@ describe('Your turn', () => {
 
     const replies = within(group('Replies to choose from')).getAllByRole('button');
     fireEvent.click(replies.find((b) => b.textContent !== 'Yes, a cheese sandwich, please.'));
-    expect(screen.getByText('Not quite. Try another reply.')).toBeInTheDocument();
+    expect(screen.getByText(/^Not quite: that (comes later in this|belongs to a different) conversation\. Try another reply\.$/)).toBeInTheDocument();
     fireEvent.click(within(group('Replies to choose from')).getByRole('button', { name: 'Yes, a cheese sandwich, please.' }));
     act(() => jest.advanceTimersByTime(REPLY_DELAY));
     fireEvent.click(within(group('Replies to choose from')).getByRole('button', { name: 'For here, thanks.' }));
@@ -79,6 +79,19 @@ describe('Spot the mistake', () => {
     expect(screen.getByText(/Right on the first try/)).toBeInTheDocument();
     expect(screen.getByRole('region', { name: 'Why' })).toBeInTheDocument();
     expect(JSON.stringify(storage.data)).toContain('spot-mistake');
+    // Finding and fixing it without a miss is one first-try answer.
+    const saved = JSON.parse(Object.values(storage.data).find((v) => v.includes('"spot-mistake"')));
+    expect(saved.stats.games['spot-mistake']).toMatchObject({ n: 1, solved: 1, firstTry: 1 });
+  });
+
+  it('clears the wrong-word message once the mistake is found', () => {
+    renderApp('/spot-the-mistake');
+    const { tiles, wrong } = current();
+    fireEvent.click(tiles.find((_, i) => i !== wrong));
+    expect(screen.getByText('That word is fine. Look again.')).toBeInTheDocument();
+    fireEvent.click(tiles[wrong]);
+    expect(screen.queryByText('That word is fine. Look again.')).not.toBeInTheDocument();
+    expect(screen.queryByText('Not quite. Try another one.')).not.toBeInTheDocument();
   });
 
   it('shows the fix after two misses', () => {

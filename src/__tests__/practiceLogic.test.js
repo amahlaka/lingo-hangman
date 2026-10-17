@@ -15,6 +15,7 @@ import {
   usableWords,
 } from '../games/practice/practiceLogic';
 import { encodeWords } from '../lib/words';
+import { wordClassOf } from '../lib/wordTypes';
 
 const pool = usableWords(filterCommonWords({ learningLang: 'en', nativeLang: 'fi' }));
 
@@ -34,6 +35,13 @@ describe('pickDistractors', () => {
     pickDistractors(phrase, pool, 3).forEach((o) => expect(o.learning.split(' ').length).toBeGreaterThan(1));
     const word = pool.find((w) => w.learning === 'train');
     pickDistractors(word, pool, 3).forEach((o) => expect(o.learning.split(' ')).toHaveLength(1));
+  });
+
+  it('offers words of the same class as a single-word target', () => {
+    const word = pool.find((w) => wordClassOf(w.learning) === 'noun' && w.categories?.includes('work'));
+    for (let i = 0; i < 20; i++) {
+      pickDistractors(word, pool, 3).forEach((o) => expect(wordClassOf(o.learning)).toBe('noun'));
+    }
   });
 
   it('builds a question with the target among four options', () => {
@@ -118,7 +126,7 @@ describe('round summary', () => {
     for (let i = 0; i < 3; i++) tally = addResult(tally, { solved: true, firstTry: i > 0, xp: 19 });
     tally = addResult(tally, { solved: false, xp: 2 });
     tally = addResult(tally, { solved: true, firstTry: true, xp: 19 });
-    expect(tally).toEqual({ answered: 5, correct: 4, firstTry: 3, xp: 78, run: 1, bestRun: 3 });
+    expect(tally).toEqual({ answered: 5, correct: 4, firstTry: 3, xp: 78, run: 1, bestRun: 2 });
   });
 });
 

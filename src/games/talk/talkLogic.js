@@ -34,10 +34,12 @@ function learnerLines(text) {
   return text.sentences.filter((s) => s.speaker === you).map((s) => s.en);
 }
 
-// Wrong replies for one of the learner's lines: first a later line of their
-// own from this conversation (right topic, wrong moment), then lines from
-// other conversations.
-export function pickReplies(line, own, others, count = TALK_CHOICES - 1, random = Math.random) {
+// Wrong replies for one of the learner's lines: at most one later line of
+// their own from this conversation (right topic, wrong moment), then lines
+// from other conversations. Lines in `offered` (wrong replies already used in
+// this conversation) come last, so the same wrong reply doesn't come back
+// turn after turn and give away a later answer.
+export function pickReplies(line, own, others, count = TALK_CHOICES - 1, random = Math.random, offered = new Set()) {
   const seen = new Set([norm(line)]);
   const out = [];
   const add = (l) => {
@@ -46,26 +48,36 @@ export function pickReplies(line, own, others, count = TALK_CHOICES - 1, random 
     out.push(l);
     return true;
   };
-  // One of their lines still to come is enough (lines already said are on
-  // screen); the rest come from other conversations.
+  const fresh = (list) => [...list.filter((l) => !offered.has(norm(l))), ...list.filter((l) => offered.has(norm(l)))];
+  // Lines already said are on screen, so only lines still to come.
   const at = own.indexOf(line);
-  shuffle(own.slice(at + 1), random).some(add);
-  shuffle(others, random).forEach(add);
+  const later = shuffle(own.slice(at + 1), random).filter((l) => !offered.has(norm(l)));
+  later.slice(0, 1).forEach(add);
+  fresh(shuffle(others, random)).forEach(add);
   return out;
 }
 
 // One conversation as a question: `lines` in order, each `{ speaker, en, fi,
 // mine }`, and on the learner's lines `options` (the line and wrong replies,
-// shuffled).
+// shuffled) and `why` (each wrong reply: "later" or "other").
 export function buildTalk(text, allTexts = [], random = Math.random) {
   const you = learnerSpeaker(text);
   const partner = speakersOf(text).find((s) => s !== you) || "";
   const own = learnerLines(text);
   const others = allTexts.filter((t) => t.id !== text.id && isTalkText(t)).flatMap(learnerLines);
+  const offered = new Set();
+  const ownSet = new Set(own.map(norm));
   const lines = text.sentences.map((s) => {
     const mine = s.speaker === you;
     const line = { speaker: s.speaker, en: s.en, fi: s.fi || "", mine };
-    if (mine) line.options = shuffle([s.en, ...pickReplies(s.en, own, others, TALK_CHOICES - 1, random)], random);
+    if (mine) {
+      const wrong = pickReplies(s.en, own, others, TALK_CHOICES - 1, random, offered);
+      wrong.forEach((w) => offered.add(norm(w)));
+      line.options = shuffle([s.en, ...wrong], random);
+      // Why each wrong reply doesn't fit here: it comes later in this
+      // conversation, or it belongs to another one.
+      line.why = Object.fromEntries(wrong.map((w) => [w, ownSet.has(norm(w)) ? "later" : "other"]));
+    }
     return line;
   });
   return {

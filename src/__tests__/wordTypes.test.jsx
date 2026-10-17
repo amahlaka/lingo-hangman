@@ -160,11 +160,12 @@ describe('Build the phrase hints', () => {
     const answer = answers[screen.getByTestId('prompt-word').textContent];
     const slots = screen.getAllByTestId('phrase-slot');
     expect(slots).toHaveLength(phraseTokens(answer).length);
-    expect(slots.some((s) => s.textContent === 'subject')).toBe(true);
+    // Places say what they answer in plain words, not grammar terms.
+    expect(slots.some((s) => s.textContent === 'who / what')).toBe(true);
     expect(screen.queryByRole('button', { name: /Show what goes where/ })).toBeNull();
 
     fireEvent.click(screen.getByRole('button', { name: /Show word types/ }));
-    expect(within(bank()).getAllByRole('button').some((b) => /verb$/.test(b.textContent))).toBe(true);
+    expect(within(bank()).getAllByRole('button').some((b) => /does what$/.test(b.textContent))).toBe(true);
     solve();
     // The rule comes after answering.
     expect(screen.getAllByText(/Sentence structure/).length).toBeGreaterThan(0);

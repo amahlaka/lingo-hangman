@@ -8,7 +8,7 @@
 // Pure helpers, no React.
 
 import { wordKey } from "../../lib/progress";
-import { applyPreferences, getPreferences } from "../../lib/preferences";
+import { applyPreferences, getPreferences, optInCategories } from "../../lib/preferences";
 import { challengeLessons, challengeScore, wordStanding } from "../../lib/adaptive";
 import { sentenceLesson } from "../../lib/wordTypes";
 import {
@@ -164,11 +164,15 @@ export function preferenceFilter(targets, prefs = getPreferences()) {
   const textOf = (t) => t.key.slice(t.key.indexOf(":") + 1);
   const items = targets.map((t) => ({ target: t, categories: t.categories, level: t.levels.length ? Math.min(...t.levels) : undefined }));
   let pool = items;
-  if (prefs.focus.length > 0) {
+  // Hobby topics only add to the mix (see applyPreferences), so only everyday
+  // focus areas narrow it.
+  const optIn = optInCategories();
+  if (prefs.focus.some((c) => !optIn.includes(c))) {
     const focused = pool.filter((i) => !i.categories.length || i.categories.some((c) => prefs.focus.includes(c)));
     if (focused.filter((i) => i.categories.length).length >= QUICK_ROUND) pool = focused;
   }
-  pool = applyPreferences(pool, { prefs: { ...prefs, focus: [] }, min: QUICK_ROUND, textOf: (i) => textOf(i.target) });
+  const hidden = optIn.filter((c) => !prefs.focus.includes(c));
+  pool = applyPreferences(pool, { prefs: { ...prefs, focus: [] }, min: QUICK_ROUND, textOf: (i) => textOf(i.target), optIn: hidden });
   const keys = new Set(pool.map((i) => i.target.key));
   return (t) => keys.has(t.key);
 }

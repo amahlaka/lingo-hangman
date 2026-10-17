@@ -32,6 +32,17 @@ describe("checkTyped", () => {
     expect(checkTyped("there", "their").correct).toBe(false);
   });
 
+  it("accepts numbers and times typed with digits", () => {
+    expect(checkTyped("We meet at six.", "we meet at 6").correct).toBe(true);
+    expect(checkTyped("The shop opens at six thirty.", "The shop opens at 6:30").correct).toBe(true);
+    expect(checkTyped("It is five o'clock.", "It is 5:00").correct).toBe(true);
+    expect(checkTyped("It costs twenty-five euros.", "It costs 25 euros").correct).toBe(true);
+    expect(checkTyped("See you at seven p.m.", "see you at 7pm").correct).toBe(true);
+    expect(checkTyped("We meet at six.", "we meet at 7").correct).toBe(false);
+    // A digit counts as the right word in the word-by-word marks too.
+    expect(checkTyped("We meet at six today.", "we meet at 6 tomorrow").words.map((w) => w.ok)).toEqual([true, true, true, true, false]);
+  });
+
   it("accepts the other right answers it is given", () => {
     expect(checkTyped("car", "auto", ["auto"]).correct).toBe(true);
   });

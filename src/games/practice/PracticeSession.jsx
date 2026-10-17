@@ -4,8 +4,8 @@ import { useSettings } from "../../app/SettingsContext";
 import { useProgress } from "../../app/ProgressContext";
 import { useRoundFinished } from "../../app/PlayTracking";
 import i18n, { fill } from "../../i18n";
-import { ACHIEVEMENTS } from "../../lib/progress";
-import { DailyProgress, Feedback, GameScreen, ScorePill, WordRecap, useConfetti } from "../../components/lingo";
+import { ACHIEVEMENTS, badgeText } from "../../lib/progress";
+import { DailyProgress, Feedback, GameScreen, ScorePill, WordRecap, keepInView, useConfetti } from "../../components/lingo";
 import { sounds } from "../../lib/sounds";
 import { RULE_PEEK_COST, addResult, emptyTally } from "./practiceLogic";
 import { RuleContext } from "./RuleBox";
@@ -37,17 +37,24 @@ function useRulePlacement(current, trayRef) {
   return { mode, inlineRef };
 }
 
+// The end-of-round headline, by how much of the round was right.
+export function cheerKey({ correct, answered }) {
+  const share = answered ? correct / answered : 0;
+  return share >= 0.8 ? "endCheerGreat" : share >= 0.5 ? "endCheerGood" : "endCheerTried";
+}
+
 // The large celebration banner for what this answer unlocked, as in hangman.
-function bannerFor(events, { t, dailyGoal, answer }) {
+function bannerFor(events, { t, lang, dailyGoal, answer }) {
   if (events.goalReached) return { big: true, icon: "✓", title: fill(t.goalBanner, { n: dailyGoal }) };
-  if (events.levelUp) return { big: true, icon: String(events.levelUp), title: fill(t.levelBanner, { n: events.levelUp }) };
+  // A new level has its own card and confetti (LevelUpCard), so no shower here.
+  if (events.levelUp) return { icon: String(events.levelUp), title: fill(t.levelBanner, { n: events.levelUp }) };
   if (events.wordStreakMilestone) {
     const n = events.wordStreakMilestone;
     return { big: true, icon: String(n), title: fill(t.streakBanner, { n }) };
   }
   if (events.newAchievements.length > 0) {
     const badge = ACHIEVEMENTS.find((a) => a.id === events.newAchievements[0]);
-    if (badge) return { icon: badge.medal, title: fill(t.newBadge, { name: badge.name }) };
+    if (badge) return { icon: badge.medal, title: fill(t.newBadge, { name: badgeText(badge, lang).name }) };
   }
   if (events.wordLearned) return { icon: "✓", title: fill(t.learnedBanner, { word: answer }) };
   return null;
@@ -80,12 +87,16 @@ function bannerFor(events, { t, dailyGoal, answer }) {
 //                          multi-item questions, pairsDoneTitle, pairsAllFirstTry
 //                          and pairsFirstTry
 //   endExtra               optional element shown above "All games" on the end screen
+//   countQuestions         count the round's numbers by question, a board of
+//                          several words as one (Quick play mixes both, and its
+//                          progress dots show questions); by default every
+//                          word or line counts
 //   endNote(results)       optional element under the end screen numbers; each
 //                          result carries the `question` it answered
 export default function PracticeSession({
   gameId, title, intro, learningLang, nativeLang, buildQuestions, renderQuestion, empty,
   endTitleKey = "endTitle", recapTitleKey = "recapTitle", meaningInFeedback = true, keys, endExtra = null,
-  endNote = null,
+  endNote = null, countQuestions = false,
 }) {
   const { t, lang } = useSettings();
   const { recordWord, dailyGoal } = useProgress();
@@ -109,6 +120,7 @@ export default function PracticeSession({
   const [roundKey, setRoundKey] = useState(0);
   const nextRef = useRef(null);
   const trayRef = useRef(null);
+  const cardRef = useRef(null);
   const [traySlot, setTraySlot] = useState(null);
   const [stepSlot, setStepSlot] = useState(null);
   // In "step" placement, true while the rule's own view is showing.
@@ -153,8 +165,14 @@ export default function PracticeSession({
 
   // Put focus on the one next step as soon as it appears.
   useEffect(() => {
-    if (current && nextRef.current) nextRef.current.focus();
+    if (current && nextRef.current) nextRef.current.focus({ preventScroll: true });
   }, [current]);
+
+  // The bar with the result opens over the bottom of the page: bring the end
+  // of the question (the last answer, the last line said) up above it.
+  useEffect(() => {
+    if (current) keepInView(cardRef.current);
+  }, [current, rule.mode]);
 
   useEffect(() => {
     if (!finished) return;
@@ -162,7 +180,7 @@ export default function PracticeSession({
     sounds.celebrate();
   }, [finished, celebrate]);
 
-  const record = (outcome) => {
+  const record = (outcome, partOfBoard = false) => {
     const question = questions[index];
     const now = Date.now();
     const events = recordWord({
@@ -178,8 +196,10 @@ export default function PracticeSession({
       ms: now - shownAt.current,
     });
     shownAt.current = now;
-    const banner = bannerFor(events, { t, dailyGoal, answer: outcome.answer });
-    setTally((s) => addResult(s, { ...outcome, xp: events.xpGained }));
+    const banner = bannerFor(events, { t, lang, dailyGoal, answer: outcome.answer });
+    // Counting by question, a board's words only add their points here and
+    // the board counts once when it is done (see handleDone).
+    setTally((s) => (partOfBoard && countQuestions ? { ...s, xp: s.xp + events.xpGained } : addResult(s, { ...outcome, xp: events.xpGained })));
     setResults((r) => [...r, { ...outcome, question }]);
     setPlus({ n: events.xpGained, key: Date.now() });
     return { xp: events.xpGained, banner };
@@ -195,7 +215,7 @@ export default function PracticeSession({
 
   const handleItem = (outcome) => {
     if (current) return;
-    const { xp, banner } = record(outcome);
+    const { xp, banner } = record(outcome, true);
     const b = board.current;
     b.items.push({ ...outcome, xp });
     if (banner && (!b.banner || (banner.big && !b.banner.big))) b.banner = banner;
@@ -209,6 +229,9 @@ export default function PracticeSession({
     if (outcome.board) {
       const { items, banner } = board.current;
       board.current = { items: [], banner: null };
+      if (countQuestions) {
+        setTally((s) => addResult(s, { solved: items.every((i) => i.solved !== false), firstTry: items.every((i) => i.firstTry) }));
+      }
       setCurrent({
         board: true,
         solved: true,
@@ -260,6 +283,7 @@ export default function PracticeSession({
       return;
     }
     board.current = { items: [], banner: null };
+    if (countQuestions) setTally((s) => addResult(s, { solved: false }));
     setMarks((m) => [...m, "shown"]);
     setIndex((i) => i + 1);
   };
@@ -309,10 +333,12 @@ export default function PracticeSession({
       <GameScreen title={title} score={score} menuActions={menuActions}>
         <main className="lg-board pg-done">
           {confetti}
-          <h2 className="lg-display">{fill(p[endTitleKey], { n: results.length })}</h2>
-          {helper && <p className="lg-caption" lang="fi">{fill(fi[endTitleKey], { n: results.length })}</p>}
+          <h2 className="lg-display lg-pop">{fill(p[cheerKey(tally)], { n: tally.correct, total: tally.answered })}</h2>
+          {helper && <p className="lg-caption" lang="fi">{fill(fi[cheerKey(tally)], { n: tally.correct, total: tally.answered })}</p>}
+          <p className="lg-body-lg">{fill(p[endTitleKey], { n: tally.answered })}</p>
+          {helper && <p className="lg-caption" lang="fi">{fill(fi[endTitleKey], { n: tally.answered })}</p>}
           <dl className="pg-stats">
-            <div><dt>{p.endCorrect}</dt><dd>{tally.correct} / {results.length}</dd></div>
+            <div><dt>{p.endCorrect}</dt><dd>{tally.correct} / {tally.answered}</dd></div>
             <div><dt>{p.endFirstTry}</dt><dd>{tally.firstTry}</dd></div>
             <div><dt>{p.endBestRun}</dt><dd>{tally.bestRun}</dd></div>
             <div><dt>{t.pointsLabel}</dt><dd>{tally.xp}</dd></div>
@@ -354,7 +380,7 @@ export default function PracticeSession({
           <span className="lg-caption">{progressLabel}</span>
         </div>
         <RuleContext.Provider value={ruleContext}>
-          <div className="pg-card" hidden={ruleStep}>
+          <div className="pg-card" hidden={ruleStep} ref={cardRef}>
             {confetti}
             <QuestionControls.Provider value={controls}>
               <React.Fragment key={`${roundKey}-${index}`}>

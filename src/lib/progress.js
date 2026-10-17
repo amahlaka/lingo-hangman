@@ -217,24 +217,29 @@ export function answerSummary(state) {
 // milestones, cloudberry for skill feats, lake for exploring.
 
 export const ACHIEVEMENTS = [
-  { id: "first-word", name: "First word", desc: "Solve your first word.", medal: "1", color: "pine",
+  { id: "first-word", name: "First word", desc: "Solve your first word.", nameFi: "Ensimmäinen sana", descFi: "Ratkaise ensimmäinen sanasi.", medal: "1", color: "pine",
     value: (s) => s.totals.solved, target: 1 },
-  { id: "perfect-word", name: "Clean solve", desc: "Solve a word without a single miss.", medal: "✓", color: "cloudberry",
+  { id: "perfect-word", name: "Clean solve", desc: "Solve a word without a single miss.", nameFi: "Puhdas suoritus", descFi: "Ratkaise sana ilman yhtään virhettä.", medal: "✓", color: "cloudberry",
     value: (s) => s.totals.perfect, target: 1 },
-  { id: "first-goal", name: "Goal reached", desc: "Reach your daily goal.", medal: "✓", color: "lingon",
+  { id: "first-goal", name: "Goal reached", desc: "Reach your daily goal.", nameFi: "Tavoite saavutettu", descFi: "Saavuta päivän tavoitteesi.", medal: "✓", color: "lingon",
     value: (s) => Object.values(s.days).filter((d) => d.goalMet).length, target: 1 },
-  { id: "streak-3", name: "Three days", desc: "Reach your goal 3 days in a row.", medal: "3", color: "lingon",
+  { id: "streak-3", name: "Three days", desc: "Reach your goal 3 days in a row.", nameFi: "Kolme päivää", descFi: "Saavuta tavoitteesi 3 päivänä peräkkäin.", medal: "3", color: "lingon",
     value: (s) => s.streak.best, target: 3 },
-  { id: "streak-7", name: "Full week", desc: "Reach your goal 7 days in a row.", medal: "7", color: "lingon",
+  { id: "streak-7", name: "Full week", desc: "Reach your goal 7 days in a row.", nameFi: "Koko viikko", descFi: "Saavuta tavoitteesi 7 päivänä peräkkäin.", medal: "7", color: "lingon",
     value: (s) => s.streak.best, target: 7 },
-  { id: "words-100", name: "100 words", desc: "Solve 100 words.", medal: "100", color: "pine",
+  { id: "words-100", name: "100 solved", desc: "Solve 100 words.", nameFi: "100 ratkaistua", descFi: "Ratkaise 100 sanaa.", medal: "100", color: "pine",
     value: (s) => s.totals.solved, target: 100 },
-  { id: "learned-25", name: "25 learned", desc: "Learn 25 words (each solved on 3 days).", medal: "25", color: "pine",
+  { id: "learned-25", name: "25 learned", desc: "Learn 25 words (each solved on 3 days).", nameFi: "25 opittua", descFi: "Opi 25 sanaa (jokainen ratkaistu 3 eri päivänä).", medal: "25", color: "pine",
     value: (s) => learnedWordCount(s), target: 25 },
-  { id: "all-games", name: "Explorer", desc: "Play every game.", medal: "↻", color: "lake",
+  { id: "all-games", name: "Explorer", desc: "Play every game.", nameFi: "Tutkimusmatkailija", descFi: "Pelaa jokaista peliä.", medal: "↻", color: "lake",
     value: (s, ctx) => (ctx.gameIds || []).filter((id) => s.games[id]).length,
     target: (ctx) => Math.max(1, (ctx.gameIds || []).length) },
 ];
+
+// An achievement's name and description in the learner's language.
+export function badgeText(a, lang = "en") {
+  return lang === "fi" ? { name: a.nameFi || a.name, desc: a.descFi || a.desc } : { name: a.name, desc: a.desc };
+}
 
 function targetOf(a, ctx) {
   return typeof a.target === "function" ? a.target(ctx) : a.target;

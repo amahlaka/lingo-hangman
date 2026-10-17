@@ -4,9 +4,9 @@ import { useSettings } from "../../app/SettingsContext";
 import { useProgress } from "../../app/ProgressContext";
 import { useRoundFinished } from "../../app/PlayTracking";
 import { fill } from "../../i18n";
-import { ACHIEVEMENTS } from "../../lib/progress";
+import { ACHIEVEMENTS, badgeText } from "../../lib/progress";
 import { sounds } from "../../lib/sounds";
-import { getAlphabet, languageLabel, loadWordSet, shuffle, wordInfo } from "../../lib/words";
+import { getAlphabet, guessPromptText, loadWordSet, meaningLabel, shuffle, wordInfo } from "../../lib/words";
 import { DailyProgress, Feedback, GameScreen, ScorePill, TriesMeter, WordRecap, WordTiles, useConfetti } from "../../components/lingo";
 import HangmanDrawing from "./HangmanDrawing";
 import HangmanKeyboard from "./HangmanKeyboard";
@@ -128,7 +128,8 @@ export default function HangmanGame() {
     else if (events.wordStreakMilestone) {
       big = { icon: String(events.wordStreakMilestone), title: fill(t.streakBanner, { n: events.wordStreakMilestone }) };
     }
-    if (big) {
+    // A new level has its own card and confetti (LevelUpCard).
+    if (big && !events.levelUp) {
       setTimeout(() => {
         celebrate("large");
         sounds.celebrate();
@@ -136,7 +137,7 @@ export default function HangmanGame() {
     }
     else if (events.newAchievements.length > 0) {
       const badge = ACHIEVEMENTS.find((a) => a.id === events.newAchievements[0]);
-      big = { icon: badge.medal, title: fill(t.newBadge, { name: badge.name }) };
+      big = { icon: badge.medal, title: fill(t.newBadge, { name: badgeText(badge, lang).name }) };
     } else if (events.wordLearned) big = { icon: "✓", title: fill(t.learnedBanner, { word: answer }) };
     setBanner(big);
   };
@@ -310,7 +311,7 @@ export default function HangmanGame() {
           {t.round} {Math.min(roundNumber, totalRounds)} / {totalRounds}
         </p>
         <p className="hm-prompt" data-testid="native-word">
-          {fill(t.guessPrompt, { language: languageLabel(guessLang) })} <strong>{meaning}</strong>
+          {guessPromptText(t, guessLang)} <strong>{meaning}</strong>
         </p>
         {time && <p className="lg-caption hm-time">{Array.isArray(time) ? time.join(" / ") : time}</p>}
         <div className="hm-stage">
@@ -328,7 +329,7 @@ export default function HangmanGame() {
           {/* Once the word is done, its meaning appears right under it to link the two languages. */}
           {roundOver && (
             <div className="pg-meaning hm-meaning lg-reveal">
-              <span className="lg-caption">{languageLabel(meaningLang)}</span>
+              <span className="lg-caption">{meaningLabel(t, meaningLang)}</span>
               <p className="pg-meaning__text" lang={meaningLang} data-testid="meaning-reveal">{meaning}</p>
             </div>
           )}

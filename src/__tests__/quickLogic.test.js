@@ -1,3 +1,4 @@
+import { optInCategories } from "../lib/preferences";
 import { answerSummary, emptyProgress, recordWord, wordKey } from "../lib/progress";
 import { challengeLessons, wordStanding } from "../lib/adaptive";
 import {
@@ -197,7 +198,7 @@ describe("quick play round", () => {
     });
     const counts = {};
     targets.forEach((t) => t.categories.forEach((c) => (counts[c] = (counts[c] || 0) + 1)));
-    const [top] = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
+    const [top] = Object.entries(counts).filter(([c]) => !optInCategories().includes(c)).sort((a, b) => b[1] - a[1])[0];
     const inTop = (t) => t.categories.includes(top);
     expect(targets.filter(inTop).length).toBeGreaterThanOrEqual(10);
     expect(pickQuickTargets(targets, emptyProgress(), { include: inTop }).every((p) => inTop(p.target))).toBe(true);
@@ -214,14 +215,19 @@ describe("quick play round", () => {
     });
     const counts = {};
     targets.forEach((t) => t.categories.forEach((c) => (counts[c] = (counts[c] || 0) + 1)));
-    const [top] = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
+    const [top] = Object.entries(counts).filter(([c]) => !optInCategories().includes(c)).sort((a, b) => b[1] - a[1])[0];
     const include = preferenceFilter(targets, { focus: [top], difficulty: "any" });
     const kept = targets.filter(include);
     expect(kept.every((t) => !t.categories.length || t.categories.includes(top))).toBe(true);
     expect(kept.some((t) => t.group === "sounds")).toBe(true);
     const easy = targets.filter(preferenceFilter(targets, { focus: [], difficulty: "easy" }));
     expect(easy.length).toBeLessThan(targets.length);
-    expect(targets.filter(preferenceFilter(targets, { focus: [], difficulty: "any" }))).toHaveLength(targets.length);
+    // Hobby topics are left out until picked.
+    const hobby = (t) => t.categories.length > 0 && t.categories.every((c) => optInCategories().includes(c));
+    expect(targets.filter(preferenceFilter(targets, { focus: [], difficulty: "any" }))).toHaveLength(targets.filter((t) => !hobby(t)).length);
+    const games = targets.filter(preferenceFilter(targets, { focus: ["video-games"], difficulty: "any" }));
+    expect(games.some((t) => t.categories.includes("video-games"))).toBe(true);
+    expect(games.some((t) => t.categories.includes("food"))).toBe(true);
   });
 });
 

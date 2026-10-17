@@ -100,6 +100,7 @@ test("initialize, list tools and prompts, and notifications", async () => {
     "get_statistics",
     "list_reports",
     "set_report_status",
+    "remake_clip",
     "list_suggestions",
     "set_suggestion_status",
     "list_learners",
@@ -137,6 +138,8 @@ test("reports: list and mark fixed, which the learner then sees", async () => {
   const ids = open.groups[0].reports.map((r) => r.id);
   assert.deepEqual(await call(t, token, "set_report_status", { ids, status: "fixed" }), { changed: 2, status: "fixed" });
   assert.match((await call(t, token, "set_report_status", { ids: [] , status: "fixed" })).error, /at least 1/);
+  // Without the clip folders on this server there are no clips to remake.
+  assert.match((await call(t, token, "remake_clip", { text: "kitchen" })).error, /can't be changed/);
   assert.equal((await call(t, token, "get_overview", {})).totals.openReports, 1);
 
   const mine = (await t.call("GET", "/api/me/feedback", undefined, { cookie: learnerCookie })).json();

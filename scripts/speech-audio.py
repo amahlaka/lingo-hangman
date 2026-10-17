@@ -2,8 +2,8 @@
 
     python scripts/speech-audio.py audio-build/todo.json --model DIR [--shard I/N]
 
-Reads todo.json ({ items: [{ key, text, lang, folder, speaker, ipa?, words? }] }) and
-writes <folder of todo.json>/<folder>/<key>.mp3 for each item in the Kokoro
+Reads todo.json ({ items: [{ key, text, lang, folder, speaker, ipa?, words?, file? }] }) and
+writes <folder of todo.json>/<folder>/<file or key>.mp3 for each item in the Kokoro
 voice `speaker`, with the open Kokoro
 voice model (https://huggingface.co/hexgrad/Kokoro-82M, Apache-2.0) running
 on the CPU through kokoro-onnx. DIR holds kokoro-v1.0.onnx and voices-v1.0.bin.
@@ -243,7 +243,7 @@ def main():
                 soundfile.write(wav, samples, 24000)
                 out = os.path.join(base, item["folder"])
                 os.makedirs(out, exist_ok=True)
-                target = os.path.join(out, item["key"] + ".mp3")
+                target = os.path.join(out, item.get("file", item["key"]) + ".mp3")
                 # Mono 48 kbit/s MP3 plays everywhere and keeps a word under 10 kB.
                 subprocess.run(
                     ["ffmpeg", "-hide_banner", "-loglevel", "error", "-y", "-i", wav,

@@ -26,8 +26,9 @@ function canPlayClips() {
   return typeof window !== "undefined" && typeof window.Audio === "function";
 }
 
-// { base, folders: Map(folder -> Set of keys) } once /content/audio/index.json
-// has loaded.
+// { base, folders: Map(folder -> Set of keys), revisions: Map(folder -> Map(key
+// -> revision)) } once /content/audio/index.json has loaded. A remade clip's
+// file is <key>-<revision>.mp3 (scripts/speech-audio.mjs).
 let clips = null;
 let voiceId = DEFAULT_VOICE; // "female" or "male", from Settings
 let player = null;
@@ -66,7 +67,13 @@ export async function loadSpeechClips({ base = AUDIO_BASE, fetchImpl = globalThi
     const folders = new Map(
       Object.entries(manifest.voices).filter(([, keys]) => Array.isArray(keys)).map(([folder, keys]) => [folder, new Set(keys)])
     );
-    clips = { base, folders };
+    const revisions = new Map(
+      Object.entries(manifest.revisions && typeof manifest.revisions === "object" ? manifest.revisions : {}).map(([folder, keys]) => [
+        folder,
+        new Map(Object.entries(keys || {}).filter(([, n]) => Number.isInteger(n) && n > 0)),
+      ])
+    );
+    clips = { base, folders, revisions };
     unlockOnFirstTap();
     return true;
   } catch {
@@ -223,7 +230,9 @@ export async function speakOnDemand(text, { lang = "en", rate = RATE_NORMAL } = 
 }
 
 function playClip(key, fallbackSpeech, rate) {
-  playUrl(`${clips.base}${voiceById(voiceId).folder}/${key}.mp3`, fallbackSpeech, rate);
+  const folder = voiceById(voiceId).folder;
+  const revision = clips.revisions?.get(folder)?.get(key);
+  playUrl(`${clips.base}${folder}/${revision ? `${key}-${revision}` : key}.mp3`, fallbackSpeech, rate);
 }
 
 function playUrl(src, fallbackSpeech, rate) {

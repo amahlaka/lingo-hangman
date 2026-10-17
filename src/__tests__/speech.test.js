@@ -176,6 +176,14 @@ describe('speak', () => {
     expect(players[0].preservesPitch).toBe(true);
   });
 
+  it('plays a remade clip from its new file', async () => {
+    install();
+    const fetch = jest.fn(async () => ({ ok: true, json: async () => ({ voices: { [NOVA]: [knife] }, revisions: { [NOVA]: { [knife]: 2 } } }) }));
+    await loadSpeechClips({ fetchImpl: fetch });
+    speak('knife');
+    expect(players[0].played).toEqual([`/content/audio/${NOVA}/${knife}-2.mp3`]);
+  });
+
   it('plays the male voice when it is picked', async () => {
     install();
     await loadSpeechClips({ fetchImpl: fetchImpl([knife], [knife]) });

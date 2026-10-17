@@ -204,6 +204,20 @@ replaces an existing clip, so a saved one stays.
   `audio` folder writable as `CLIP_DIR` (a `docker-compose.override.yml`), with
   the audio folder writable by the container's user (uid 1000).
 
+### Remaking a bad clip
+
+A clip that sounds wrong (a report with *Bad audio*) can be made again without
+remaking every clip: *Remake the clip* on the report in `/admin/reports`, the
+admin AI tool `remake_clip`, or `POST /api/admin/clips/remake { text }`. Both
+voices' clips of the text, and its word-by-word clip, leave
+`CLIP_DIR/index.json` (the app reads the text another way meanwhile), and their
+keys go on `CLIP_DIR/remake.json` with a revision number. `/api/tts/clip`
+won't save those keys either. The next Content publish run (a word base change,
+or *Run workflow* with force) sees them missing and makes only them, as
+`<key>-<revision>.mp3`, because clip files are cached for a year and a remade
+one needs a new name. `index.json`'s `"revisions"` tells the app which file to
+play. Needs the same `CONTENT_DIR` and `CLIP_DIR` as saved clips.
+
 ## Reminders
 
 A signed-in learner can get one short reminder a day by web push, on days they

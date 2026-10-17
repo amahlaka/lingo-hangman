@@ -208,3 +208,48 @@ test("making word-base clips needs the service and the folders; a failed one lea
   await failing.close();
   await base.done();
 });
+
+test("an admin has a bad clip made again: it leaves the list, the API won't save it, and the workflow's new one counts", async () => {
+  const base = await wordBase();
+  const fake = fakeTts();
+  const t = setup({ ...TTS, ...base.env }, { tts: fake });
+  const { clipKey, wordsKey } = await import("../../src/lib/speechClips.js");
+  const sentence = "The kitchen is warm.";
+  const key = clipKey(sentence, "en");
+  const words = wordsKey(sentence, "en");
+  const NOVA = "kokoro-1.0-v5-af_nova";
+  assert.equal((await t.call("POST", "/api/tts/clip", { text: sentence })).statusCode, 200);
+  const readIndex = async () => JSON.parse(await base.fs.readFile(base.path.join(base.audio, "index.json"), "utf8"));
+  assert.ok((await readIndex()).voices[NOVA].includes(key));
+
+  assert.equal((await t.call("POST", "/api/admin/clips/remake", { text: sentence })).statusCode, 401);
+  await t.signIn("boss@example.com");
+  const remade = await t.call("POST", "/api/admin/clips/remake", { text: ` ${sentence} ` });
+  assert.equal(remade.statusCode, 200);
+  assert.deepEqual(remade.json(), { text: sentence, keys: [key, words] });
+  assert.deepEqual((await readIndex()).voices[NOVA], ["old"]);
+  const remakes = JSON.parse(await base.fs.readFile(base.path.join(base.audio, "remake.json"), "utf8"));
+  assert.deepEqual(remakes, { keys: { [key]: 1, [words]: 1 } });
+
+  // The old file is still there, but the API doesn't hand it out or make one.
+  const refused = await t.call("POST", "/api/tts/clip", { text: sentence });
+  assert.equal(refused.statusCode, 404);
+  assert.equal(refused.json().error, "remaking");
+  assert.equal(fake.calls.length, 1);
+
+  // Once the workflow lists its new clip again, the text is an ordinary clip.
+  await base.fs.writeFile(base.path.join(base.audio, "index.json"), JSON.stringify({ voices: { [NOVA]: ["old", key] }, revisions: { [NOVA]: { [key]: 1 } } }));
+  assert.deepEqual((await t.call("POST", "/api/tts/clip", { text: sentence })).json(), { folder: NOVA, key, made: false });
+
+  // A second remake takes the revision with it and counts up.
+  await t.call("POST", "/api/admin/clips/remake", { text: sentence });
+  assert.deepEqual(await readIndex(), { voices: { [NOVA]: ["old"] }, revisions: { [NOVA]: {} } });
+  const again = JSON.parse(await base.fs.readFile(base.path.join(base.audio, "remake.json"), "utf8"));
+  assert.equal(again.keys[key], 2);
+
+  const other = await t.call("POST", "/api/admin/clips/remake", { text: "Something else entirely" });
+  assert.equal(other.statusCode, 404);
+  assert.equal((await t.call("POST", "/api/admin/clips/remake", {})).statusCode, 400);
+  await t.close();
+  await base.done();
+});

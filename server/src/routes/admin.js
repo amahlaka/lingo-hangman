@@ -3,7 +3,7 @@
 // account (ADMIN_EMAILS) and a sign-in within the last day.
 
 import { requireSession } from "../sessions.js";
-import { ttsDay } from "./tts.js";
+import { ttsDay, ttsText } from "./tts.js";
 import {
   MAX_ROWS,
   REPORT_STATUSES,
@@ -29,7 +29,7 @@ export function isAdmin(db, config, user) {
   return true;
 }
 
-export default async function adminRoutes(app, { db, config }) {
+export default async function adminRoutes(app, { db, config, wordClips }) {
   const session = requireSession(db);
   app.addHook("preHandler", async (req, reply) => {
     await session(req, reply);
@@ -51,6 +51,18 @@ export default async function adminRoutes(app, { db, config }) {
     const status = req.body?.status;
     if (!ids || !REPORT_STATUSES.includes(status)) return reply.code(400).send({ error: "bad_request" });
     return { changed: setStatus(db, "reports", ids, status) };
+  });
+
+  // A bad recorded clip: { text } -> { keys }. The clip leaves the live list
+  // now and the next Content publish makes it again (lib/wordClips.js).
+  app.post("/api/admin/clips/remake", async (req, reply) => {
+    if (!wordClips) return reply.code(503).send({ error: "clips_unavailable" });
+    const text = ttsText(req.body?.text);
+    if (!text) return reply.code(400).send({ error: "bad_request" });
+    const keys = await wordClips.remake(text);
+    if (!keys) return reply.code(404).send({ error: "not_word_base" });
+    req.log.info({ keys }, "clip remake");
+    return { text, keys };
   });
 
   app.get("/api/admin/suggestions", async (req, reply) => {

@@ -1,17 +1,32 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { Settings } from "lucide-react";
+import {
+  ChartNoAxesColumn,
+  CircleUser,
+  Flag,
+  Gem,
+  Headphones,
+  Lightbulb,
+  Monitor,
+  Moon,
+  Settings,
+  SlidersHorizontal,
+  Sun,
+  Volume2,
+  VolumeX,
+} from "lucide-react";
 import { useSettings } from "../../app/SettingsContext";
 import { useProgress } from "../../app/ProgressContext";
 import { DAILY_GOAL_OPTIONS } from "../../lib/progress";
 import { backendAvailable } from "../../lib/backend";
 import { useFeedback } from "../../app/FeedbackContext";
 
-// Settings popover: language, theme, sound effects, voice, daily goal and a link to
-// focus areas and difficulty, the learner profile, the shop and (when the
-// optional backend answers) reporting a problem with the question on screen,
-// suggesting content and the account page, plus any game-specific
-// `actions` ([{ label, onClick }]) such as "Restart".
+// Settings popover, top to bottom: game-specific `actions` ([{ label, onClick }])
+// such as "Restart" and (with the optional backend) reporting a problem with
+// the question on screen; one compact row each for language, theme, sound
+// effects, voice and daily goal; then a grid of places to go: Practice
+// settings, profile, shop and, with the backend, account, hear a sentence and
+// suggest content.
 export default function SettingsMenu({ actions = [] }) {
   const { lang, setLang, theme, setTheme, sound, setSound, voice, setVoice, t } = useSettings();
   const { dailyGoal, setDailyGoal } = useProgress();
@@ -46,17 +61,44 @@ export default function SettingsMenu({ actions = [] }) {
     };
   }, [open]);
 
-  const choice = (current, value, onPick, label) => (
-    <button
-      key={value}
-      type="button"
-      className={`lg-chip ${current === value ? "lg-chip--on" : ""}`}
-      aria-pressed={current === value}
-      onClick={() => onPick(value)}
-    >
-      {label}
-    </button>
+  // One compact row: the label on the left, a small segmented choice on the
+  // right. Options are { value, label } with an optional icon, which then
+  // stands in for the text (kept as the accessible name).
+  const row = (label, current, onPick, options, groupLabel = label) => (
+    <div className="lg-menu__row">
+      <span className="lg-menu__rowlabel">{label}</span>
+      <div className="lg-seg" role="group" aria-label={groupLabel}>
+        {options.map(({ value, label: text, Icon }) => (
+          <button
+            key={String(value)}
+            type="button"
+            className={`lg-seg__opt ${current === value ? "lg-seg__opt--on" : ""}`}
+            aria-pressed={current === value}
+            aria-label={Icon ? text : undefined}
+            title={Icon ? text : undefined}
+            onClick={() => onPick(value)}
+          >
+            {Icon ? <Icon size={18} strokeWidth={2} aria-hidden="true" /> : text}
+          </button>
+        ))}
+      </div>
+    </div>
   );
+
+  const close = () => setOpen(false);
+  const places = [
+    { to: "/preferences", label: t.preferencesTitle, Icon: SlidersHorizontal },
+    { to: "/profile", label: t.profile.title, Icon: ChartNoAxesColumn },
+    { to: "/shop", label: t.shop.title, Icon: Gem },
+    ...(hasBackend
+      ? [
+          { to: "/account", label: t.account.title, Icon: CircleUser },
+          { to: "/hear", label: t.hear.title, Icon: Headphones },
+          { to: "/suggest", label: t.feedback.suggestLink, Icon: Lightbulb },
+        ]
+      : []),
+  ];
+  const showReport = hasBackend && subject;
 
   return (
     <div className="lg-menu" ref={ref}>
@@ -71,100 +113,75 @@ export default function SettingsMenu({ actions = [] }) {
       </button>
       {open && (
         <div className="lg-menu__panel" role="dialog" aria-label={t.settings}>
-          {actions.length > 0 && (
-            <div className="lg-stack">
+          {(actions.length > 0 || showReport) && (
+            <div className="lg-menu__actions">
               {actions.map((a) => (
                 <button
                   key={a.label}
                   type="button"
                   className="lg-btn lg-btn--secondary"
                   onClick={() => {
-                    setOpen(false);
+                    close();
                     a.onClick();
                   }}
                 >
                   {a.label}
                 </button>
               ))}
+              {showReport && (
+                <button
+                  type="button"
+                  className="lg-btn lg-btn--quiet"
+                  onClick={() => {
+                    close();
+                    openReport();
+                  }}
+                >
+                  <Flag size={16} aria-hidden="true" /> {t.feedback.reportButton}
+                </button>
+              )}
             </div>
           )}
-          <div>
-            <p className="lg-menu__label">{t.selectLanguage}</p>
-            <div className="lg-chips">
-              {choice(lang, "en", setLang, "English")}
-              {choice(lang, "fi", setLang, "Suomi")}
-            </div>
+          <div className="lg-menu__rows">
+            {row(t.menuLanguage, lang, setLang, [
+              { value: "en", label: "English" },
+              { value: "fi", label: "Suomi" },
+            ])}
+            {row(t.themeLabel, theme, setTheme, [
+              { value: "light", label: t.lightMode, Icon: Sun },
+              { value: "dark", label: t.darkMode, Icon: Moon },
+              { value: "system", label: t.systemMode, Icon: Monitor },
+            ])}
+            {row(t.soundLabel, sound, setSound, [
+              { value: true, label: t.soundOn, Icon: Volume2 },
+              { value: false, label: t.soundOff, Icon: VolumeX },
+            ])}
+            {row(t.voiceLabel, voice, setVoice, [
+              { value: "female", label: t.voiceFemale },
+              { value: "male", label: t.voiceMale },
+            ])}
+            {row(
+              t.menuGoal,
+              dailyGoal,
+              setDailyGoal,
+              DAILY_GOAL_OPTIONS.map((g) => ({ value: g, label: String(g) })),
+              t.dailyGoalLabel
+            )}
           </div>
-          <div>
-            <p className="lg-menu__label">{t.themeLabel}</p>
-            <div className="lg-chips">
-              {choice(theme, "light", setTheme, t.lightMode)}
-              {choice(theme, "dark", setTheme, t.darkMode)}
-              {choice(theme, "system", setTheme, t.systemMode)}
-            </div>
-          </div>
-          <div>
-            <p className="lg-menu__label">{t.soundLabel}</p>
-            <div className="lg-chips">
-              {choice(sound, true, setSound, t.soundOn)}
-              {choice(sound, false, setSound, t.soundOff)}
-            </div>
-          </div>
-          <div>
-            <p className="lg-menu__label">{t.voiceLabel}</p>
-            <div className="lg-chips">
-              {choice(voice, "female", setVoice, t.voiceFemale)}
-              {choice(voice, "male", setVoice, t.voiceMale)}
-            </div>
-          </div>
-          <div>
-            <p className="lg-menu__label">{t.dailyGoalLabel}</p>
-            <div className="lg-chips">
-              {DAILY_GOAL_OPTIONS.map((g) => choice(dailyGoal, g, setDailyGoal, String(g)))}
-            </div>
-          </div>
-          <Link to="/preferences" className="lg-btn lg-btn--secondary" onClick={() => setOpen(false)}>
-            {t.preferencesTitle}
-          </Link>
-          <Link to="/profile" className="lg-btn lg-btn--quiet" onClick={() => setOpen(false)}>
-            {t.profile.title}
-          </Link>
-          <Link to="/shop" className="lg-btn lg-btn--quiet" onClick={() => setOpen(false)}>
-            {t.shop.title}
-          </Link>
-          {hasBackend && subject && (
-            <button
-              type="button"
-              className="lg-btn lg-btn--quiet"
-              onClick={() => {
-                setOpen(false);
-                openReport();
-              }}
-            >
-              {t.feedback.reportButton}
-            </button>
-          )}
-          {hasBackend && (
-            <Link to="/hear" className="lg-btn lg-btn--quiet" onClick={() => setOpen(false)}>
-              {t.hear.title}
-            </Link>
-          )}
-          {hasBackend && (
-            <Link to="/suggest" className="lg-btn lg-btn--quiet" onClick={() => setOpen(false)}>
-              {t.feedback.suggestLink}
-            </Link>
-          )}
-          {hasBackend && (
-            <Link to="/account" className="lg-btn lg-btn--quiet" onClick={() => setOpen(false)}>
-              {t.account.title}
-            </Link>
-          )}
+          <nav className="lg-menu__places" aria-label={t.settings}>
+            {places.map(({ to, label, Icon }) => (
+              <Link key={to} to={to} className="lg-menu__place" onClick={close}>
+                <Icon size={20} strokeWidth={2} aria-hidden="true" />
+                <span>{label}</span>
+              </Link>
+            ))}
+          </nav>
           <p className="lg-menu__foot">
             <a href="https://github.com/amahlaka/lingo-hangman" target="_blank" rel="noopener noreferrer">
               GitHub
             </a>
             <span> · Developed by Amahlaka · </span>
-            <Link to="/privacy" onClick={() => setOpen(false)}>{t.privacy.title}</Link>
+            <Link to="/privacy" onClick={close}>{t.privacy.title}</Link>
           </p>
         </div>
       )}

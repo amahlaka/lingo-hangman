@@ -24,4 +24,15 @@ describe("Home", () => {
     fireEvent.click(screen.getByRole("button", { name: "Suomi" }));
     expect(screen.getByText("Valitse peli")).toBeInTheDocument();
   });
+
+  it("keeps settings in compact rows and links every page from the menu", () => {
+    renderApp("/");
+    fireEvent.click(screen.getByRole("button", { name: "Settings" }));
+    fireEvent.click(screen.getByRole("button", { name: "Dark" }));
+    expect(screen.getByRole("button", { name: "Dark" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("group", { name: "Daily goal (words)" })).toBeInTheDocument();
+    for (const name of ["Practice settings", "Your profile", "Shop"]) {
+      expect(screen.getByRole("link", { name })).toBeInTheDocument();
+    }
+  });
 });

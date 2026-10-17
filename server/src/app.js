@@ -63,7 +63,7 @@ export function buildApp({ db, config, logger = true, limiter = createRateLimite
 
   app.addHook("onSend", async (req, reply) => {
     reply.header("X-Content-Type-Options", "nosniff");
-    reply.header("Referrer-Policy", "no-referrer");
+    if (!reply.hasHeader("Referrer-Policy")) reply.header("Referrer-Policy", "no-referrer");
     if (!reply.hasHeader("Content-Security-Policy")) reply.header("Content-Security-Policy", "default-src 'none'; frame-ancestors 'none'");
     if (!reply.hasHeader("Cache-Control")) reply.header("Cache-Control", "no-store");
   });

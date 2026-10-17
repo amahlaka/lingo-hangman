@@ -44,6 +44,9 @@ function page(reply, { title, body, status = 200, formTo = null }) {
   reply
     .code(status)
     .type("text/html; charset=utf-8")
+    // With "no-referrer" browsers send "Origin: null" on the form's POST,
+    // which the origin check below refuses.
+    .header("Referrer-Policy", "same-origin")
     .header(
       "Content-Security-Policy",
       `default-src 'none'; style-src 'unsafe-inline'; form-action 'self'${formTo ? ` ${formTo}` : ""}; frame-ancestors 'none'; base-uri 'none'`

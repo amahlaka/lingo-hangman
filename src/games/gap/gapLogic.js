@@ -56,9 +56,15 @@ export function gapQuestions({ topics = [], gaps = [] } = {}, random = Math.rand
 
 // One round: `count` questions spread over as many sets as possible, so a
 // round of Mixed-up words isn't ten borrow-or-lend sentences. `setId` limits
-// the round to one set (a `?set=` link). Options come in random order.
-export function buildGapRound(content, { count = ROUND_LENGTH, setId = null, random = Math.random } = {}) {
+// the round to one set (a `?set=` link) and `setIds` to the sets the learner
+// picked; when none of them has sentences any more, every set is used.
+// Options come in random order.
+export function buildGapRound(content, { count = ROUND_LENGTH, setId = null, setIds = [], random = Math.random } = {}) {
   let all = gapQuestions(content, random);
+  if (setIds.length) {
+    const picked = all.filter((q) => setIds.includes(q.setId));
+    if (picked.length) all = picked;
+  }
   if (setId) {
     const one = all.filter((q) => q.setId === setId);
     if (one.length) all = one;
@@ -77,4 +83,10 @@ export function buildGapRound(content, { count = ROUND_LENGTH, setId = null, ran
     }
   }
   return round.map((q) => ({ ...q, options: shuffle(q.options, random) }));
+}
+
+// The topics that have gap sentences, in word bank order: [{ id, title: { en, fi } }].
+export function gapTopics({ topics = [], gaps = [] } = {}) {
+  const used = new Set(gaps.filter((g) => g.answers?.length).map((g) => g.topic));
+  return topics.filter((t) => used.has(t.id)).map((t) => ({ id: t.id, title: t.title }));
 }

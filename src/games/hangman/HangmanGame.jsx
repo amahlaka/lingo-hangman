@@ -10,6 +10,7 @@ import { DailyProgress, Feedback, GameScreen, ScorePill, TriesMeter, WordRecap, 
 import HangmanDrawing from "./HangmanDrawing";
 import HangmanKeyboard from "./HangmanKeyboard";
 import HintButtons, { HINT_COSTS } from "./HintButtons";
+import { FREE_HINTS } from "../practice/practiceLogic";
 import { ReportButton, useReportSubject } from "../../app/FeedbackContext";
 import { describeQuestion, itemRefFor } from "../../lib/feedback";
 
@@ -37,16 +38,19 @@ export default function HangmanGame() {
   const [swap, setSwap] = useState(() => swapMode && Math.random() < 0.5);
   // Points this session: XP earned minus hints spent.
   const [points, setPoints] = useState(0);
+  // Hints this game gives for free before they cost points.
+  const [freeHints, setFreeHints] = useState(FREE_HINTS);
   const [plus, setPlus] = useState(null);
   // { solved, events } once the current word is finished.
   const [result, setResult] = useState(null);
   const [banner, setBanner] = useState(null);
   const [removed, setRemoved] = useState([]);
+  // The 50-50 pair: stays marked until each letter is guessed or the word ends.
   const [highlighted, setHighlighted] = useState([]);
+  const [fiftyUsed, setFiftyUsed] = useState(false);
   const [newlyFound, setNewlyFound] = useState([]);
   // True when the learner skipped the word: it is shown and comes back later.
   const [gaveUp, setGaveUp] = useState(false);
-  const highlightTimer = useRef(null);
 
   useEffect(() => {
     const all = words.map((_, i) => i);
@@ -58,10 +62,10 @@ export default function HangmanGame() {
     setBanner(null);
     setRemoved([]);
     setHighlighted([]);
+    setFiftyUsed(false);
+    setFreeHints(FREE_HINTS);
     setGaveUp(false);
   }, [words]);
-
-  useEffect(() => () => clearTimeout(highlightTimer.current), []);
 
   const allDone = queue.length === 0;
 
@@ -141,7 +145,7 @@ export default function HangmanGame() {
 
   const handleGuess = (letter) => {
     if (roundOver || allDone || guesses.includes(letter) || removed.includes(letter)) return;
-    setHighlighted([]);
+    setHighlighted((h) => h.filter((l) => l !== letter));
     const next = [...guesses, letter];
     setGuesses(next);
     if (inWord(letter)) {
@@ -176,6 +180,7 @@ export default function HangmanGame() {
     setBanner(null);
     setRemoved([]);
     setHighlighted([]);
+    setFiftyUsed(false);
     setNewlyFound([]);
     setGaveUp(false);
     setSwap(swapMode && Math.random() < 0.5);
@@ -200,6 +205,8 @@ export default function HangmanGame() {
     setBanner(null);
     setRemoved([]);
     setHighlighted([]);
+    setFiftyUsed(false);
+    setFreeHints(FREE_HINTS);
     setNewlyFound([]);
     setGaveUp(false);
     setSwap(swapMode && Math.random() < 0.5);
@@ -230,21 +237,24 @@ export default function HangmanGame() {
   const notInWordLeft = alphabet.filter((l) => !inWord(l) && !guesses.includes(l) && !removed.includes(l));
   const missingLetters = letters.filter((ch) => isGuessable(ch) && !guesses.includes(ch));
   const hintAvailable = {
-    fifty: !roundOver && highlighted.length === 0 && missingLetters.length > 0 && notInWordLeft.length > 0,
+    fifty: !roundOver && !fiftyUsed && missingLetters.length > 0 && notInWordLeft.length > 0,
     remove: !roundOver && notInWordLeft.length > 0,
     clear: !roundOver && notInWordLeft.length >= 2,
   };
+  // The game's free hints go first, then hints cost this session's points.
   const handleHint = (id) => {
-    if (!hintAvailable[id] || points < HINT_COSTS[id]) return;
-    setPoints((p) => p - HINT_COSTS[id]);
+    if (!hintAvailable[id]) return;
+    if (freeHints > 0) setFreeHints((n) => n - 1);
+    else if (points >= HINT_COSTS[id]) setPoints((p) => p - HINT_COSTS[id]);
+    else return;
     if (id === "fifty") {
-      const pair = shuffle([missingLetters[0], shuffle(notInWordLeft)[0]]);
-      setHighlighted(pair);
-      clearTimeout(highlightTimer.current);
-      highlightTimer.current = setTimeout(() => setHighlighted([]), 5000);
+      setHighlighted(shuffle([missingLetters[0], shuffle(notInWordLeft)[0]]));
+      setFiftyUsed(true);
     } else {
       const count = id === "remove" ? 1 : Math.min(notInWordLeft.length, 2 + Math.floor(Math.random() * 5));
-      setRemoved((r) => [...r, ...shuffle(notInWordLeft).slice(0, count)]);
+      const gone = shuffle(notInWordLeft).slice(0, count);
+      setRemoved((r) => [...r, ...gone]);
+      setHighlighted((h) => h.filter((l) => !gone.includes(l)));
     }
   };
 
@@ -313,7 +323,7 @@ export default function HangmanGame() {
         {time && <p className="lg-caption hm-time">{Array.isArray(time) ? time.join(" / ") : time}</p>}
         <div className="hm-stage">
           <HangmanDrawing misses={misses.length} label={`${t.hangmanDrawing}: ${misses.length} / ${MAX_MISSES}`} />
-          <HintButtons points={points} available={hintAvailable} onHint={handleHint} t={t} />
+          <HintButtons points={points} free={freeHints} available={hintAvailable} onHint={handleHint} t={t} />
         </div>
         <TriesMeter
           left={triesLeft}

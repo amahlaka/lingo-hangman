@@ -114,18 +114,13 @@ describe('The rule after answering', () => {
 });
 
 describe('Peeking at the rule', () => {
-  it('costs points from this round and shows only the rule before answering', () => {
+  it('uses a free hint first and shows only the rule before answering', () => {
     renderApp('/mixed-up?set=borrow-lend');
-    expect(screen.getByRole('button', { name: /Show the rule/ })).toBeDisabled();
-    expect(screen.getByText('Earn 5 points to unlock the rule.')).toBeInTheDocument();
-    fireEvent.click(options().find((b) => b.textContent === current().answer));
-    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
     const points = () => Number(screen.getByLabelText(/^Points \d+$/).getAttribute('aria-label').split(' ')[1]);
-    const before = points();
-    expect(before).toBeGreaterThanOrEqual(5);
+    expect(points()).toBe(0);
     expect(screen.queryByRole('region', { name: 'Why' })).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Show the rule (−5 points)' }));
-    expect(points()).toBe(before - 5);
+    fireEvent.click(screen.getByRole('button', { name: 'Show the rule (free)' }));
+    expect(points()).toBe(0);
     expect(within(screen.getByRole('region', { name: 'Why' })).getByText(/kaksi eri verbiä/)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Show the rule/ })).not.toBeInTheDocument();
   });

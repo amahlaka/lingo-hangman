@@ -148,11 +148,11 @@ describe('Build the phrase hints', () => {
     return answer;
   };
 
-  it('sells place labels and word types for points', () => {
+  it('gives place labels and word types as hints, free at first', () => {
     useFixture();
     renderApp('/phrase');
-    expect(screen.getByRole('button', { name: /Show what goes where/ })).toBeDisabled();
-    expect(screen.getByText('Earn 5 points to unlock hints.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Show what goes where (free)' })).toBeEnabled();
+    expect(screen.getByText('Free hints left in this game: 3')).toBeInTheDocument();
     solve();
     fireEvent.click(screen.getByRole('button', { name: 'Next' }));
 

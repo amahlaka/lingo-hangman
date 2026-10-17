@@ -106,4 +106,37 @@ describe("HangmanGame", () => {
     act(() => jest.runOnlyPendingTimers());
     jest.useRealTimers();
   });
+
+  it("starts with three free hints, then hints cost points", () => {
+    renderApp(`/play?words=${encodeWords([{ learning: "kitchen", native: "keittiö" }])}`);
+    const hint = (name) => screen.getByRole("button", { name: new RegExp(`^${name}\\.`) });
+    expect(screen.getByText("3 free")).toBeInTheDocument();
+    expect(hint("Remove a letter")).toHaveAccessibleName("Remove a letter. Remove one letter that is not in the word (free)");
+    fireEvent.click(hint("Remove a letter"));
+    fireEvent.click(hint("Remove a letter"));
+    expect(screen.getByText("1 free")).toBeInTheDocument();
+    fireEvent.click(hint("Clear letters"));
+    expect(screen.queryByText(/free$/)).not.toBeInTheDocument();
+    expect(screen.getByLabelText(/^Points 0$/)).toBeInTheDocument();
+    expect(hint("Remove a letter")).toHaveAccessibleName("Remove a letter. Remove one letter that is not in the word (8 points)");
+    expect(hint("Remove a letter")).toBeDisabled();
+  });
+
+  it("keeps the 50-50 letters marked until the word is done and sells it once per word", () => {
+    jest.useFakeTimers();
+    const { container } = renderApp(`/play?words=${encodeWords([{ learning: "kitchen", native: "keittiö" }])}`);
+    const fifty = () => screen.getByRole("button", { name: /^50-50\./ });
+    fireEvent.click(fifty());
+    const marked = () => [...container.querySelectorAll(".lg-key--hint")].map((b) => b.textContent);
+    const pair = marked();
+    expect(pair).toHaveLength(2);
+    act(() => jest.advanceTimersByTime(10000));
+    expect(marked()).toEqual(pair);
+    // Another guess leaves the pair marked.
+    const other = "KITCHEN".split("").find((l) => !pair.includes(l));
+    fireEvent.click(key(other));
+    expect(marked()).toEqual(pair);
+    expect(fifty()).toBeDisabled();
+    jest.useRealTimers();
+  });
 });

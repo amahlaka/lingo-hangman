@@ -251,7 +251,9 @@ word (`"noun:subject"`, `"auxiliary"`, `"verb"`…; the list is `WORD_CLASSES` i
   an easy one (level 1-2) when sentences of its level have been hard lately, or
   this sentence has been (`hardLevels`, `autoHints`).
 - Paid hints go through `PaidHints` (`src/games/practice/RuleBox.jsx`), which
-  spends this round's points; costs are `SLOT_HINT_COST` and `OPTION_HINT_COST`.
+  uses the round's free hints first (`FREE_HINTS`, 3 per game, also used by
+  Hangman and `RulePeek`) and then spends this round's points; costs are
+  `SLOT_HINT_COST` and `OPTION_HINT_COST`.
 
 Build the phrase uses all of it: labelled places (8 points), word types on the
 chips (5), colours, and the sentence-structure rule each sentence practises

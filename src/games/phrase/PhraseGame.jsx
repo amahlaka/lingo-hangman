@@ -155,9 +155,9 @@ export function PhraseQuestion({ puzzle, done, onDone, p, learningLang, nativeLa
   const hints = done
     ? []
     : [
-        types && !showSlots && { id: "slots", label: fill(p.hintSlots, { n: SLOT_HINT_COST }), cost: SLOT_HINT_COST, onBuy: buy("slots") },
-        types && !showOptions && { id: "options", label: fill(p.hintOptions, { n: OPTION_HINT_COST }), cost: OPTION_HINT_COST, onBuy: buy("options") },
-        rule && !bought.rule && { id: "rule", label: fill(p.rulePeek, { n: RULE_PEEK_COST }), cost: RULE_PEEK_COST, onBuy: buy("rule") },
+        types && !showSlots && { id: "slots", label: p.hintSlots, cost: SLOT_HINT_COST, onBuy: buy("slots") },
+        types && !showOptions && { id: "options", label: p.hintOptions, cost: OPTION_HINT_COST, onBuy: buy("options") },
+        rule && !bought.rule && { id: "rule", label: p.rulePeek, cost: RULE_PEEK_COST, onBuy: buy("rule") },
       ].filter(Boolean);
 
   return (

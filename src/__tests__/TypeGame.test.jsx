@@ -43,18 +43,32 @@ describe("Type it", () => {
     expect(screen.getByText(`Not this time. The answer was "${answer}".`)).toBeInTheDocument();
   });
 
-  it("sells hints for the round's points", () => {
+  it("gives three free hints, then sells hints for the round's points", () => {
     renderApp(link);
     const shape = () => screen.getByRole("button", { name: /Show first letters/ });
-    expect(shape()).toBeDisabled();
-    expect(screen.getByText(/Earn 2 points to unlock hints/)).toBeInTheDocument();
-    type(target());
+    const letter = () => screen.getByRole("button", { name: /Next letter/ });
+    expect(screen.getByText("Free hints left in this game: 3")).toBeInTheDocument();
+    expect(shape()).toHaveTextContent("Show first letters (free)");
+    const first = target();
+    fireEvent.click(shape());
+    expect(screen.getByLabelText("The shape of the answer")).toHaveTextContent(first[0]);
+    expect(screen.getByText("Free hints left in this game: 2")).toBeInTheDocument();
+    fireEvent.click(letter());
+    expect(input()).toHaveValue(first[0]);
+    fireEvent.click(letter());
+    expect(input()).toHaveValue(first.slice(0, 2));
+    // Free hints are used up and no points are earned yet.
+    expect(letter()).toBeDisabled();
+    expect(letter()).toHaveTextContent("Next letter (−3 points)");
+    expect(screen.getByText(/Earn 3 points to unlock hints/)).toBeInTheDocument();
+    type(first);
     fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    const points = () => Number(screen.getByLabelText(/^Points \d+$/).getAttribute("aria-label").split(" ")[1]);
+    const before = points();
     const answer = target();
     fireEvent.click(shape());
+    expect(points()).toBe(before - 2);
     expect(screen.getByLabelText("The shape of the answer")).toHaveTextContent(answer[0]);
     expect(screen.queryByRole("button", { name: /Show first letters/ })).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: /Next letter/ }));
-    expect(input()).toHaveValue(answer[0]);
   });
 });

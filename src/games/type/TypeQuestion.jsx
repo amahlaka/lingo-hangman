@@ -138,13 +138,19 @@ export default function TypeQuestion({ question, done, onDone, p, learningLang, 
   const nextWord = revealNextWord(text, value, revealed);
   const hints = [];
   if (!firstLetters) {
-    hints.push({ id: "shape", label: fill(p.typeHintShape, { n: TYPE_HINT_COSTS.shape }), cost: TYPE_HINT_COSTS.shape, onBuy: () => setFirstLetters(true) });
+    hints.push({ id: "shape", label: p.typeHintShape, cost: TYPE_HINT_COSTS.shape, onBuy: () => {
+      setFirstLetters(true);
+      setTimeout(focusInput, 0);
+    } });
   }
   if (dictation) {
-    if (nextWord) hints.push({ id: "word", label: fill(p.typeHintWord, { n: TYPE_HINT_COSTS.word }), cost: TYPE_HINT_COSTS.word, onBuy: () => reveal(revealNextWord(text, value, revealed)) });
+    if (nextWord) hints.push({ id: "word", label: p.typeHintWord, cost: TYPE_HINT_COSTS.word, onBuy: () => reveal(revealNextWord(text, value, revealed)) });
   } else {
-    if (nextLetter) hints.push({ id: "letter", label: fill(p.typeHintLetter, { n: TYPE_HINT_COSTS.letter }), cost: TYPE_HINT_COSTS.letter, onBuy: () => reveal(revealNextLetter(text, value, revealed)) });
-    if (canSpeak()) hints.push({ id: "hear", label: fill(p.typeHintHear, { n: TYPE_HINT_COSTS.hear }), cost: TYPE_HINT_COSTS.hear, onBuy: () => speak(text, { lang: learningLang }) });
+    if (nextLetter) hints.push({ id: "letter", label: p.typeHintLetter, cost: TYPE_HINT_COSTS.letter, onBuy: () => reveal(revealNextLetter(text, value, revealed)) });
+    if (canSpeak()) hints.push({ id: "hear", label: p.typeHintHear, cost: TYPE_HINT_COSTS.hear, onBuy: () => {
+      speak(text, { lang: learningLang });
+      focusInput();
+    } });
   }
 
   const showShape = !done && (firstLetters || revealed > 0);

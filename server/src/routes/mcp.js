@@ -16,7 +16,18 @@ const SCOPES = {
   admin: {
     allowed: (db, config, token) => isAdmin(db, config, { id: token.user_id, email: token.email, role: token.role }),
     server: (config) => ({
-      info: { name: "lingo-admin", title: "Lingo admin", version: config.version },
+      info: {
+        name: "lingo-admin",
+        title: "Lingo admin",
+        version: config.version,
+        websiteUrl: config.publicUrl,
+        // The app's own icons, so connectors don't fall back to a cached
+        // favicon of the site.
+        icons: [
+          { src: `${config.publicUrl}/favicon.svg`, mimeType: "image/svg+xml", sizes: ["any"] },
+          { src: `${config.publicUrl}/pwa-192x192.png`, mimeType: "image/png", sizes: ["192x192"] },
+        ],
+      },
       instructions: admin.instructions,
       tools: admin.tools,
       prompts: admin.prompts,

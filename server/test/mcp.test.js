@@ -81,6 +81,7 @@ test("initialize, list tools and prompts, and notifications", async () => {
   const init = (await rpc(t, token, "initialize", { protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "test", version: "1" } })).json();
   assert.equal(init.result.protocolVersion, "2025-06-18");
   assert.equal(init.result.serverInfo.name, "lingo-admin");
+  assert.deepEqual(init.result.serverInfo.icons.map((i) => i.src), ["https://lingo.example/favicon.svg", "https://lingo.example/pwa-192x192.png"]);
   assert.ok(init.result.capabilities.tools);
   assert.match(init.result.instructions, /lingo-wordbase/);
   assert.equal((await rpc(t, token, "initialize", { protocolVersion: "1999-01-01" })).json().result.protocolVersion, "2025-11-25");

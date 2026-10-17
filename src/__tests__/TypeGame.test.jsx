@@ -2,10 +2,13 @@ import { fireEvent, screen } from "@testing-library/react";
 import { memoryStorage, renderApp } from "../test-utils";
 import { encodeWords } from "../lib/words";
 
+// Every word is long enough for two "Next letter" hints to leave letters still
+// hidden: the hint never gives away the last letter, so on a three-letter word
+// it disappears after the second one.
 const words = [
-  { learning: "dog", native: "koira" },
+  { learning: "garden", native: "puutarha" },
   { learning: "kitchen", native: "keittiö" },
-  { learning: "bird", native: "lintu" },
+  { learning: "flower", native: "kukka" },
   { learning: "window", native: "ikkuna" },
 ];
 const link = `/type-it?words=${encodeWords(words)}&learningLang=en-GB&nativeLang=fi`;

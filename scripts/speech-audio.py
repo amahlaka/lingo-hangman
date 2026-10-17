@@ -2,8 +2,8 @@
 
     python scripts/speech-audio.py audio-build/todo.json --model DIR [--shard I/N]
 
-Reads todo.json ({ items: [{ key, text, lang, folder, speaker, ipa?, words? }] }) and
-writes <folder of todo.json>/<folder>/<key>.mp3 for each item in the Kokoro
+Reads todo.json ({ items: [{ key, text, lang, folder, speaker, ipa?, words?, file? }] }) and
+writes <folder of todo.json>/<folder>/<file or key>.mp3 for each item in the Kokoro
 voice `speaker`, with the open Kokoro
 voice model (https://huggingface.co/hexgrad/Kokoro-82M, Apache-2.0) running
 on the CPU through kokoro-onnx. DIR holds kokoro-v1.0.onnx and voices-v1.0.bin.
@@ -66,6 +66,17 @@ IPA_TO_MODEL = {
     "en-GB": [("æ", "a"), ("r", "ɹ"), ("g", "ɡ")],
 }
 VOWELS = set("aeiouæɑɒɔəɛɜɪʊʌɐɚ")
+# The model learned j and ch as one sound each (ʤ, ʧ). Spelled as two, as
+# dictionaries and espeak do, it says d or t and then the sound: "jacket"
+# had a double j and speech recognition heard "cheese" as "trees".
+AFFRICATES = [("dʒ", "ʤ"), ("tʃ", "ʧ")]
+
+
+def model_sounds(phonemes):
+    """Phonemes with j and ch as the single sounds the model knows."""
+    for old, new in AFFRICATES:
+        phonemes = phonemes.replace(old, new)
+    return phonemes
 
 
 def ipa_phonemes(ipa, lang="en"):
@@ -165,7 +176,7 @@ def fits(kokoro, parts):
 def say(kokoro, text, speaker, lang, ipa=None):
     """The text as 24 kHz samples. `lang` is the word base's language code."""
     phonemes = ipa_phonemes(ipa, lang) if ipa else kokoro.tokenizer.phonemize(text, PHONEMES[lang])
-    phonemes = " ".join(phonemes.split())
+    phonemes = model_sounds(" ".join(phonemes.split()))
     if not fits(kokoro, [phonemes]):
         samples, _ = kokoro.create(phonemes, voice=speaker, speed=SPEED, is_phonemes=True)
         return samples
@@ -190,7 +201,7 @@ def say_words(kokoro, text, speaker, lang):
     # it ("I live here": lˈɪv), then every word is stressed, as when read from
     # a list: unstressed, "the" and "a" were so short that cut out they
     # sounded like "th".
-    words = [w.strip(".,!?;:\"“”…—") for w in kokoro.tokenizer.phonemize(text, PHONEMES[lang]).split()]
+    words = [w.strip(".,!?;:\"“”…—") for w in model_sounds(kokoro.tokenizer.phonemize(text, PHONEMES[lang])).split()]
     words = [stressed(w) for w in words if w]
     if not words or not fits(kokoro, words):
         return say(kokoro, text, speaker, lang)
@@ -232,7 +243,7 @@ def main():
                 soundfile.write(wav, samples, 24000)
                 out = os.path.join(base, item["folder"])
                 os.makedirs(out, exist_ok=True)
-                target = os.path.join(out, item["key"] + ".mp3")
+                target = os.path.join(out, item.get("file", item["key"]) + ".mp3")
                 # Mono 48 kbit/s MP3 plays everywhere and keeps a word under 10 kB.
                 subprocess.run(
                     ["ffmpeg", "-hide_banner", "-loglevel", "error", "-y", "-i", wav,

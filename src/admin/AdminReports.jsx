@@ -32,7 +32,46 @@ export function suggestionLink(s) {
   return `/admin?${q}`;
 }
 
+// The text a report's question said aloud: a sound lesson's word, else the answer.
+export function spokenTextOf(context) {
+  const q = context?.question;
+  const word = q?.word;
+  if (word && typeof word === "object") return word.speak || String(word.text || "").replace(/[[\]]/g, "");
+  if (typeof context?.answer === "string") return context.answer;
+  return q?.learning || q?.target?.learning || q?.text || "";
+}
+
+const REMAKE_ERRORS = {
+  not_word_base: "That text isn't in the word base, so it has no recorded clip.",
+  clips_unavailable: "Recorded clips can't be changed on this server (CLIP_DIR and CONTENT_DIR).",
+};
+
+// "Remake the clip": for bad audio, the recorded clip of the text leaves the
+// live site and the next Content publish makes it again.
+function RemakeClip({ initial }) {
+  const [text, setText] = useState(initial);
+  const [state, setState] = useState(null);
+  const remake = async () => {
+    setState({ busy: true });
+    const res = await api("/admin/clips/remake", { method: "POST", body: { text } });
+    setState(res.ok ? { done: res.data.keys.length } : { error: REMAKE_ERRORS[res.data?.error] || "Couldn't remake it." });
+  };
+  return (
+    <div className="fb-remake">
+      <label className="lg-caption">
+        Spoken text <input className="lg-input" value={text} onChange={(e) => setText(e.target.value)} spellCheck={false} />
+      </label>
+      <button type="button" className="lg-btn lg-btn--secondary" disabled={!text.trim() || state?.busy || state?.done} onClick={remake}>
+        Remake the clip
+      </button>
+      {state?.done && <p className="lg-caption">Taken off the live site. The next Content publish (or a run with force) makes it again; until then the app reads it another way.</p>}
+      {state?.error && <p className="lg-caption">{state.error}</p>}
+    </div>
+  );
+}
+
 function ReportGroup({ group, status, onStatus, busy }) {
+  const badAudio = group.reports.find((r) => r.reason === "bad_audio");
   const ids = group.reports.map((r) => r.id);
   const reasons = Object.entries(
     group.reports.reduce((acc, r) => ({ ...acc, [r.reason]: (acc[r.reason] || 0) + 1 }), {})
@@ -53,6 +92,7 @@ function ReportGroup({ group, status, onStatus, busy }) {
           </details>
         </div>
       ))}
+      {badAudio && status === "open" && <RemakeClip initial={spokenTextOf(badAudio.context)} />}
       <div className="lg-row">
         <Link className="lg-btn lg-btn--secondary" to={editorLink(group.itemRef)}>Open in editor</Link>
         {status === "open" ? (

@@ -100,6 +100,8 @@ export default async function ttsRoutes(app, { db, config, limiter, fetchImpl = 
       return reply.code(503).send({ error: "tts_unavailable" });
     }
     if (!key) return reply.code(404).send({ error: "not_word_base" });
+    // An admin asked for it to be made again by the Content publish workflow.
+    if (await clips.remaking(folder, key)) return reply.code(404).send({ error: "remaking" });
     const id = `${folder}/${key}`;
     if (!savingClip.has(id) && (await clips.has(folder, key))) return { folder, key, made: false };
 

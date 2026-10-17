@@ -95,6 +95,22 @@ describe('build the phrase', () => {
     expect(correctPlaces(['How', 'you', 'you'], answer)).toEqual([0, 2]);
   });
 
+  it('accepts please at the other end of a request', () => {
+    const answer = ['please', 'take', 'your', 'shoes', 'off'];
+    expect(checkPhrase(['take', 'your', 'shoes', 'off', 'please'], answer)).toBe(true);
+    expect(checkPhrase(['take', 'your', 'please', 'shoes', 'off'], answer)).toBe(false);
+    expect(checkPhrase(['please', 'help', 'me'], ['help', 'me', 'please'])).toBe(true);
+    expect(checkPhrase(['please', 'yes'], ['yes', 'please'])).toBe(false);
+  });
+
+  it("accepts the item's other orders, with please at either end", () => {
+    const answer = ['please', 'take', 'your', 'shoes', 'off'];
+    const others = [['please', 'take', 'off', 'your', 'shoes']];
+    expect(checkPhrase(['please', 'take', 'off', 'your', 'shoes'], answer, others)).toBe(true);
+    expect(checkPhrase(['take', 'off', 'your', 'shoes', 'please'], answer, others)).toBe(true);
+    expect(checkPhrase(['please', 'take', 'off', 'your', 'shoes'], answer)).toBe(false);
+  });
+
   it('gives beginners a word or two in place on some sentences only', () => {
     const always = () => 0;
     expect(givenPlaces(['how', 'are', 'you'], always)).toHaveLength(1);

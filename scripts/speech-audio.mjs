@@ -13,6 +13,11 @@
 // finish  writes DIR/index.json: per voice, the keys of every clip that is now
 //         on the live site or in DIR/<voice folder>/, for texts still said.
 //
+// A clip an admin asked to remake (the live site's audio/remake.json, from
+// server/src/lib/wordClips.js) is off the live list, so plan lists it again,
+// to be made as <key>-<revision>.mp3: clip files are cached for good, so a
+// new one needs a new name. index.json's "revisions" names those files.
+//
 // DIR defaults to audio-build/. Reads the word base from content/.
 import fs from "node:fs";
 import path from "node:path";
@@ -69,53 +74,70 @@ for (const lang of CLIP_LANGS) {
   }
 }
 
-// Keys of the clips on the live site. A missing list means none; any other
-// failure stops here, so a network hiccup can't publish a list without them.
-// folder -> Set of keys
-async function liveKeys() {
-  if (!live) return new Map();
-  const url = new URL("content/audio/index.json", live.endsWith("/") ? live : `${live}/`);
+// A JSON file of the live site's audio folder. A missing file means none; any
+// other failure stops here, so a network hiccup can't publish a list without
+// the clips.
+async function liveJson(name) {
+  if (!live) return null;
+  const url = new URL(`content/audio/${name}`, live.endsWith("/") ? live : `${live}/`);
   try {
     const res = await fetch(url, { cache: "no-cache" });
-    if (res.status === 404) return new Map();
+    if (res.status === 404) return null;
     if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-    const manifest = await res.json();
-    return new Map(Object.entries(manifest.voices || {}).map(([folder, keys]) => [folder, new Set(keys)]));
+    return await res.json();
   } catch (error) {
     console.error(`Could not read ${url}: ${error.message}`);
     process.exit(1);
   }
 }
 
-const madeKeys = (folder) => {
+// key -> file name of every clip made in DIR/<folder>/ ("<key>" or "<key>-<revision>").
+const madeFiles = (folder) => {
   const dir = path.join(out, folder);
-  return new Set(fs.existsSync(dir) ? fs.readdirSync(dir).filter((f) => f.endsWith(".mp3")).map((f) => f.slice(0, -4)) : []);
+  const names = fs.existsSync(dir) ? fs.readdirSync(dir).filter((f) => f.endsWith(".mp3")).map((f) => f.slice(0, -4)) : [];
+  return new Map(names.map((name) => [name.replace(/-\d+$/, ""), name]));
 };
+const revisionOf = (name) => Number(/-(\d+)$/.exec(name)?.[1]) || 0;
 
 fs.mkdirSync(out, { recursive: true });
-const onSite = await liveKeys();
+const manifest = (await liveJson("index.json")) || {};
+// folder -> Set of keys
+const onSite = new Map(Object.entries(manifest.voices || {}).map(([folder, keys]) => [folder, new Set(keys)]));
+// key -> revision of the clips to make again
+const remakes = (await liveJson("remake.json"))?.keys || {};
 
 if (command === "plan") {
   const todo = [];
   for (const voice of VOICES) {
     const live = onSite.get(voice.folder) || new Set();
-    const made = madeKeys(voice.folder);
+    const made = madeFiles(voice.folder);
     for (const [key, v] of wanted) {
-      if (!live.has(key) && !made.has(key)) todo.push({ key, ...v, folder: voice.folder, speaker: voice.speaker });
+      if (live.has(key) || made.has(key)) continue;
+      const revision = Number(remakes[key]) || 0;
+      todo.push({ key, ...v, folder: voice.folder, speaker: voice.speaker, ...(revision ? { file: `${key}-${revision}` } : {}) });
     }
   }
   fs.writeFileSync(path.join(out, "todo.json"), `${JSON.stringify({ items: todo }, null, 2)}\n`);
   console.log(`${wanted.size} texts are spoken in ${VOICES.length} voices; ${todo.length} clips to make.`);
 } else if (command === "finish") {
   const voices = {};
+  const revisions = {};
   for (const voice of VOICES) {
     const live = onSite.get(voice.folder) || new Set();
-    const made = madeKeys(voice.folder);
+    const made = madeFiles(voice.folder);
+    const liveRevisions = manifest.revisions?.[voice.folder] || {};
     voices[voice.folder] = [...wanted.keys()].filter((key) => live.has(key) || made.has(key)).sort();
+    const folderRevisions = {};
+    for (const key of voices[voice.folder]) {
+      const revision = made.has(key) ? revisionOf(made.get(key)) : Number(liveRevisions[key]) || 0;
+      if (revision) folderRevisions[key] = revision;
+    }
+    if (Object.keys(folderRevisions).length) revisions[voice.folder] = folderRevisions;
     const missing = wanted.size - voices[voice.folder].length;
     console.log(`${voice.folder}: ${voices[voice.folder].length} clips${missing ? `; ${missing} texts use the browser voice` : ""}.`);
   }
-  fs.writeFileSync(path.join(out, "index.json"), `${JSON.stringify({ voices })}\n`);
+  const index = Object.keys(revisions).length ? { voices, revisions } : { voices };
+  fs.writeFileSync(path.join(out, "index.json"), `${JSON.stringify(index)}\n`);
 } else {
   console.error("Usage: node scripts/speech-audio.mjs plan|finish [--live URL] [--out DIR]");
   process.exit(1);

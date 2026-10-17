@@ -69,8 +69,8 @@ describe('speak', () => {
     };
   }
 
-  const NOVA = 'kokoro-1.0-v4-af_nova';
-  const LIAM = 'kokoro-1.0-v4-am_liam';
+  const NOVA = 'kokoro-1.0-v5-af_nova';
+  const LIAM = 'kokoro-1.0-v5-am_liam';
   const fetchImpl = (keys, male = keys) =>
     jest.fn(async () => ({ ok: true, json: async () => ({ voices: { [NOVA]: keys, [LIAM]: male } }) }));
   const flush = () => new Promise((r) => setTimeout(r, 0));
@@ -174,6 +174,14 @@ describe('speak', () => {
     speak('knife', { rate: RATE_SLOW });
     expect(players[0].playbackRate).toBeLessThan(1);
     expect(players[0].preservesPitch).toBe(true);
+  });
+
+  it('plays a remade clip from its new file', async () => {
+    install();
+    const fetch = jest.fn(async () => ({ ok: true, json: async () => ({ voices: { [NOVA]: [knife] }, revisions: { [NOVA]: { [knife]: 2 } } }) }));
+    await loadSpeechClips({ fetchImpl: fetch });
+    speak('knife');
+    expect(players[0].played).toEqual([`/content/audio/${NOVA}/${knife}-2.mp3`]);
   });
 
   it('plays the male voice when it is picked', async () => {

@@ -37,7 +37,7 @@ const SCOPES = {
 
 const bearer = (header) => (typeof header === "string" && header.startsWith("Bearer ") ? header.slice(7).trim() : null);
 
-export default async function mcpRoutes(app, { db, config }) {
+export default async function mcpRoutes(app, { db, config, wordClips = null }) {
   // Streamable HTTP without the optional event stream or sessions.
   const notAllowed = async (req, reply) => reply.code(405).header("Allow", "POST").send(failure(null, -32000, "Method not allowed"));
   app.get(MCP_PATH, notAllowed);
@@ -66,7 +66,7 @@ export default async function mcpRoutes(app, { db, config }) {
     if (msg === undefined || msg === null || typeof msg !== "object") return reply.code(400).send(failure(null, PARSE_ERROR, "Send one JSON-RPC message as JSON"));
     if (Array.isArray(msg)) return reply.code(400).send(failure(null, -32600, "Batches are not supported"));
 
-    const out = await handleMessage(scope.server(config), msg, { db, config, token, log: req.log });
+    const out = await handleMessage(scope.server(config), msg, { db, config, token, log: req.log, wordClips });
     if (!out) return reply.code(202).send();
     if (msg.method === "tools/call") req.log.info({ tokenId: token.id, tool: msg.params?.name }, "mcp tool");
     return out;

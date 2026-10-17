@@ -20,10 +20,11 @@ import pathRoutes from "./routes/path.js";
 import playRoutes from "./routes/play.js";
 import mcpRoutes, { MCP_PATH } from "./routes/mcp.js";
 import oauthRoutes from "./routes/oauth.js";
+import { createWordClips } from "./lib/wordClips.js";
 
 const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
 
-// `tts` ({ fetchImpl, cache }) replaces the TTS service and its cache in tests;
+// `tts` ({ fetchImpl, cache, wordClips }) replaces the TTS service and its cache in tests;
 // `push` is the function that sends one push message (push/sender.js).
 export function buildApp({ db, config, logger = true, limiter = createRateLimiter(), tts = {}, push = null }) {
   const app = Fastify({
@@ -81,18 +82,22 @@ export function buildApp({ db, config, logger = true, limiter = createRateLimite
     return { ok: dbOk, version: config.version, schema };
   });
 
+  // The recorded clips on disk, shared so their index is written by one queue.
+  const wordClips =
+    tts.wordClips || (config.clipDir && config.contentDir ? createWordClips({ contentDir: config.contentDir, clipDir: config.clipDir }) : null);
+
   app.register(authRoutes, { db, config, limiter });
   app.register(accountRoutes, { db, config });
   app.register(feedbackRoutes, { db, limiter });
-  app.register(adminRoutes, { db, config });
+  app.register(adminRoutes, { db, config, wordClips });
   app.register(syncRoutes, { db, limiter });
-  app.register(ttsRoutes, { db, config, limiter, ...tts });
+  app.register(ttsRoutes, { db, config, limiter, ...tts, wordClips });
   app.register(pushRoutes, { db, config, limiter, send: push });
   app.register(statsRoutes, { db });
   app.register(leaderboardRoutes, { db, limiter });
   app.register(pathRoutes, { db, limiter });
   app.register(playRoutes, { db, limiter });
-  app.register(mcpRoutes, { db, config });
+  app.register(mcpRoutes, { db, config, wordClips });
   app.register(oauthRoutes, { db, config, limiter });
 
   app.setNotFoundHandler((req, reply) => {

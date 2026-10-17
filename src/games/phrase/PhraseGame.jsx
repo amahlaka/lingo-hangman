@@ -115,7 +115,7 @@ export function PhraseQuestion({ puzzle, done, onDone, p, learningLang, nativeLa
   const check = () => {
     if (!full || done || offer) return;
     const placedWords = layout.map((c) => c.word);
-    if (checkPhrase(placedWords, puzzle.answer)) {
+    if (checkPhrase(placedWords, puzzle.answer, puzzle.orders)) {
       finish(true, misses);
       return;
     }

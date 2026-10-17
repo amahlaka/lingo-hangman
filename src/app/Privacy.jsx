@@ -16,6 +16,10 @@ export default function Privacy() {
           <p>{p.deviceText}</p>
         </section>
         <section className="lg-section">
+          <h2 className="lg-heading">{p.countsTitle}</h2>
+          <p>{p.countsText}</p>
+        </section>
+        <section className="lg-section">
           <h2 className="lg-heading">{p.accountTitle}</h2>
           <ul className="pv-list">
             {p.accountItems.map((item) => <li key={item}>{item}</li>)}

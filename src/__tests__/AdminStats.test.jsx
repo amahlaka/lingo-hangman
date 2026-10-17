@@ -57,6 +57,52 @@ test("the Statistics page shows totals, days, games and hard words", async () =>
   expect(screen.getByText("oltmil")).toBeInTheDocument();
 });
 
+test("the Statistics page shows visits, popular games, sessions and give-ups", async () => {
+  const hour = (h) => `2026-10-17T${String(h).padStart(2, "0")}:00:00Z`;
+  mockApi({
+    "/health": health,
+    "/admin/stats": {
+      status: 200,
+      body: {
+        updatedAt: null,
+        days: [],
+        games: [],
+        words: { hardest: [], slowest: [], tracked: 0 },
+        mistakes: { games: [], common: [] },
+        totals: { accounts: 1, activeWeek: 1, reminders: 0, openReports: 0 },
+        rules: { dailyDays: 35, minAnswers: 5, minLearners: 3 },
+        play: {
+          zone: "Europe/Helsinki",
+          days: 30,
+          recentHours: Array.from({ length: 48 }, (_, i) => ({ hour: hour(i % 24), visits: i === 47 ? 9 : 1 })),
+          hourOfDay: Array(24).fill(2),
+          daily: [{ day: "2026-10-17", visits: 56, gamesAnon: 14, gamesAccount: 6, sessions: 4, learners: 2, avgMs: 600_000 }],
+          popular: [{ id: "hangman", anon: 10, account: 3, total: 13 }],
+          sessions: {
+            count: 4, learners: 2, avgMs: 600_000, medianMs: 540_000, avgGames: 1.5, oneGame: 0.5, perLearnerDay: 2,
+            games: [{ id: "meaning", sessions: 3, rounds: 5, finished: 4, share: 0.75 }],
+          },
+          giveUps: {
+            total: 4,
+            reasons: { before_first: 0, stuck: 3, many_wrong: 1, after_wrong: 0, after_skip: 0, mid_round: 0 },
+            how: { left: 3, closed: 1 },
+            games: [{ id: "type-it", rounds: 6, finished: 2, giveUps: 4, reasons: { stuck: 3, many_wrong: 1 } }],
+          },
+        },
+      },
+    },
+  });
+  renderApp("/admin/stats");
+  expect(await screen.findByLabelText("Visits per hour")).toBeInTheDocument();
+  expect(screen.getByLabelText("Games played per day without an account")).toBeInTheDocument();
+  expect(screen.getByText("Word Hangman")).toBeInTheDocument();
+  expect(screen.getByText("9 min")).toBeInTheDocument();
+  expect(screen.getByText("50% of sessions stayed with one game. 2 learners.")).toBeInTheDocument();
+  expect(screen.getAllByText("Stuck on a question")).toHaveLength(2);
+  expect(screen.getAllByText("75%")).toHaveLength(2);
+  expect(screen.getByText("3 went to another page in the app; 1 closed or left the app.")).toBeInTheDocument();
+});
+
 test("a non-admin is told why", async () => {
   mockApi({ "/health": health, "/admin/stats": { status: 403, body: { error: "not_admin" } } });
   renderApp("/admin/stats");

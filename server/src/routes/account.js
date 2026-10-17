@@ -154,6 +154,13 @@ export default async function accountRoutes(app, { db, config }) {
       },
       leaderboard: db.prepare("SELECT nickname, joined_at AS joinedAt FROM leaderboard_members WHERE user_id = ?").get(s.user_id) || null,
       path: storedPath(db, s.user_id).path,
+      playSessions: db
+        .prepare("SELECT day, started_at AS startedAt, ended_at AS endedAt, games FROM play_sessions WHERE user_id = ? ORDER BY started_at")
+        .all(s.user_id)
+        .map((r) => ({ ...r, games: JSON.parse(r.games) })),
+      unfinishedRounds: db
+        .prepare("SELECT at, game, reason, how, answers, ms FROM give_ups WHERE user_id = ? ORDER BY at")
+        .all(s.user_id),
     };
   });
 

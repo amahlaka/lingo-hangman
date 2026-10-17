@@ -11,6 +11,7 @@ import { deleteExpired } from "./sessions.js";
 import { createPushSender } from "./push/sender.js";
 import { startReminders } from "./push/reminders.js";
 import { startStats } from "./stats/aggregate.js";
+import { prunePlay } from "./stats/play.js";
 
 const config = loadConfig();
 const db = openDatabase(config.dbPath);
@@ -24,6 +25,7 @@ const stopStats = startStats(db, { intervalMs: config.statsIntervalMs, log: app.
 const stopReminders = push ? startReminders(db, push, { intervalMs: config.pushIntervalMs, log: app.log }) : () => {};
 const housekeeping = setInterval(() => {
   deleteExpired(db);
+  prunePlay(db);
   limiter.sweep(86400_000);
 }, 10 * 60_000);
 housekeeping.unref();

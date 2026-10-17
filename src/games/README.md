@@ -341,3 +341,11 @@ The rules are pure functions in `src/lib/insights.js`. Days also keep
 - **Read and understand** (`read/`, `/read`): texts with `questions`; tap a
   sentence to hear it and see the Finnish, then answer the questions one at a
   time (each recorded with `onItem`). `?set=<text id>`.
+
+## Extra tries
+
+The shop sells extra tries (`EXTRA_TRY` in `src/lib/cosmetics.js`, a stock in
+`shop.extraTries`). When a learner runs out of tries in Hangman, Type it or
+Build the phrase and has one (or the gems for one), the game shows
+`ExtraTryOffer` instead of the answer; `useExtraTry().available` says when.
+Using one adds a try to that word; it syncs as a `use` event.

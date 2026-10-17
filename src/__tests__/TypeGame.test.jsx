@@ -1,5 +1,5 @@
 import { fireEvent, screen } from "@testing-library/react";
-import { renderApp } from "../test-utils";
+import { memoryStorage, renderApp } from "../test-utils";
 import { encodeWords } from "../lib/words";
 
 const words = [
@@ -70,5 +70,21 @@ describe("Type it", () => {
     expect(points()).toBe(before - 2);
     expect(screen.getByLabelText("The shape of the answer")).toHaveTextContent(answer[0]);
     expect(screen.queryByRole("button", { name: /Show first letters/ })).not.toBeInTheDocument();
+  });
+});
+
+describe("Type it extra tries", () => {
+  it("offers an extra try after the last wrong try", () => {
+    const storage = memoryStorage({ "lingo.progress.v1": JSON.stringify({ xp: 0, shop: { gems: 0, owned: [], extraTries: 1 } }) });
+    renderApp(link, { storage });
+    const answer = target();
+    type("zzzz");
+    type("qqqq");
+    type("xxxx");
+    expect(screen.getByText("Out of tries")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Use an extra try" }));
+    expect(screen.getByText("1 try left")).toBeInTheDocument();
+    type(answer);
+    expect(screen.getByText(`Yes, "${answer}" is right.`)).toBeInTheDocument();
   });
 });

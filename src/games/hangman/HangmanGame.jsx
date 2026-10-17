@@ -7,7 +7,7 @@ import { fill } from "../../i18n";
 import { ACHIEVEMENTS } from "../../lib/progress";
 import { sounds } from "../../lib/sounds";
 import { getAlphabet, languageLabel, loadWordSet, shuffle, wordInfo } from "../../lib/words";
-import { DailyProgress, Feedback, GameScreen, ScorePill, TriesMeter, WordRecap, WordTiles, useConfetti } from "../../components/lingo";
+import { DailyProgress, ExtraTryOffer, Feedback, GameScreen, ScorePill, TriesMeter, WordRecap, WordTiles, useConfetti, useExtraTry } from "../../components/lingo";
 import HangmanDrawing from "./HangmanDrawing";
 import HangmanKeyboard from "./HangmanKeyboard";
 import HintButtons, { HINT_COSTS } from "./HintButtons";
@@ -52,6 +52,11 @@ export default function HangmanGame() {
   const [newlyFound, setNewlyFound] = useState([]);
   // True when the learner skipped the word: it is shown and comes back later.
   const [gaveUp, setGaveUp] = useState(false);
+  // Extra tries from the shop used on this word, and whether the learner is
+  // being asked to use one (out of tries, the word not finished yet).
+  const [bonus, setBonus] = useState(0);
+  const [offer, setOffer] = useState(false);
+  const extraTry = useExtraTry();
 
   useEffect(() => {
     const all = words.map((_, i) => i);
@@ -66,6 +71,8 @@ export default function HangmanGame() {
     setFiftyUsed(false);
     setFreeHints(FREE_HINTS);
     setGaveUp(false);
+    setBonus(0);
+    setOffer(false);
   }, [words]);
 
   const allDone = queue.length === 0;
@@ -84,9 +91,10 @@ export default function HangmanGame() {
   const isGuessable = (ch) => alphabet.includes(ch);
   const inWord = (l) => letters.some((ch) => isGuessable(ch) && ch === l);
   const misses = guesses.filter((g) => !inWord(g));
-  const triesLeft = MAX_MISSES - misses.length;
+  const maxMisses = MAX_MISSES + bonus;
+  const triesLeft = maxMisses - misses.length;
   const isWon = Boolean(current) && letters.every((ch) => !isGuessable(ch) || guesses.includes(ch));
-  const isLost = gaveUp || misses.length >= MAX_MISSES;
+  const isLost = gaveUp || (misses.length >= maxMisses && !offer);
   const roundOver = isWon || isLost;
   const lastGuess = guesses[guesses.length - 1];
 
@@ -108,11 +116,11 @@ export default function HangmanGame() {
     const events = recordWord({
       gameId: "hangman",
       wrong: wrongLetters,
-      skipped: missCount >= MAX_MISSES && wrongLetters.length < MAX_MISSES,
+      skipped: missCount >= maxMisses && wrongLetters.length < maxMisses,
       word: answer,
       lang: guessLang,
       solved,
-      triesLeft: MAX_MISSES - missCount,
+      triesLeft: Math.max(0, maxMisses - missCount),
       perfect: solved && missCount === 0,
       ms: Date.now() - shownAt.current,
     });
@@ -146,7 +154,7 @@ export default function HangmanGame() {
   };
 
   const handleGuess = (letter) => {
-    if (roundOver || allDone || guesses.includes(letter) || removed.includes(letter)) return;
+    if (roundOver || allDone || offer || guesses.includes(letter) || removed.includes(letter)) return;
     setHighlighted((h) => h.filter((l) => l !== letter));
     const next = [...guesses, letter];
     setGuesses(next);
@@ -158,13 +166,18 @@ export default function HangmanGame() {
     const nextMisses = next.filter((g) => !inWord(g)).length;
     const won = letters.every((ch) => !isGuessable(ch) || next.includes(ch));
     // The word's own sound (right or shown) covers the last guess.
-    if (!won && nextMisses < MAX_MISSES) {
+    if (!won && nextMisses < maxMisses) {
       if (inWord(letter)) sounds.found(next.filter(inWord).length - 1);
       else sounds.miss();
     }
     const wrongLetters = next.filter((g) => !inWord(g));
     if (won) finishRound(true, nextMisses, wrongLetters);
-    else if (nextMisses >= MAX_MISSES) finishRound(false, nextMisses, wrongLetters);
+    else if (nextMisses >= maxMisses) {
+      if (extraTry.available) {
+        sounds.miss();
+        setOffer(true);
+      } else finishRound(false, nextMisses, wrongLetters);
+    }
   };
 
   const handleNext = useCallback(() => {
@@ -185,13 +198,15 @@ export default function HangmanGame() {
     setFiftyUsed(false);
     setNewlyFound([]);
     setGaveUp(false);
+    setBonus(0);
+    setOffer(false);
     setSwap(swapMode && Math.random() < 0.5);
   }, [roundOver, allDone, queue, isLost, swapMode]);
 
   const handleSkip = () => {
     if (roundOver || allDone) return;
     setGaveUp(true);
-    finishRound(false, MAX_MISSES);
+    finishRound(false, maxMisses);
   };
 
   const handleRestart = () => {
@@ -211,6 +226,8 @@ export default function HangmanGame() {
     setFreeHints(FREE_HINTS);
     setNewlyFound([]);
     setGaveUp(false);
+    setBonus(0);
+    setOffer(false);
     setSwap(swapMode && Math.random() < 0.5);
   };
 
@@ -238,10 +255,11 @@ export default function HangmanGame() {
   // Hints
   const notInWordLeft = alphabet.filter((l) => !inWord(l) && !guesses.includes(l) && !removed.includes(l));
   const missingLetters = letters.filter((ch) => isGuessable(ch) && !guesses.includes(ch));
+  const playing = !roundOver && !offer;
   const hintAvailable = {
-    fifty: !roundOver && !fiftyUsed && missingLetters.length > 0 && notInWordLeft.length > 0,
-    remove: !roundOver && notInWordLeft.length > 0,
-    clear: !roundOver && notInWordLeft.length >= 2,
+    fifty: playing && !fiftyUsed && missingLetters.length > 0 && notInWordLeft.length > 0,
+    remove: playing && notInWordLeft.length > 0,
+    clear: playing && notInWordLeft.length >= 2,
   };
   // The game's free hints go first, then hints cost this session's points.
   const handleHint = (id) => {
@@ -324,12 +342,13 @@ export default function HangmanGame() {
         </p>
         {time && <p className="lg-caption hm-time">{Array.isArray(time) ? time.join(" / ") : time}</p>}
         <div className="hm-stage">
-          <HangmanDrawing misses={misses.length} label={`${t.hangmanDrawing}: ${misses.length} / ${MAX_MISSES}`} />
+          {/* An extra try takes the last part of the figure away again. */}
+          <HangmanDrawing misses={misses.length - bonus} label={`${t.hangmanDrawing}: ${misses.length - bonus} / ${MAX_MISSES}`} />
           <HintButtons points={points} free={freeHints} available={hintAvailable} onHint={handleHint} t={t} />
         </div>
         <TriesMeter
           left={triesLeft}
-          total={MAX_MISSES}
+          total={maxMisses}
           label={triesLeft === 1 ? t.oneTryLeft : fill(t.triesLeft, { n: triesLeft })}
         />
         <div className="hm-word">
@@ -371,6 +390,17 @@ export default function HangmanGame() {
             </button>
             <ReportButton />
           </div>
+        ) : offer ? (
+          <ExtraTryOffer
+            onUse={() => {
+              setBonus((b) => b + 1);
+              setOffer(false);
+            }}
+            onDecline={() => {
+              setOffer(false);
+              finishRound(false, misses.length);
+            }}
+          />
         ) : (
           <HangmanKeyboard
             alphabet={alphabet}
@@ -385,7 +415,7 @@ export default function HangmanGame() {
             t={t}
           />
         )}
-        {!roundOver && (
+        {playing && (
           <div className="pg-question-actions">
             <button type="button" className="lg-btn lg-btn--quiet" onClick={handleSkip}>
               {t.skipWord}

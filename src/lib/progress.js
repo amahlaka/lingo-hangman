@@ -476,6 +476,7 @@ export function mergeProgress(a, b) {
       ...newer.shop,
       gems: (a.shop.gems || 0) + (b.shop.gems || 0),
       owned: [...new Set([...(a.shop.owned || []), ...(b.shop.owned || [])])],
+      extraTries: (a.shop.extraTries || 0) + (b.shop.extraTries || 0),
     },
   };
 }
@@ -560,6 +561,7 @@ export function normalizeProgress(parsed) {
       ...shop,
       owned: Array.isArray(shop.owned) ? shop.owned : [],
       equipped: { ...base.shop.equipped, ...obj(shop.equipped) },
+      extraTries: Math.floor(num(shop.extraTries)),
     },
   };
   loaded.words = mergeBritishWords(loaded.words);

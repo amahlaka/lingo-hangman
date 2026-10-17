@@ -5,7 +5,7 @@ import { fill } from "../../i18n";
 import { getItem, languageLabel } from "../../lib/words";
 import { sounds } from "../../lib/sounds";
 import { OPTION_HINT_COST, SLOT_HINT_COST, sentenceLesson, sentencePattern, sentenceTypes } from "../../lib/wordTypes";
-import { ExampleText, TypeKey, TypeLabel, typeClass, useAutoTypeHelp, useTypePrefs } from "../../components/lingo";
+import { ExampleText, ExtraTryOffer, TypeKey, TypeLabel, typeClass, useAutoTypeHelp, useExtraTry, useTypePrefs } from "../../components/lingo";
 import PracticeSession from "../practice/PracticeSession";
 import SentenceRules from "./SentenceRules";
 import { PaidHints, RuleBox } from "../practice/RuleBox";
@@ -58,6 +58,11 @@ export function PhraseQuestion({ puzzle, done, onDone, p, learningLang, nativeLa
   const [hint, setHint] = useState("");
   const [result, setResult] = useState(null);
   const [bought, setBought] = useState({ slots: false, options: false, rule: false });
+  // Extra tries from the shop used here, and whether one is being offered.
+  const [bonus, setBonus] = useState(0);
+  const [offer, setOffer] = useState(false);
+  const extraTry = useExtraTry();
+  const maxMisses = MAX_MISSES + bonus;
 
   // Word-type hints: what kind of word each chip is and what each place in the
   // sentence is. Paid for with points, or free on easy sentences that have
@@ -88,7 +93,7 @@ export function PhraseQuestion({ puzzle, done, onDone, p, learningLang, nativeLa
       wrong: tried.current,
       firstTry: solved && missCount === 0,
       tries: missCount + 1,
-      triesLeft: MAX_MISSES - missCount,
+      triesLeft: Math.max(0, maxMisses - missCount),
       answer: puzzle.text,
       meaning: puzzle.target.native,
     });
@@ -108,7 +113,7 @@ export function PhraseQuestion({ puzzle, done, onDone, p, learningLang, nativeLa
   };
 
   const check = () => {
-    if (!full || done) return;
+    if (!full || done || offer) return;
     const placedWords = layout.map((c) => c.word);
     if (checkPhrase(placedWords, puzzle.answer)) {
       finish(true, misses);
@@ -117,11 +122,13 @@ export function PhraseQuestion({ puzzle, done, onDone, p, learningLang, nativeLa
     tried.current = [...tried.current, placedWords.join(" ")];
     const nextMisses = misses + 1;
     setMisses(nextMisses);
-    if (nextMisses >= MAX_MISSES) {
+    const out = nextMisses >= maxMisses;
+    if (out && !extraTry.available) {
       finish(false, nextMisses);
       return;
     }
     sounds.miss();
+    if (out) setOffer(true);
     // Keep every word that is in the right place and hand the rest back.
     const keep = correctPlaces(placedWords, puzzle.answer);
     const before = lockedChips.length;
@@ -207,7 +214,19 @@ export function PhraseQuestion({ puzzle, done, onDone, p, learningLang, nativeLa
         </div>
       )}
 
-      {!done && (
+      {!done && offer && (
+        <ExtraTryOffer
+          onUse={() => {
+            setBonus((b) => b + 1);
+            setOffer(false);
+          }}
+          onDecline={() => {
+            setOffer(false);
+            finish(false, misses);
+          }}
+        />
+      )}
+      {!done && !offer && (
         <>
           <div className="pg-bank" role="group" aria-label={p.wordsToUse} lang={learningLang}>
             {bank.map((chip, i) => chipButton(chip, i, { inBank: true, label: showOptions }))}
@@ -227,7 +246,7 @@ export function PhraseQuestion({ puzzle, done, onDone, p, learningLang, nativeLa
         </>
       )}
       {colors && types && <TypeKey types={types} />}
-      {!done && <PaidHints hints={hints} />}
+      {!done && !offer && <PaidHints hints={hints} />}
       {rule && (done || bought.rule) && <SentenceRule rule={rule} lang={lang} p={p} />}
     </div>
   );

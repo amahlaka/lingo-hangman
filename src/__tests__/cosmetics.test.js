@@ -1,5 +1,8 @@
-import { backfillGems, emptyProgress, gemsForEvents, loadProgress, recordWord, setDailyGoal } from "../lib/progress";
-import { accentVars, addGems, buyItem, equipItem, equippedValues, gemBalance, ownsItem } from "../lib/cosmetics";
+import { backfillGems, emptyProgress, gemsForEvents, loadProgress, mergeProgress, normalizeProgress, recordWord, setDailyGoal } from "../lib/progress";
+import {
+  EXTRA_TRY, accentVars, addGems, buyExtraTry, buyItem, equipItem, equippedValues, extraTryCount, gemBalance, ownsItem, useExtraTry,
+} from "../lib/cosmetics";
+import { applyEvents, cleanEvent, makeEvent } from "../lib/syncEvents";
 import { memoryStorage } from "../test-utils";
 
 const withGems = (gems) => addGems(emptyProgress(), gems);
@@ -92,5 +95,31 @@ describe("gems", () => {
     expect(gemBalance(loadProgress(memoryStorage()))).toBe(0);
     const saved = memoryStorage({ "lingo.progress.v1": JSON.stringify({ xp: 999, shop: { gems: 7, owned: [] } }) });
     expect(gemBalance(loadProgress(saved))).toBe(7);
+  });
+});
+
+describe("extra tries", () => {
+  it("are bought into a capped stock with gems and used one at a time", () => {
+    let state = withGems(60);
+    for (let i = 0; i < EXTRA_TRY.max; i++) state = buyItem(state, EXTRA_TRY.id).state;
+    expect(extraTryCount(state)).toBe(EXTRA_TRY.max);
+    expect(gemBalance(state)).toBe(60 - EXTRA_TRY.max * EXTRA_TRY.price);
+    expect(buyItem(state, EXTRA_TRY.id)).toMatchObject({ ok: false, reason: "full" });
+    state = useExtraTry(state).state;
+    expect(extraTryCount(state)).toBe(EXTRA_TRY.max - 1);
+    expect(buyExtraTry(withGems(EXTRA_TRY.price - 1))).toMatchObject({ ok: false, reason: "gems" });
+    expect(useExtraTry(emptyProgress())).toMatchObject({ ok: false });
+  });
+
+  it("survive buying cosmetics, saving, merging and sync events", () => {
+    let state = buyItem(withGems(100), EXTRA_TRY.id).state;
+    state = buyItem(state, "accent-fjord").state;
+    expect(extraTryCount(state)).toBe(1);
+    expect(extraTryCount(normalizeProgress(JSON.parse(JSON.stringify(state))))).toBe(1);
+    expect(extraTryCount(mergeProgress(state, state))).toBe(2);
+    const events = [makeEvent("buy", { id: EXTRA_TRY.id }), makeEvent("buy", { id: EXTRA_TRY.id }), makeEvent("use", { id: EXTRA_TRY.id })];
+    const synced = applyEvents(withGems(30), events.map(cleanEvent));
+    expect(extraTryCount(synced)).toBe(1);
+    expect(gemBalance(synced)).toBe(30 - 2 * EXTRA_TRY.price);
   });
 });

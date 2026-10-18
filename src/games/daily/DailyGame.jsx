@@ -12,8 +12,8 @@ import { canSpeak, speak } from "../../lib/speech";
 import { getItems } from "../../lib/words";
 import englishLayout from "../hangman/keyboardLayouts/english";
 import {
-  HEAR_AFTER, MAX_GUESSES, WORD_LENGTH, dailyCandidates, dailyFor, finishDaily, isOver, isWon, letterStates, loadDaily,
-  saveDaily, scoreGuess,
+  HEAR_AFTER, MAX_GUESSES, WORD_LENGTH, dailyCandidates, dailyFor, finishDaily, freeWord, isOver, isWon, letterStates,
+  loadDaily, saveDaily, scoreGuess, shareGrid,
 } from "./dailyLogic";
 
 // One row of the board: a guess with its letters marked, the word being
@@ -39,18 +39,35 @@ function Row({ letters, marks, current, shake, k }) {
   );
 }
 
+// A free play round: a random word other than today's daily word and the
+// recently played ones.
+function newFreeRound(candidates, today, recent = []) {
+  const daily = dailyFor(loadDaily(), today, candidates).word;
+  const word = freeWord(candidates, daily, recent);
+  return { word, guesses: [], recorded: false, recent };
+}
+
+// Free play: the same game with a new random word each round.
+export function DailyFreeGame() {
+  return <DailyGame free />;
+}
+
 // Daily word: guess today's five-letter English word in six tries from its
 // Finnish meaning. Any five letters can be tried; each guess shows which
 // letters are in the right place and which are in the word. The game is
 // recorded once, when it ends, and the record and streak are kept on the device.
-export default function DailyGame() {
+// With `free`, it is the free play version: a random word from the same words,
+// as many as the learner likes, without the day's record or streak.
+export default function DailyGame({ free = false }) {
   const { t } = useSettings();
   const k = t.daily;
   const { recordWord } = useProgress();
   const { celebrate, confetti } = useConfetti();
   const today = dayKey();
   const candidates = useMemo(() => dailyCandidates(getItems({ type: "word" })), []);
-  const [state, setState] = useState(() => dailyFor(loadDaily(), today, candidates));
+  const [state, setState] = useState(() =>
+    free ? newFreeRound(candidates, today) : dailyFor(loadDaily(), today, candidates),
+  );
   const [typed, setTyped] = useState("");
   const [shake, setShake] = useState(false);
   const [message, setMessage] = useState(null);
@@ -64,7 +81,9 @@ export default function DailyGame() {
   const won = word ? isWon(state.guesses, answer) : false;
   const keys = useMemo(() => letterStates(state.guesses, answer), [state.guesses, answer]);
 
-  useEffect(() => saveDaily(state), [state]);
+  useEffect(() => {
+    if (!free) saveDaily(state);
+  }, [state]);
 
   // Record the day's game once, when it ends.
   useEffect(() => {
@@ -78,7 +97,9 @@ export default function DailyGame() {
       perfect: won && state.guesses.length <= 2,
       ms: Date.now() - startedAt.current,
     });
-    setState((s) => finishDaily(s, { won, key: today, yesterday: addDays(today, -1) }));
+    setState((s) =>
+      free ? { ...s, recorded: true } : finishDaily(s, { won, key: today, yesterday: addDays(today, -1) }),
+    );
     if (won) {
       celebrate("large");
       sounds.celebrate();
@@ -135,12 +156,23 @@ export default function DailyGame() {
     return () => window.removeEventListener("keydown", onKey);
   });
 
+  const nextWord = () => {
+    sounds.tap();
+    setState((s) => newFreeRound(candidates, today, [...(s.recent || []), s.word?.id].slice(-10)));
+    setTyped("");
+    setMessage(null);
+    startedAt.current = Date.now();
+  };
+
   const copyResult = async () => {
     const text = won
       ? fill(k.shareWon, { n: state.guesses.length, max: MAX_GUESSES })
       : fill(k.shareLost, { max: MAX_GUESSES });
+    const score = `${won ? state.guesses.length : "X"}/${MAX_GUESSES}`;
     try {
-      await navigator.clipboard.writeText(`${text} ${window.location.origin}/daily`);
+      await navigator.clipboard.writeText(
+        `${text}\n\n${score}\n${shareGrid(state.guesses, answer)}\n\n${window.location.origin}/daily`,
+      );
       setCopied(true);
     } catch {
       setCopied(false);
@@ -149,7 +181,7 @@ export default function DailyGame() {
 
   if (!word) {
     return (
-      <GameScreen title={k.name}>
+      <GameScreen title={free ? k.freeName : k.name}>
         <main className="lg-board">
           <Feedback variant="info" title={t.practice.notEnoughWords} />
         </main>
@@ -160,11 +192,11 @@ export default function DailyGame() {
   const rows = Array.from({ length: MAX_GUESSES }, (_, i) => i);
   const canHear = canSpeak() && (over || state.guesses.length >= HEAR_AFTER);
   return (
-    <GameScreen title={k.name} className="dw-screen">
+    <GameScreen title={free ? k.freeName : k.name} className="dw-screen">
       <main className="lg-board dw-board">
         {confetti}
         <div className="pg-prompt dw-clue">
-          <span className="lg-caption">{k.clue}</span>
+          <span className="lg-caption">{free ? k.freeClue : k.clue}</span>
           <p className="pg-prompt__word pg-prompt__word--phrase" lang="fi">{word.fi}</p>
           {canHear && (
             <button type="button" className="lg-btn lg-btn--quiet" onClick={() => speak(word.word.toLowerCase(), { lang: "en" })}>
@@ -192,18 +224,22 @@ export default function DailyGame() {
                 {state.guesses.length === 1 ? k.wonFirst : fill(k.wonBody, { n: state.guesses.length })}
               </Feedback>
             ) : (
-              <Feedback variant="retry" title={fill(k.lostTitle, { word: answer.toLowerCase() })}>
+              <Feedback variant="retry" title={fill(free ? k.freeLostTitle : k.lostTitle, { word: answer.toLowerCase() })}>
                 {k.lostBody}
               </Feedback>
             )}
             {word.ipa && <p className="lg-caption" lang="en">{answer.toLowerCase()} {word.ipa}</p>}
-            <dl className="pg-stats">
-              <div><dt>{k.played}</dt><dd>{state.played}</dd></div>
-              <div><dt>{k.wins}</dt><dd>{state.won}</dd></div>
-              <div><dt>{k.streak}</dt><dd>{state.streak}</dd></div>
-              <div><dt>{k.bestStreak}</dt><dd>{state.bestStreak}</dd></div>
-            </dl>
-            <p className="lg-caption">{k.tomorrow}</p>
+            {!free && (
+              <>
+                <dl className="pg-stats">
+                  <div><dt>{k.played}</dt><dd>{state.played}</dd></div>
+                  <div><dt>{k.wins}</dt><dd>{state.won}</dd></div>
+                  <div><dt>{k.streak}</dt><dd>{state.streak}</dd></div>
+                  <div><dt>{k.bestStreak}</dt><dd>{state.bestStreak}</dd></div>
+                </dl>
+                <p className="lg-caption">{k.tomorrow}</p>
+              </>
+            )}
             <DailyProgress />
           </div>
         )}
@@ -211,9 +247,21 @@ export default function DailyGame() {
       <div className="lg-tray">
         {over ? (
           <div className="lg-tray--actions dw-actions">
-            <button type="button" className="lg-btn lg-btn--primary lg-btn--hero" onClick={copyResult}>
-              {copied ? k.copied : k.copy}
-            </button>
+            {free ? (
+              <>
+                <button type="button" className="lg-btn lg-btn--primary lg-btn--hero" onClick={nextWord}>
+                  {k.nextWord}
+                </button>
+                <Link to="/daily" className="lg-btn lg-btn--quiet">{k.toDaily}</Link>
+              </>
+            ) : (
+              <>
+                <button type="button" className="lg-btn lg-btn--primary lg-btn--hero" onClick={copyResult}>
+                  {copied ? k.copied : k.copy}
+                </button>
+                <Link to="/daily/free" className="lg-btn lg-btn--secondary">{k.freePlay}</Link>
+              </>
+            )}
             <Link to="/" className="lg-btn lg-btn--quiet">{t.allGames}</Link>
           </div>
         ) : (

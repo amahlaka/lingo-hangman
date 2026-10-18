@@ -16,7 +16,7 @@ import QuickPlay from "./quick/QuickPlay";
 import TalkGame from "./talk/TalkGame";
 import MistakeGame from "./mistake/MistakeGame";
 import RushGame from "./rush/RushGame";
-import DailyGame from "./daily/DailyGame";
+import DailyGame, { DailyFreeGame } from "./daily/DailyGame";
 import ReadGame from "./read/ReadGame";
 
 export const GAMES = [
@@ -226,7 +226,11 @@ export const GAMES = [
     path: "/daily",
     // Played once a day, so My path doesn't plan steps of it.
     noPath: true,
-    routes: [{ path: "/daily", Component: DailyGame }],
+    routes: [
+      { path: "/daily", Component: DailyGame },
+      // As many words as the learner likes, without the day's record.
+      { path: "/daily/free", Component: DailyFreeGame },
+    ],
   },
   {
     id: "read",

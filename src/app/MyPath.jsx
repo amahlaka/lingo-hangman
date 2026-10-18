@@ -1,17 +1,19 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Route as RouteIcon } from "lucide-react";
+import { ChevronDown, Route as RouteIcon } from "lucide-react";
 import { useSettings } from "./SettingsContext";
 import { useProgress } from "./ProgressContext";
 import { fill } from "../i18n";
 import { GAMES } from "../games/registry";
 import { buildInsights } from "../lib/insights";
 import { currentPath, nextStep, pathFinished, planPath, stepDone } from "../lib/path";
+import { getPreferences, onPreferencesChange, setPreferences } from "../lib/preferences";
 import { loadAccountPath, loadLocalPath, newerPath, saveAccountPath, saveLocalPath } from "../lib/pathStore";
 
 // "My path" on Home: this week's few steps, planned from the learner's own
 // answers (src/lib/path.js). Works without an account; signed in, the same
-// path shows on every device.
+// path shows on every device. Collapsed (remembered on this device), only
+// the current step and its Play button show.
 
 function usePath() {
   const { state, sync } = useProgress();
@@ -74,16 +76,31 @@ export default function MyPathCard() {
     return g ? (lang === "fi" ? g.nameFi : g.name) : id;
   };
   const skillName = (s) => t.profile.skills[s] || s;
+  const [collapsed, setCollapsed] = useState(() => getPreferences().pathCollapsed);
+  useEffect(() => onPreferencesChange((p) => setCollapsed(p.pathCollapsed)), []);
+  const toggle = () => setPreferences({ pathCollapsed: !collapsed });
 
   return (
     <section className="lg-section mp-card" aria-labelledby="my-path-title">
       <div className="mp-card__head">
         <RouteIcon size={24} strokeWidth={2} aria-hidden="true" />
         <h2 className="lg-heading" id="my-path-title">{m.title}</h2>
+        <button
+          type="button"
+          className={`lg-btn lg-btn--quiet lg-icon-btn mp-card__toggle${collapsed ? " mp-card__toggle--closed" : ""}`}
+          aria-expanded={!collapsed}
+          aria-controls="my-path-steps"
+          aria-label={collapsed ? m.expand : m.collapse}
+          title={collapsed ? m.expand : m.collapse}
+          onClick={toggle}
+        >
+          <ChevronDown size={24} strokeWidth={2} aria-hidden="true" />
+        </button>
       </div>
-      <p className="lg-caption">{path.placement ? m.placementIntro : m.intro}</p>
-      <ol className="mp-steps">
+      {!collapsed && <p className="lg-caption">{path.placement ? m.placementIntro : m.intro}</p>}
+      <ol className="mp-steps" id="my-path-steps" hidden={collapsed && !next}>
         {path.steps.map((s, i) => {
+          if (collapsed && s !== next) return null;
           const n = stepDone(s, state);
           const complete = n >= s.goal;
           const current = s === next;

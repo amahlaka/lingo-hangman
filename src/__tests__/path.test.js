@@ -99,3 +99,18 @@ test("Home shows My path with the placement round first", async () => {
   fireEvent.click(screen.getAllByRole("link", { name: "Play" })[0]);
   expect(await screen.findByText(/Quick play/)).toBeInTheDocument();
 });
+
+test("My path collapses to the current step and remembers it", async () => {
+  renderApp("/");
+  await screen.findByRole("heading", { name: "My path" });
+  const intro = "Start with a mixed round, so Lingo can see what you already know. Then your path is planned for you.";
+  expect(screen.getByText(intro)).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Show only the current step" }));
+  expect(screen.queryByText(intro)).not.toBeInTheDocument();
+  expect(screen.getByText("10 mixed questions, so Lingo can find your level")).toBeInTheDocument();
+  expect(screen.getAllByRole("link", { name: "Play" })).toHaveLength(1);
+  expect(JSON.parse(localStorage.getItem("lingoPreferences")).pathCollapsed).toBe(true);
+  expect(screen.getByRole("button", { name: "Show all steps" })).toHaveAttribute("aria-expanded", "false");
+  fireEvent.click(screen.getByRole("button", { name: "Show all steps" }));
+  expect(screen.getByText(intro)).toBeInTheDocument();
+});

@@ -9,6 +9,7 @@ import { recordClip } from "../../lib/micRecorder";
 import { scoreClip } from "../../lib/pronounce";
 import { scorePronunciation, soundsToPractise } from "../../lib/phonemes";
 import { useQuestionControls } from "../practice/questionControls";
+import { getItem } from "../../lib/words";
 import { GREAT_SCORE, MAX_SAY_RIGHT_TRIES, PASS_SCORE, firstTip, ipaOf, rankKey } from "./sayRightLogic";
 
 // Counts up to `value` once, for a little moment of suspense.
@@ -130,10 +131,13 @@ export default function SayRightQuestion({ word, learningLang, nativeLang, done,
   const [level, setLevel] = useState(0);
   const [tries, setTries] = useState([]); // scored results, newest last
   const [error, setError] = useState(null);
+  // The word bank's Finnish-style reading ("waader"), one tap away.
+  const [showSay, setShowSay] = useState(false);
   const rec = useRef(null);
   const alive = useRef(true);
   const text = word.learning;
   const ipa = ipaOf(word);
+  const reading = getItem(word.id)?.say?.[nativeLang] || null;
 
   useEffect(() => {
     alive.current = true;
@@ -228,6 +232,11 @@ export default function SayRightQuestion({ word, learningLang, nativeLang, done,
         </p>
         {!last && <p className="sy-ipa" data-testid="prompt-ipa">{ipa}</p>}
         <p className="lg-caption" lang={nativeLang}>{word.native}</p>
+        {reading && showSay && (
+          <p className="snd-say sy-say" data-testid="prompt-reading">
+            <span className="lg-caption">{p.sayLike}</span> <strong lang={nativeLang}>{reading}</strong>
+          </p>
+        )}
         <div className="sy-listen">
           <button type="button" className="lg-btn lg-btn--secondary" onClick={() => speak(text, { lang: learningLang })}>
             <Volume2 size={20} strokeWidth={2} aria-hidden="true" />
@@ -236,6 +245,11 @@ export default function SayRightQuestion({ word, learningLang, nativeLang, done,
           <button type="button" className="lg-btn lg-btn--quiet" onClick={() => speak(text, { lang: learningLang, rate: RATE_SLOW })}>
             {p.listenSlowly}
           </button>
+          {reading && !showSay && (
+            <button type="button" className="lg-btn lg-btn--quiet" onClick={() => setShowSay(true)}>
+              {p.sayRightShowReading}
+            </button>
+          )}
         </div>
       </div>
 

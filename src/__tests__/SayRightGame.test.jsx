@@ -16,7 +16,7 @@ jest.mock("../lib/micRecorder", () => {
   };
 });
 
-const think = { id: "think", type: "word", text: { en: "think", fi: "ajatella" }, ipa: { en: "/θɪŋk/" }, features: ["th-sound"], level: 1 };
+const think = { id: "think", type: "word", text: { en: "think", fi: "ajatella" }, ipa: { en: "/θɪŋk/" }, say: { fi: "think" }, features: ["th-sound"], level: 1 };
 const thTip = {
   id: "phone-th-quiet", type: "phone", symbols: ["θ"], example: "thin",
   title: { en: "Quiet th, as in think", fi: "Soinniton th" },
@@ -93,6 +93,10 @@ describe("Say it right", () => {
     renderApp("/say-right");
     expect(await screen.findByTestId("prompt-word")).toHaveTextContent("think");
     expect(screen.getByTestId("prompt-ipa")).toHaveTextContent("/θɪŋk/");
+    // The Finnish reading is one tap away.
+    expect(screen.queryByTestId("prompt-reading")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Show the Finnish reading" }));
+    expect(screen.getByTestId("prompt-reading")).toHaveTextContent("Read the Finnish way: think");
     await act(async () => {
       fireEvent.click(screen.getByRole("button", { name: /Tap and say it/ }));
     });

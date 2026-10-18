@@ -117,12 +117,26 @@ export function lessonQuestions(lesson, random = Math.random) {
   });
 }
 
+// The kinds of lesson a mix can be limited to, in lesson list order: those the
+// word base has lessons of, without the by-ear ones when there is no sound.
+export function soundKinds(lessons, { withSound = true } = {}) {
+  return KINDS.filter((kind) => (withSound || !BY_EAR.includes(kind)) && lessons.some((l) => l.kind === kind));
+}
+
 // One round. `setId` practises one lesson; otherwise questions are spread over
-// as many lessons as possible, so a mix isn't ten silent-k words.
-// `withSound: false` leaves out letter names and sound-alike words, which
-// can't be asked without audio.
-export function buildSoundRound(lessons, { setId = null, count = ROUND_LENGTH, withSound = true, random = Math.random } = {}) {
+// as many lessons as possible, so a mix isn't ten silent-k words. `kinds`
+// limits a mix to the kinds the learner picked; when none of them has lessons
+// any more, every kind is used. `withSound: false` leaves out letter names and
+// sound-alike words, which can't be asked without audio.
+export function buildSoundRound(
+  lessons,
+  { setId = null, kinds = [], count = ROUND_LENGTH, withSound = true, random = Math.random } = {}
+) {
   let pool = lessons.filter((l) => withSound || !BY_EAR.includes(l.kind));
+  if (kinds.length) {
+    const picked = pool.filter((l) => kinds.includes(l.kind));
+    if (picked.length) pool = picked;
+  }
   if (setId) pool = pool.filter((l) => l.id === setId);
   const queues = shuffle(pool.map((l) => shuffle(lessonQuestions(l, random), random)), random);
   const round = [];

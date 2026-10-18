@@ -8,8 +8,9 @@ import { ExampleText, Feedback, GameScreen } from "../../components/lingo";
 import { DEFAULT_LEARNING_LANG, DEFAULT_NATIVE_LANG, getSoundLessons } from "../../lib/words";
 import { RATE_SLOW, canSpeak, speak } from "../../lib/speech";
 import PracticeSession from "../practice/PracticeSession";
+import TopicPicker, { useTopicChoice } from "../practice/TopicPicker";
 import SoundQuestion, { MarkedWord } from "./SoundQuestion";
-import { BY_EAR, KINDS, buildSoundRound, lessonProgress, lessonWords } from "./soundsLogic";
+import { BY_EAR, KINDS, buildSoundRound, lessonProgress, lessonWords, soundKinds } from "./soundsLogic";
 
 const MIX = "mix";
 
@@ -153,20 +154,38 @@ function Lesson({ lesson }) {
   );
 }
 
+// The kinds of lesson as topics a mix can be limited to.
+function useKindTopics(lessons, withSound) {
+  return useMemo(
+    () =>
+      soundKinds(lessons, { withSound }).map((kind) => ({
+        id: kind,
+        title: { en: i18n.en.sounds.kinds[kind], fi: i18n.fi.sounds.kinds[kind] },
+      })),
+    [lessons, withSound]
+  );
+}
+
 function Practice({ setId }) {
   const { t } = useSettings();
   const s = t.sounds;
-  const lessons = getSoundLessons();
+  const lessons = useMemo(() => getSoundLessons(), []);
   const mix = setId === MIX;
+  const withSound = canSpeak();
+  const topics = useKindTopics(lessons, withSound);
+  const { chosen, choose, round } = useTopicChoice("sounds", topics, mix);
+  const picker = mix && topics.length > 1 ? <TopicPicker topics={topics} chosen={chosen} onChoose={choose} /> : null;
   return (
     <PracticeSession
+      key={round}
+      introExtra={picker}
       gameId="sounds"
       title={s.name}
       intro={s.practiceIntro}
       learningLang={DEFAULT_LEARNING_LANG}
       nativeLang={DEFAULT_NATIVE_LANG}
       meaningInFeedback={false}
-      buildQuestions={() => buildSoundRound(lessons, { setId: mix ? null : setId, withSound: canSpeak() })}
+      buildQuestions={() => buildSoundRound(lessons, { setId: mix ? null : setId, kinds: mix ? chosen : [], withSound })}
       renderQuestion={({ question, done, onDone }) => (
         <SoundQuestion question={question} done={done} onDone={onDone} showRule={mix} />
       )}
@@ -180,7 +199,8 @@ function Practice({ setId }) {
 //   /sounds            the lesson list
 //   /sounds?set=<id>   one lesson: its rule and words to listen to
 //   /sounds?set=<id>&practise=1   practice on that lesson's words
-//   /sounds?set=mix    practice across every lesson
+//   /sounds?set=mix    practice across every lesson, or the kinds of lesson
+//                      the learner picked (remembered on this device)
 export default function SoundsGame() {
   const [params] = useSearchParams();
   const setId = params.get("set");

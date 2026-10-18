@@ -105,7 +105,7 @@ export default async function adminRoutes(app, { db, config, wordClips }) {
     };
   });
 
-  // Verify a learner (the extended speech limit) or take it back. Admins
+  // Verify a learner (the extended speech limit and Say it right) or take it back. Admins
   // come from ADMIN_EMAILS and are not changed here.
   app.post("/api/admin/users/role", async (req, reply) => {
     const id = req.body?.id;

@@ -48,7 +48,7 @@ describe('Say it', () => {
 
   it('is listed on the home screen', () => {
     renderApp('/');
-    expect(screen.getByRole('link', { name: /Say it/ })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Say it(?! right)/ })).toBeInTheDocument();
   });
 
   it('lets the learner check themselves when the browser cannot listen', () => {

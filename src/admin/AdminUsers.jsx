@@ -5,7 +5,7 @@ import { api, backendAvailable } from "../lib/backend";
 import { GATES } from "./AdminReports";
 
 // /admin/users: learner accounts, for granting the extended on-demand speech
-// limit (server/src/routes/admin.js); each links to its own progress page. Learners who asked for more come first.
+// limit and Say it right (server/src/routes/admin.js); each links to its own progress page. Learners who asked for more come first.
 // Admins come from ADMIN_EMAILS and are not changed here. English only, like
 // the other admin pages.
 
@@ -40,7 +40,7 @@ export default function AdminUsers() {
     <GameScreen title="Users">
       <main className="lg-board lg-page">
         <p className="lg-body-lg">
-          Verified learners get {data ? data.limits.extended : "more"} new spoken sentences a day instead of {data ? data.limits.basic : "the basic limit"}. Learners who asked for more are at the top. Open an email for that learner's progress. See also <Link to="/admin/reports">reports</Link>.
+          Verified learners get {data ? data.limits.extended : "more"} new spoken sentences a day instead of {data ? data.limits.basic : "the basic limit"}, and can play Say it right (pronunciation scores). Learners who asked for more or to be verified are at the top. Open an email for that learner's progress. See also <Link to="/admin/reports">reports</Link>.
         </p>
         {gate ? (
           <section className="lg-section">
@@ -69,7 +69,7 @@ export default function AdminUsers() {
                       <Link className="fb-group__title" to={`/admin/users/${u.id}`}>{u.email}</Link>
                       <span className="lg-caption">
                         {u.role === "learner" ? "Learner" : u.role === "verified" ? "Verified" : "Admin"} · joined {day(u.createdAt)} · last played {u.lastAnswerAt ? day(u.lastAnswerAt) : "never"} · {u.ttsToday} spoken today
-                        {u.ttsRequestedAt ? ` · asked for more ${day(u.ttsRequestedAt)}` : ""}
+                        {u.ttsRequestedAt ? ` · asked for more or to be verified ${day(u.ttsRequestedAt)}` : ""}
                       </span>
                     </div>
                     {u.role !== "admin" && (

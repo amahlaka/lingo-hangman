@@ -483,6 +483,22 @@ export default function ItemForm({ item, onChange, languages, topics, categories
         </>
       )}
 
+      {item.type === "phone" && (
+        <>
+          <Field label="Sounds" hint="Comma separated IPA sounds without slashes, as in the words' IPA (θ, tʃ, ɚ).">
+            <ListInput value={item.symbols} onChange={(symbols) => set({ symbols })} spellCheck={false} />
+          </Field>
+          <TextMap label="Title" value={item.title} langs={EN_FI} onChange={(title) => set({ title })} />
+          <TextMap label="How to say it" value={item.tip} langs={EN_FI} multiline onChange={(tip) => set({ tip })} />
+          <Field label="Example word (optional)">
+            <TextInput value={item.example} onChange={(example) => set({ example: example || undefined })} />
+          </Field>
+          <Field label="Sounds of English lesson id (optional)">
+            <TextInput value={item.lesson} onChange={(lesson) => set({ lesson: lesson || undefined })} />
+          </Field>
+        </>
+      )}
+
       {(item.type === "word" || item.type === "gap" || item.type === "text") && <Metadata item={item} set={set} />}
     </div>
   );

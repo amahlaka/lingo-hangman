@@ -40,6 +40,7 @@ export function itemLabel(item) {
     case "sound": return item.title?.en || item.id;
     case "text": return item.title?.en || item.id;
     case "alike": return (item.words || []).filter(Boolean).join(" / ") || item.id;
+    case "phone": return item.title?.en || (item.symbols || []).join(" ") || item.id;
     default: return item.id;
   }
 }
@@ -53,6 +54,7 @@ export const TYPE_NAMES = {
   sound: "Pronunciation lesson",
   text: "Text (several sentences)",
   alike: "Same answer (sound or spelling)",
+  phone: "Sound tip (Say it right)",
 };
 
 // A new item of `type` with an id that isn't taken yet.
@@ -69,6 +71,7 @@ export function blankItem(type, takenIds) {
     case "sound": return { id, type, kind: "silent", title: { en: "", fi: "" }, explanation: { en: "", fi: "" }, words: [{ text: "", say: { fi: "" }, meaning: { fi: "" } }] };
     case "text": return { id, type, kind: "dialogue", title: { en: "", fi: "" }, sentences: [{ en: "", fi: "", speaker: "" }, { en: "", fi: "", speaker: "" }] };
     case "alike": return { id, type, kind: "sound", words: [] };
+    case "phone": return { id, type, symbols: [], title: { en: "", fi: "" }, tip: { en: "", fi: "" } };
     default: return { id, type };
   }
 }

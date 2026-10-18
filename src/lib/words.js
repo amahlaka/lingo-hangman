@@ -193,7 +193,7 @@ export function categoryGroups(uiLang = "en", otherLabel = "Other") {
   return groups;
 }
 
-// Every item of one type from the word bank: "word", "gap", "rule", "confusable", "group", "sound", "text" or "alike".
+// Every item of one type from the word bank: "word", "gap", "rule", "confusable", "group", "sound", "text", "alike" or "phone".
 export function getItems({ type } = {}) {
   const { items } = getContent();
   return type ? items.filter((i) => i.type === type) : items;
@@ -237,6 +237,12 @@ export const getTopic = getItem;
 // about ("[k]nife").
 export function getSoundLessons() {
   return getItems({ type: "sound" });
+}
+
+// Tips on saying single English sounds ("phone" items), for Say it right's
+// feedback: `{ id, symbols: ["θ"], title, tip, example, lesson }`.
+export function getPhoneTips() {
+  return getItems({ type: "phone" });
 }
 
 // Multi-sentence texts ("text" items): dialogues, short stories, messages,

@@ -76,6 +76,19 @@ export function loadConfig(env = process.env) {
     contentDir: env.CONTENT_DIR || null,
     clipDir: env.CLIP_DIR || null,
 
+    // Pronunciation scoring (Say it right): the Talkies speech service on the
+    // Docker network (http://talkies:8000) and its bearer token. Without
+    // TALKIES_URL the game says scoring is not available.
+    talkiesUrl: env.TALKIES_URL || null,
+    talkiesToken: env.TALKIES_TOKEN || null,
+    // The phoneme recogniser: IPA sounds, not words.
+    talkiesModel: env.TALKIES_MODEL || "zipa-ipa",
+    // Clips a verified learner can have scored in a day.
+    pronounceDailyLimit: Number(env.PRONOUNCE_DAILY_LIMIT || 150),
+    // Clips waiting for the service, which scores one at a time.
+    pronounceQueueMax: Number(env.PRONOUNCE_QUEUE_MAX || 6),
+    pronounceTimeoutMs: Number(env.PRONOUNCE_TIMEOUT_MS || 20000),
+
     // Reminders by web push. The VAPID key pair is made once on the server
     // (npx web-push generate-vapid-keys) and kept in its .env; without it
     // reminders are off and the app hides them.

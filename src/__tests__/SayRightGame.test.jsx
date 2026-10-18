@@ -104,6 +104,11 @@ describe("Say it right", () => {
     expect(screen.getByText("ŋ")).toHaveClass("sr-sound--ok");
     expect(screen.getByText(/Quiet th, as in think/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: 'Hear "thin"' })).toBeInTheDocument();
+    // "Keep this score" comes before the microphone, never hidden under it.
+    const keep = screen.getByRole("button", { name: "Keep this score" });
+    const again = screen.getByRole("button", { name: /Tap and try again/ });
+    expect(keep.compareDocumentPosition(again) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(keep).toHaveClass("lg-btn--primary");
 
     // A better try; 90 or more ends the word.
     global.fetch.mockImplementationOnce(async () => ({ ok: true, status: 200, json: async () => ({ phones: "θ ɪ ŋ k", left: 148 }) }));

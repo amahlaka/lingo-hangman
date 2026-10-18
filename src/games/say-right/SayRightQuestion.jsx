@@ -240,6 +240,20 @@ export default function SayRightQuestion({ word, learningLang, nativeLang, done,
       </div>
 
       {last && <ScoreBadge score={last.score} best={best && best !== last ? best.score : null} p={p} />}
+      {/* Right under the score, so it is never hidden below the microphone. */}
+      {!done && tries.length > 0 && (
+        <div className="sy-after-miss sr-keep">
+          <button
+            type="button"
+            className={`lg-btn ${best && best.score >= PASS_SCORE ? "lg-btn--primary" : "lg-btn--secondary"}`}
+            onClick={() => finish()}
+            disabled={recording || scoring}
+          >
+            {p.sayRightKeep}
+          </button>
+          <TriesMeter left={left} total={MAX_SAY_RIGHT_TRIES} label={left === 1 ? p.sayTryLeft : fill(p.sayTriesLeft, { n: left })} />
+        </div>
+      )}
       {last && <SoundMap result={last} p={p} />}
       {last && tip && <SoundTip found={tip} lang={lang} p={p} />}
 
@@ -263,14 +277,6 @@ export default function SayRightQuestion({ word, learningLang, nativeLang, done,
       )}
       {error && !recording && !scoring && (
         <p className="pg-hint" role="status">{p[ERROR_KEYS[error] || "sayRightFailed"]}</p>
-      )}
-      {!done && tries.length > 0 && (
-        <div className="sy-after-miss">
-          <TriesMeter left={left} total={MAX_SAY_RIGHT_TRIES} label={left === 1 ? p.sayTryLeft : fill(p.sayTriesLeft, { n: left })} />
-          <button type="button" className="lg-btn lg-btn--secondary" onClick={() => finish()} disabled={recording || scoring}>
-            {p.sayRightKeep}
-          </button>
-        </div>
       )}
       {!done && <p className="lg-caption sy-privacy">{p.sayRightPrivacy}</p>}
     </div>

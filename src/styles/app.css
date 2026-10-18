@@ -476,6 +476,28 @@ a { color: var(--lake); }
 .sr-summary__list { margin: var(--space-1) 0 0; padding-left: var(--space-6); }
 .sr-summary__list li { margin: var(--space-1) 0; }
 .sr-gate .lg-row { flex-wrap: wrap; }
+.sr-modes { align-self: center; }
+.sr-modes .lg-seg__opt { min-height: 40px; padding: 0 var(--space-4); font-size: 15px; }
+.sr-passage { margin: 0; font: 600 24px/36px var(--font-sans); color: var(--ink); text-align: center; text-wrap: pretty; }
+.sr-reading { margin: 0; font: 600 22px/40px var(--font-sans); text-align: center; text-wrap: pretty; }
+.sr-reading__plain { color: var(--ink); }
+.sr-word { display: inline; padding: 1px var(--space-1); border: 0; border-radius: var(--radius-sm); font: inherit; color: var(--ink); background: transparent; cursor: pointer; animation: lg-reveal .3s ease-out both; }
+.sr-word:focus-visible { outline: 3px solid var(--lake); outline-offset: 2px; }
+.sr-word--ok { background: var(--pine-soft); box-shadow: inset 0 -3px 0 var(--pine); }
+.sr-word--close { background: var(--cloudberry-soft); box-shadow: inset 0 -3px 0 var(--cloudberry); }
+.sr-word--miss { color: var(--ink-muted); box-shadow: inset 0 0 0 2px var(--cloudberry); background-image: repeating-linear-gradient(90deg, transparent 0 6px, var(--cloudberry-soft) 6px 12px); }
+.sr-word--open { outline: 3px solid var(--lake); outline-offset: 1px; }
+.sr-word-detail { display: flex; flex-direction: column; align-items: center; gap: var(--space-2); padding: var(--space-3); border-radius: var(--radius-md); background: var(--surface-sunken); }
+.sr-word-detail__title { margin: 0; font-size: 18px; }
+.sr-word-detail .sr-map__ipa { font-size: 22px; line-height: 32px; }
+.sr-analysis { display: flex; flex-direction: column; gap: var(--space-4); }
+.sr-analysis__part { display: flex; flex-direction: column; gap: var(--space-2); }
+.sr-analysis__title { margin: 0; font: 700 18px/26px var(--font-display); color: var(--ink); }
+.sr-pace { margin: 0; text-align: center; }
+.sr-weak, .sr-practise { display: flex; flex-direction: column; gap: var(--space-2); margin: 0; padding: 0; list-style: none; }
+.sr-weak__words { margin: 0; }
+.sr-practise { flex-direction: row; flex-wrap: wrap; }
+.sr-practise__word { gap: var(--space-2); }
 
 /* Type it (typing practice). Prefix ty-. */
 .ty-support { margin: var(--space-1) 0 0; font-size: 16px; line-height: 24px; overflow-wrap: anywhere; }

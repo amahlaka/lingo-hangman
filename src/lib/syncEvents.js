@@ -6,8 +6,9 @@
 //
 // Event: { id, at (ISO time), type, payload }
 //   answer   { result, day }   a finished word, as recordWord takes it, plus
-//                              `wrong` (what was answered on wrong tries) and
-//                              `skipped`
+//                              `wrong` (what was answered on wrong tries),
+//                              `skipped`, and Say it right's `score`, `mode`,
+//                              `phones` and `wpm`
 //   goal     { goal }          daily goal changed
 //   buy      { id }            shop item bought (or one extra try)
 //   use      { id }            one extra try used ("extra-try")
@@ -18,6 +19,7 @@
 
 import { mergeProgress, normalizeProgress, recordWord, setDailyGoal } from "./progress.js";
 import { buyItem, equipItem, useExtraTry } from "./cosmetics.js";
+import { cleanPronunciation } from "./pronunciationStats.js";
 
 export const EVENT_TYPES = ["answer", "goal", "buy", "equip", "use", "baseline", "merge"];
 const DAY_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -44,6 +46,8 @@ function cleanResult(r) {
     if (wrong.length) out.wrong = wrong;
   }
   if (r.skipped === true) out.skipped = true;
+  // Say it right: the score and how each sound went (src/lib/pronunciationStats.js).
+  if (r.gameId === "say-right") Object.assign(out, cleanPronunciation(r));
   return out;
 }
 

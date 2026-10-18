@@ -6,6 +6,7 @@ import { GAMES } from "../games/registry";
 import { GATES } from "./AdminReports";
 import { kindRows, mistakeLabel } from "./mistakeLabels";
 import AdminPlayStats from "./AdminPlayStats";
+import PronunciationStats from "./PronunciationStats";
 
 // /admin/stats: numbers over all learners (server/src/stats/aggregate.js),
 // never about one learner. English only, like the other admin pages.
@@ -221,6 +222,7 @@ export default function AdminStats() {
             <WordTable title="Most often missed" caption="Lowest share right on the first try. Worth a look in the editor: a confusing question or a missing meaning?" rows={data.words.hardest} />
             <WordTable title="Slowest" caption="Longest median answer time." rows={data.words.slowest} />
             <Mistakes mistakes={data.mistakes} minLearners={data.rules?.minLearners ?? 3} />
+            <PronunciationStats data={data.pronunciation} everyone minLearners={data.rules?.minLearners ?? 3} />
           </>
         )}
       </main>

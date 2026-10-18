@@ -1,11 +1,13 @@
 // Statistics over everyone's answers (the "answer" events in sync_events):
 // daily counts for the admin Statistics page, and how hard each word is,
-// published at /api/difficulty for Quick play, and how learners go wrong.
+// published at /api/difficulty for Quick play, how learners go wrong, and
+// how they say English sounds in Say it right.
 // Only numbers over several learners leave this file; nothing here names or
 // counts a single learner.
 
 import { wordKey } from "../../../src/lib/progress.js";
 import { answerMistakes } from "../../../src/lib/mistakes.js";
+import { pronunciationTotals } from "../../../src/lib/pronunciationStats.js";
 
 // Days of answers the job looks at.
 export const STATS_DAYS = 90;
@@ -35,6 +37,7 @@ export function aggregate(db, now = Date.now()) {
   const words = new Map(); // key -> { word, n, firstTry, solved, learners:Set, ms[] }
   const kinds = new Map(); // game -> { kind: n }
   const wrongs = new Map(); // key -> given -> { n, kind, learners:Set }
+  const pronunciation = pronunciationTotals();
   const rows = db
     .prepare("SELECT user_id, payload FROM sync_events WHERE type = 'answer' AND at >= ?")
     .iterate(since);
@@ -67,6 +70,8 @@ export function aggregate(db, now = Date.now()) {
       if (result.ms && result.ms < 60000) w.ms.push(result.ms);
       words.set(key, w);
     }
+
+    pronunciation.add(result, row.user_id);
 
     for (const m of answerMistakes(result)) {
       const k = kinds.get(game) || {};
@@ -120,9 +125,20 @@ export function aggregate(db, now = Date.now()) {
     common: common.sort((a, b) => b.learners - a.learners || b.n - a.n).slice(0, LIST_LENGTH),
   };
 
+  // Say it right: scores by mode, the sounds learners miss most and the
+  // words and readings with the lowest scores, each over several learners.
+  const said = pronunciation.summary({ minLearners: MIN_LEARNERS, minAnswers: MIN_ANSWERS });
+  const pronounce = {
+    answers: said.answers,
+    modes: said.modes,
+    sounds: said.sounds,
+    hardest: said.items,
+  };
+
   return {
     daily,
     mistakes,
+    pronunciation: pronounce,
     difficulty: { generatedAt: new Date(now).toISOString(), days: STATS_DAYS, items },
     words: {
       hardest: [...listed].sort((a, b) => a.firstTry - b.firstTry || b.n - a.n).slice(0, LIST_LENGTH),
@@ -152,6 +168,7 @@ export function runStats(db, now = Date.now()) {
     put.run("words", JSON.stringify(out.words));
     put.run("games", JSON.stringify(out.games));
     put.run("mistakes", JSON.stringify(out.mistakes));
+    put.run("pronunciation", JSON.stringify(out.pronunciation));
     db.exec("COMMIT");
   } catch (err) {
     db.exec("ROLLBACK");

@@ -8,11 +8,13 @@ import { RATE_SLOW, speak, stopSpeaking } from "../../lib/speech";
 import { recordClip } from "../../lib/micRecorder";
 import { scoreClip } from "../../lib/pronounce";
 import { scorePronunciation, soundsToPractise } from "../../lib/phonemes";
+import { phoneCounts } from "../../lib/pronunciationStats";
 import { useQuestionControls } from "../practice/questionControls";
-import { GREAT_SCORE, MAX_SAY_RIGHT_TRIES, PASS_SCORE, firstTip, ipaOf, rankKey } from "./sayRightLogic";
+import { getItem } from "../../lib/words";
+import { GREAT_SCORE, MAX_SAY_RIGHT_TRIES, PASS_SCORE, firstTip, ipaOf, rankKey, recordSounds } from "./sayRightLogic";
 
 // Counts up to `value` once, for a little moment of suspense.
-function useCountUp(value, ms = 700) {
+export function useCountUp(value, ms = 700) {
   const [shown, setShown] = useState(0);
   useEffect(() => {
     if (typeof value !== "number") return undefined;
@@ -72,7 +74,7 @@ export function SoundMap({ result, p }) {
 }
 
 // The score of the last try, with its name.
-function ScoreBadge({ score, best, p }) {
+export function ScoreBadge({ score, best, p }) {
   const shown = useCountUp(score);
   const pass = score >= PASS_SCORE;
   return (
@@ -86,7 +88,7 @@ function ScoreBadge({ score, best, p }) {
 }
 
 // A word bank tip on a missed sound.
-function SoundTip({ found, lang, p }) {
+export function SoundTip({ found, lang, p }) {
   const { sound, tip } = found;
   const text = (m) => m?.[lang] || m?.en;
   return (
@@ -112,7 +114,7 @@ function SoundTip({ found, lang, p }) {
   );
 }
 
-const ERROR_KEYS = {
+export const ERROR_KEYS = {
   "no-speech": "sayNothing",
   "not-allowed": "sayRightMicBlocked",
   "audio-capture": "sayRightMicBlocked",
@@ -130,10 +132,13 @@ export default function SayRightQuestion({ word, learningLang, nativeLang, done,
   const [level, setLevel] = useState(0);
   const [tries, setTries] = useState([]); // scored results, newest last
   const [error, setError] = useState(null);
+  // The word bank's Finnish-style reading ("waader"), one tap away.
+  const [showSay, setShowSay] = useState(false);
   const rec = useRef(null);
   const alive = useRef(true);
   const text = word.learning;
   const ipa = ipaOf(word);
+  const reading = getItem(word.id)?.say?.[nativeLang] || null;
 
   useEffect(() => {
     alive.current = true;
@@ -162,6 +167,8 @@ export default function SayRightQuestion({ word, learningLang, nativeLang, done,
       answer: text,
       meaning: word.native,
       score,
+      mode: "words",
+      phones: phoneCounts(all),
       practise: top ? soundsToPractise(top) : [],
       wrong: [],
     });
@@ -206,6 +213,7 @@ export default function SayRightQuestion({ word, learningLang, nativeLang, done,
       setError("no-speech");
       return;
     }
+    recordSounds(scored);
     const all = [...tries, scored].slice(-MAX_SAY_RIGHT_TRIES);
     setTries(all);
     if (scored.score >= PASS_SCORE) sounds.correct();
@@ -228,6 +236,11 @@ export default function SayRightQuestion({ word, learningLang, nativeLang, done,
         </p>
         {!last && <p className="sy-ipa" data-testid="prompt-ipa">{ipa}</p>}
         <p className="lg-caption" lang={nativeLang}>{word.native}</p>
+        {reading && showSay && (
+          <p className="snd-say sy-say" data-testid="prompt-reading">
+            <span className="lg-caption">{p.sayLike}</span> <strong lang={nativeLang}>{reading}</strong>
+          </p>
+        )}
         <div className="sy-listen">
           <button type="button" className="lg-btn lg-btn--secondary" onClick={() => speak(text, { lang: learningLang })}>
             <Volume2 size={20} strokeWidth={2} aria-hidden="true" />
@@ -236,10 +249,29 @@ export default function SayRightQuestion({ word, learningLang, nativeLang, done,
           <button type="button" className="lg-btn lg-btn--quiet" onClick={() => speak(text, { lang: learningLang, rate: RATE_SLOW })}>
             {p.listenSlowly}
           </button>
+          {reading && !showSay && (
+            <button type="button" className="lg-btn lg-btn--quiet" onClick={() => setShowSay(true)}>
+              {p.sayRightShowReading}
+            </button>
+          )}
         </div>
       </div>
 
       {last && <ScoreBadge score={last.score} best={best && best !== last ? best.score : null} p={p} />}
+      {/* Right under the score, so it is never hidden below the microphone. */}
+      {!done && tries.length > 0 && (
+        <div className="sy-after-miss sr-keep">
+          <button
+            type="button"
+            className={`lg-btn ${best && best.score >= PASS_SCORE ? "lg-btn--primary" : "lg-btn--secondary"}`}
+            onClick={() => finish()}
+            disabled={recording || scoring}
+          >
+            {p.sayRightKeep}
+          </button>
+          <TriesMeter left={left} total={MAX_SAY_RIGHT_TRIES} label={left === 1 ? p.sayTryLeft : fill(p.sayTriesLeft, { n: left })} />
+        </div>
+      )}
       {last && <SoundMap result={last} p={p} />}
       {last && tip && <SoundTip found={tip} lang={lang} p={p} />}
 
@@ -263,14 +295,6 @@ export default function SayRightQuestion({ word, learningLang, nativeLang, done,
       )}
       {error && !recording && !scoring && (
         <p className="pg-hint" role="status">{p[ERROR_KEYS[error] || "sayRightFailed"]}</p>
-      )}
-      {!done && tries.length > 0 && (
-        <div className="sy-after-miss">
-          <TriesMeter left={left} total={MAX_SAY_RIGHT_TRIES} label={left === 1 ? p.sayTryLeft : fill(p.sayTriesLeft, { n: left })} />
-          <button type="button" className="lg-btn lg-btn--secondary" onClick={() => finish()} disabled={recording || scoring}>
-            {p.sayRightKeep}
-          </button>
-        </div>
       )}
       {!done && <p className="lg-caption sy-privacy">{p.sayRightPrivacy}</p>}
     </div>

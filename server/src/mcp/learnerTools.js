@@ -16,6 +16,7 @@ import { accountProgress } from "../routes/sync.js";
 import { storedPath } from "../routes/path.js";
 import { boardFor } from "../leaderboard/board.js";
 import { cached } from "../stats/aggregate.js";
+import { learnerPronunciation } from "../adminData.js";
 
 const READ = { readOnlyHint: true, openWorldHint: false };
 const NO_ARGS = { type: "object", properties: {}, additionalProperties: false };
@@ -196,6 +197,19 @@ export const tools = [
           .map(([id, mistakes]) => ({ ...gameInfo(id, user.lang, config.publicUrl), mistakes })),
         recent,
       };
+    },
+  },
+  {
+    name: "get_my_pronunciation",
+    title: "My pronunciation",
+    description:
+      "How the learner says English, from Say it right (for verified players): the number of scored words and readings, the average score 0-100 by mode (words; read = Read aloud, with the median words a minute), their weakest IPA sounds (rate = missed plus half of nearly said, over the times the sound came up), the words and readings with their lowest scores, and their latest 20 scores. Empty when they haven't played Say it right.",
+    inputSchema: NO_ARGS,
+    annotations: READ,
+    run(args, { db, config, token }) {
+      const { user } = learner(db, token);
+      if (!user) return { error: "This account no longer exists." };
+      return { ...learnerPronunciation(db, user.id), game: gameInfo("say-right", user.lang, config.publicUrl) };
     },
   },
   {

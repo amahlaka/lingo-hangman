@@ -21,7 +21,7 @@ import { normalizeSpeech } from "../../../src/lib/speechClips.js";
 
 const WORDBASE = "https://github.com/amahlaka/lingo-wordbase";
 const APP_REPO = "https://github.com/amahlaka/lingo-hangman";
-const STAT_SECTIONS = ["days", "games", "words", "mistakes", "play"];
+const STAT_SECTIONS = ["days", "games", "words", "mistakes", "play", "pronunciation"];
 
 const ids = { type: "array", items: { type: "integer", minimum: 1 }, minItems: 1, maxItems: 500 };
 const READ = { readOnlyHint: true, openWorldHint: false };
@@ -68,7 +68,7 @@ export const tools = [
     name: "get_statistics",
     title: "Statistics",
     description:
-      "One section of the admin Statistics page in full. days: learners, answers, first-try answers and new accounts per day (35 days). games: answers, first-try share and median answer time per game (90 days). words: hardest and slowest words (only words 5+ answers from 3+ learners). mistakes: kinds of mistake per game and wrong answers 3+ learners gave. play: visits per hour, popular games, play sessions and unfinished rounds with guessed reasons (30 days, Finnish time).",
+      "One section of the admin Statistics page in full. days: learners, answers, first-try answers and new accounts per day (35 days). games: answers, first-try share and median answer time per game (90 days). words: hardest and slowest words (only words 5+ answers from 3+ learners). mistakes: kinds of mistake per game and wrong answers 3+ learners gave. play: visits per hour, popular games, play sessions and unfinished rounds with guessed reasons (30 days, Finnish time). pronunciation: Say it right (verified players) scores by mode (words, read = Read aloud, with median words a minute), the IPA sounds most often missed (rate = missed plus half of nearly said, over times seen) and the words and readings with the lowest average score (sounds and items 3+ learners had).",
     inputSchema: {
       type: "object",
       properties: { section: { type: "string", enum: STAT_SECTIONS, description: "Which section." } },
@@ -209,7 +209,7 @@ export const tools = [
     name: "get_learner",
     title: "One learner's progress",
     description:
-      "One learner's progress by account id: level, XP, streak, daily goal, the last 30 days, games played, most missed words, every learned word (solved on 3 different days), mistake kinds and their latest 30 mistakes with what they answered. No email or devices.",
+      "One learner's progress by account id: level, XP, streak, daily goal, the last 30 days, games played, most missed words, every learned word (solved on 3 different days), mistake kinds and their latest 30 mistakes with what they answered, and their Say it right pronunciation: scores by mode, weakest IPA sounds, hardest words and readings, latest 20 scores. No email or devices.",
     inputSchema: {
       type: "object",
       properties: { id: { type: "integer", minimum: 1, description: "Account id from list_learners." } },

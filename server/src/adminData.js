@@ -10,6 +10,7 @@ import { playStats } from "./stats/play.js";
 import { gemBalance } from "../../src/lib/cosmetics.js";
 import { answerSummary, learnedWords, levelInfo, progressSummary } from "../../src/lib/progress.js";
 import { answerMistakes } from "../../src/lib/mistakes.js";
+import { PRONOUNCE_GAME, pronunciationTotals } from "../../src/lib/pronunciationStats.js";
 
 export const REPORT_STATUSES = ["open", "fixed", "dismissed"];
 export const SUGGESTION_STATUSES = ["open", "accepted", "dismissed"];
@@ -69,6 +70,7 @@ export function adminStats(db) {
     games: cached(db, "games")?.value || [],
     words: words?.value || { hardest: [], slowest: [], tracked: 0 },
     mistakes: cached(db, "mistakes")?.value || { games: [], common: [] },
+    pronunciation: cached(db, "pronunciation")?.value || { answers: 0, modes: [], sounds: [], hardest: [] },
     // Visits, games started, play sessions and unfinished rounds, counted now.
     play: playStats(db),
     totals: {
@@ -108,6 +110,7 @@ export function learnerView(db, id) {
     : [];
   return {
     mistakes: learnerMistakes(db, id),
+    pronunciation: learnerPronunciation(db, id),
     user: {
       id: u.id,
       email: u.email,
@@ -139,6 +142,29 @@ export function learnerView(db, id) {
         }
       : null,
   };
+}
+
+// One learner's Say it right: scores by mode, their weakest sounds, the words
+// and readings they found hardest, and their latest scores.
+const RECENT_SCORES = 20;
+export function learnerPronunciation(db, userId) {
+  const totals = pronunciationTotals();
+  const recent = [];
+  const rows = db
+    .prepare("SELECT payload FROM sync_events WHERE user_id = ? AND type = 'answer' ORDER BY seq DESC")
+    .iterate(userId);
+  for (const row of rows) {
+    const { result, day } = JSON.parse(row.payload);
+    if (result.gameId !== PRONOUNCE_GAME || !result.phones) continue;
+    totals.add(result);
+    if (recent.length < RECENT_SCORES) {
+      recent.push({ day, mode: result.mode || "words", word: result.word || "", score: result.score, ...(result.wpm ? { wpm: result.wpm } : {}) });
+    }
+  }
+  // Counted for one learner, so the learner counts are left out.
+  const drop = ({ learners, ...rest }) => rest;
+  const s = totals.summary({ max: 10 });
+  return { answers: s.answers, modes: s.modes.map(drop), sounds: s.sounds.map(drop), hardest: s.items.map(drop), recent };
 }
 
 // How one learner has gone wrong: counts by kind over their synced answers,

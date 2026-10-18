@@ -193,7 +193,7 @@ export function categoryGroups(uiLang = "en", otherLabel = "Other") {
   return groups;
 }
 
-// Every item of one type from the word bank: "word", "gap", "rule", "confusable", "group", "sound", "text", "alike" or "phone".
+// Every item of one type from the word bank: "word", "gap", "rule", "confusable", "group", "sound", "text", "alike", "phone" or "passage".
 export function getItems({ type } = {}) {
   const { items } = getContent();
   return type ? items.filter((i) => i.type === type) : items;
@@ -243,6 +243,13 @@ export function getSoundLessons() {
 // feedback: `{ id, symbols: ["θ"], title, tip, example, lesson }`.
 export function getPhoneTips() {
   return getItems({ type: "phone" });
+}
+
+// One or two sentences to read aloud ("passage" items), for Say it right's
+// Read aloud: `{ id, text: { en, fi }, ipa: { en }, say, level, features, contexts }`,
+// with one IPA word for every word of `text.en`.
+export function getPassages() {
+  return getItems({ type: "passage" });
 }
 
 // Multi-sentence texts ("text" items): dialogues, short stories, messages,

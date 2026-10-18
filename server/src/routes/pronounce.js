@@ -1,5 +1,6 @@
 // Pronunciation scoring for "Say it right": the app records a short clip of
-// the learner saying a word bank word and sends it here; the API passes it to
+// the learner saying a word bank word, or reading a sentence or two aloud
+// (Read aloud), and sends it here; the API passes it to
 // the Talkies phoneme recogniser (zipa-ipa, on the server's own Docker
 // network) and returns the IPA sounds it heard. The app scores them against
 // the word's IPA (src/lib/phonemes.js). Verified learners and admins only,
@@ -11,7 +12,11 @@ import { requireSession } from "../sessions.js";
 // A 16 kHz, 16-bit mono WAV the app makes from the microphone (src/lib/micRecorder.js).
 export const SAMPLE_RATE = 16000;
 export const MIN_SECONDS = 0.25;
-export const MAX_SECONDS = 6;
+// Two sentences read slowly (Read aloud).
+export const MAX_SECONDS = 15;
+// A clip counts one use of the daily limit for every this many seconds of it,
+// since the recogniser's time grows with the clip.
+export const SECONDS_PER_USE = 5;
 const MAX_AUDIO_BYTES = 44 + MAX_SECONDS * SAMPLE_RATE * 2 + 1024;
 // Clips one learner can send in a minute, on top of the daily limit.
 const PER_MINUTE = 12;
@@ -52,7 +57,7 @@ export function cleanPhones(text) {
     .replace(/[^\p{L}\p{M}\p{Lm}ˈˌː˞\s]/gu, " ")
     .replace(/\s+/g, " ")
     .trim()
-    .slice(0, 400);
+    .slice(0, 1500);
 }
 
 export default async function pronounceRoutes(app, { db, config, limiter, fetchImpl = globalThis.fetch }) {
@@ -63,11 +68,11 @@ export default async function pronounceRoutes(app, { db, config, limiter, fetchI
 
   const allowed = (session) => session.role === "verified" || session.role === "admin";
   const usedToday = (userId, now = Date.now()) => used.get(`${userId}|${pronounceDay(now)}`) || 0;
-  function countUse(userId) {
+  function countUse(userId, uses = 1) {
     const day = pronounceDay();
     for (const key of used.keys()) if (!key.endsWith(`|${day}`)) used.delete(key);
     const key = `${userId}|${day}`;
-    used.set(key, (used.get(key) || 0) + 1);
+    used.set(key, (used.get(key) || 0) + uses);
   }
 
   function status(session) {
@@ -137,7 +142,8 @@ export default async function pronounceRoutes(app, { db, config, limiter, fetchI
       if (!config.talkiesUrl) return reply.code(503).send({ error: "pronounce_unavailable" });
       const s = req.session;
       if (!allowed(s)) return reply.code(403).send({ error: "not_verified" });
-      if (!wavInfo(req.body)) return reply.code(400).send({ error: "bad_audio" });
+      const clip = wavInfo(req.body);
+      if (!clip) return reply.code(400).send({ error: "bad_audio" });
       if (usedToday(s.user_id) >= config.pronounceDailyLimit) return reply.code(429).send({ error: "pronounce_limit", ...status(s) });
       if (busyUsers.has(s.user_id)) return reply.code(429).send({ error: "pronounce_busy" });
       if (!limiter.allow(`pronounce:${s.user_id}`, PER_MINUTE, MINUTE)) return reply.code(429).send({ error: "pronounce_busy" });
@@ -146,7 +152,7 @@ export default async function pronounceRoutes(app, { db, config, limiter, fetchI
       busyUsers.add(s.user_id);
       try {
         const phones = await recognise(req.body);
-        countUse(s.user_id);
+        countUse(s.user_id, Math.max(1, Math.ceil(clip.seconds / SECONDS_PER_USE)));
         return { phones, left: Math.max(0, config.pronounceDailyLimit - usedToday(s.user_id)) };
       } catch (err) {
         // Only the failure, never the audio.

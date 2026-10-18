@@ -6,7 +6,7 @@ import bundled from '../lib/bundledContent';
 import { setContent } from '../lib/content';
 import { validateItem } from '../lib/contentSchema';
 import { blankItem, tidyItem } from '../admin/adminDraft';
-import { buildSoundRound, lessonProgress, lessonQuestions, lessonWord, markedIndexes, soundName } from '../games/sounds/soundsLogic';
+import { buildSoundRound, lessonProgress, lessonQuestions, lessonWord, markedIndexes, soundKinds, soundName } from '../games/sounds/soundsLogic';
 
 // A quoted answer that ends a sentence gets no extra full stop.
 const answerWas = (a) => `Not this time. The answer was "${a}"${/[.?!]$/.test(a) ? '' : '.'}`;
@@ -201,6 +201,15 @@ describe('soundsLogic', () => {
     expect(buildSoundRound(lessons, { setId: 'test-c' }).every((q) => q.lessonId === 'test-c')).toBe(true);
   });
 
+  it('limits a mix to the picked kinds, and offers only kinds that can be played', () => {
+    const lessons = [silentK, cSounds, ckK, letters];
+    expect(soundKinds(lessons)).toEqual(['silent', 'sound', 'spell', 'letters']);
+    expect(soundKinds(lessons, { withSound: false })).toEqual(['silent', 'sound', 'spell']);
+    const round = buildSoundRound(lessons, { kinds: ['spell', 'silent'] });
+    expect(new Set(round.map((q) => q.kind))).toEqual(new Set(['spell', 'silent']));
+    expect(buildSoundRound(lessons, { kinds: ['pairs'] }).length).toBeGreaterThan(4);
+  });
+
   it('counts lesson words solved in any game', () => {
     const state = { words: { 'en:knife': { solved: 1 }, 'en:knee': { solved: 0, lost: 1 } } };
     expect(lessonProgress(silentK, state)).toEqual({ solved: 1, total: 3 });
@@ -301,6 +310,32 @@ describe('Sounds of English', () => {
     expect(screen.queryByRole('group', { name: 'Letters to choose from' })).not.toBeInTheDocument();
     renderApp('/sounds');
     expect(screen.getAllByText(/can't play sound/).length).toBeGreaterThan(0);
+  });
+
+  it('lets a mix be limited to kinds of lesson and remembers them', () => {
+    localStorage.clear();
+    fakeSpeech();
+    const { unmount } = renderApp('/sounds?set=mix');
+    fireEvent.click(screen.getByRole('button', { name: /Topics: All topics/ }));
+    const panel = screen.getByRole('group', { name: 'Topics' });
+    expect(within(panel).getAllByRole('button').map((b) => b.textContent.replace(/^[+✓]/, ''))).toEqual([
+      'All topics', 'Silent letters', 'Tricky letters', 'Spelling', 'Sound-alike words', 'Letter names', 'Play these',
+    ]);
+    fireEvent.click(within(panel).getByRole('button', { name: /Spelling/ }));
+    fireEvent.click(within(panel).getByRole('button', { name: 'Play these' }));
+    expect(screen.getByRole('button', { name: /Topics: Spelling/ })).toBeInTheDocument();
+    expect(screen.getByRole('group', { name: 'Spellings to choose from' })).toBeInTheDocument();
+    unmount();
+
+    renderApp('/sounds?set=mix', { lang: 'fi' });
+    expect(screen.getByRole('button', { name: /Aiheet: Oikeinkirjoitus/ })).toBeInTheDocument();
+    expect(JSON.parse(localStorage.getItem('lingo.gapTopics.v1')).sounds).toEqual(['spell']);
+  });
+
+  it('has no topic picker when practising one lesson', () => {
+    fakeSpeech();
+    renderApp('/sounds?set=test-ck&practise=1');
+    expect(screen.queryByRole('button', { name: /Topics:/ })).not.toBeInTheDocument();
   });
 
   it('uses Finnish titles and rules in the Finnish interface', () => {

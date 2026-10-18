@@ -1,5 +1,5 @@
-// The topics a learner picked for a gap game (Grammar check), kept on this
-// device per game. An empty list means every topic.
+// The topics a learner picked in a game (Grammar check, Sounds of English),
+// kept on this device per game. An empty list means every topic.
 
 export const TOPICS_KEY = "lingo.gapTopics.v1";
 

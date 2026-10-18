@@ -28,7 +28,8 @@ import LevelUpCard from "../components/lingo/LevelUpCard";
 import SyncChoice from "./SyncChoice";
 import { api, backendAvailable } from "../lib/backend";
 import { MAX_BATCH, emptySync, loadSync, saveSync } from "../lib/sync";
-import { applyEvents, cleanEvent, makeEvent } from "../lib/syncEvents";
+import { applyEvent, applyEvents, cleanEvent, makeEvent } from "../lib/syncEvents";
+import { explicitLocal, isRecord, isSetting, onLocalChange, readLocal, writeLocal } from "../lib/localSettings";
 import { playTracker, startPlayTracking } from "../lib/playTracker";
 
 // Shared progress for every game. See src/lib/progress.js for the rules and
@@ -106,6 +107,8 @@ export function ProgressProvider({ children, storage, gameIds = [] }) {
     const next = applyEvents(normalizeProgress(res.data.state), rest, { gameIds: gameIdsRef.current });
     stateRef.current = next;
     setState(next);
+    // Settings and records changed on the learner's other devices.
+    writeLocal(next);
     if (rest.length) flushSync();
   }, [writeSync]);
 
@@ -113,13 +116,55 @@ export function ProgressProvider({ children, storage, gameIds = [] }) {
     (type, payload) => {
       const sync = syncRef.current;
       const event = cleanEvent(makeEvent(type, payload));
-      if (!sync.user || !event) return;
+      if (!sync.user || !event) return null;
       writeSync({ ...sync, outbox: [...sync.outbox, event] });
       clearTimeout(timer.current);
       timer.current = setTimeout(flushSync, SYNC_DELAY_MS);
+      return event;
     },
     [writeSync, flushSync]
   );
+
+  // A synced setting or record changed here (src/lib/localSettings.js; they
+  // are kept in localStorage itself, like the settings they come from):
+  // while signed in it becomes an event, unless the account has it already.
+  const queueLocal = useCallback(
+    (key, account = stateRef.current) => {
+      const type = isSetting(key) ? "setting" : isRecord(key) ? "record" : null;
+      const event = type && cleanEvent(makeEvent(type, { key, value: readLocal(key) }));
+      if (!event) return null;
+      const field = type === "setting" ? "settings" : "records";
+      const before = account[field]?.[key];
+      const after = applyEvent(account, event)[field]?.[key];
+      if (JSON.stringify(before) === JSON.stringify(after)) return null;
+      return queueEvent(type, event.payload);
+    },
+    [queueEvent]
+  );
+
+  useEffect(
+    () =>
+      onLocalChange((key) => {
+        const event = syncRef.current.user && queueLocal(key);
+        if (!event) return;
+        const next = applyEvent(stateRef.current, event);
+        stateRef.current = next;
+        setState(next);
+      }),
+    [queueLocal]
+  );
+
+  // This device's progress with its settings and records, for joining an account.
+  const deviceState = () => ({ ...stateRef.current, ...explicitLocal() });
+
+  // Settings the account doesn't have yet, and records better than the
+  // account's, go up from this device; the account's settings win otherwise.
+  const sendLocalExtras = (account) => {
+    const have = account || { settings: {}, records: {} };
+    const local = explicitLocal();
+    for (const key of Object.keys(local.settings)) if (!(key in (have.settings || {}))) queueLocal(key, have);
+    for (const key of Object.keys(local.records)) queueLocal(key, have);
+  };
 
   const link = useCallback(
     (email, outbox, reset = false) => writeSync({ ...emptySync(), user: email, outbox, reset }),
@@ -138,6 +183,7 @@ export function ProgressProvider({ children, storage, gameIds = [] }) {
     // and made again, takes this device's progress as new below.)
     if (syncRef.current.user === email && (account || !deviceHas)) {
       writeSync({ ...syncRef.current, paused: false });
+      sendLocalExtras(account);
       return flushSync();
     }
     const accountHas = Boolean(account && account.totals.words > 0);
@@ -145,10 +191,13 @@ export function ProgressProvider({ children, storage, gameIds = [] }) {
       setSyncChoice({ email, account: progressSummary(account), device: progressSummary(device), accountState: account });
       return;
     }
-    if (deviceHas) link(email, [makeEvent(account ? "merge" : "baseline", { state: device })]);
-    else link(email, []);
+    if (deviceHas) link(email, [makeEvent(account ? "merge" : "baseline", { state: deviceState() })]);
+    else {
+      link(email, []);
+      sendLocalExtras(account);
+    }
     return flushSync();
-  }, [flushSync, link, writeSync]);
+  }, [flushSync, link, writeSync, queueLocal]);
 
   // "combine" | "account" | "device"
   const resolveSyncChoice = useCallback(
@@ -156,13 +205,16 @@ export function ProgressProvider({ children, storage, gameIds = [] }) {
       const choice = syncChoice;
       if (!choice) return;
       setSyncChoice(null);
-      const device = stateRef.current;
+      const device = deviceState();
       if (how === "combine") link(choice.email, [makeEvent("merge", { state: device })]);
       else if (how === "device") link(choice.email, [makeEvent("baseline", { state: device })], true);
-      else link(choice.email, []);
+      else {
+        link(choice.email, []);
+        sendLocalExtras(choice.accountState);
+      }
       flushSync();
     },
-    [syncChoice, link, flushSync]
+    [syncChoice, link, flushSync, queueLocal]
   );
 
   // Signing out keeps the progress on this device and stops sending it.

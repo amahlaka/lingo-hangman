@@ -3,6 +3,7 @@
 // No React here so the rules are easy to test.
 
 import { buildChoiceQuestion, isPairCandidate, shuffle } from "../practice/practiceLogic";
+import { localChanged } from "../../lib/localSettings.js";
 
 export const RUSH_SECONDS = 60;
 // Every this many right answers in a row adds bonus time.
@@ -53,6 +54,7 @@ export function readBest(storage = globalThis.localStorage) {
 export function saveBest(score, storage = globalThis.localStorage) {
   try {
     storage?.setItem(BEST_KEY, String(score));
+    localChanged("rushBest");
   } catch {
     // ignore: the best score then lasts for this visit only
   }

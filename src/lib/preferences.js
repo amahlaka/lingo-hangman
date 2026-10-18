@@ -11,6 +11,7 @@
 // that pool so no game runs out of questions.
 
 import { getContent } from "./content";
+import { localChanged, onRemoteChange } from "./localSettings.js";
 
 const STORAGE_KEY = "lingoPreferences";
 
@@ -59,7 +60,16 @@ export function setPreferences(next) {
     // ignore: preferences then last for this visit only
   }
   listeners.forEach((fn) => fn(current));
+  // Signed in, they follow the learner to their other devices.
+  Object.keys(next).forEach(localChanged);
 }
+
+// The account's preferences arrived from another device.
+onRemoteChange((keys) => {
+  if (!keys.some((k) => Object.hasOwn(DEFAULTS, k))) return;
+  current = read();
+  listeners.forEach((fn) => fn(current));
+});
 
 // Clears the focus areas and difficulty; the word-type settings stay.
 export function resetPreferences() {

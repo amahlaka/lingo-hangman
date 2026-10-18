@@ -3,10 +3,12 @@ import i18n from "../i18n";
 import { setSoundEnabled } from "../lib/sounds";
 import { setSpeechVoice } from "../lib/speech";
 import { DEFAULT_VOICE, voiceById } from "../lib/speechClips";
+import { localChanged, onRemoteChange, readLocal } from "../lib/localSettings";
 
 // App-wide settings: interface language (en/fi), theme (light/dark/system),
 // sound effects (on/off) and the voice that reads words aloud (female/male).
-// Games read them with useSettings().
+// Games read them with useSettings(). Signed in, they follow the learner to
+// their other devices (src/lib/localSettings.js).
 
 const LANG_KEY = "lingoHangmanLang";
 const THEME_KEY = "theme";
@@ -54,6 +56,18 @@ export function SettingsProvider({ children, initialLang }) {
 
   const [voice, setVoiceState] = useState(() => voiceById(readStorage(VOICE_KEY)).id);
 
+  // The account's settings arrived from another device.
+  useEffect(
+    () =>
+      onRemoteChange((keys) => {
+        if (keys.includes("lang")) setLangState(detectLang());
+        if (keys.includes("theme")) setThemeState(readLocal("theme"));
+        if (keys.includes("sound")) setSoundState(readLocal("sound"));
+        if (keys.includes("voice")) setVoiceState(voiceById(readLocal("voice")).id);
+      }),
+    []
+  );
+
   useEffect(() => {
     setSoundEnabled(sound);
   }, [sound]);
@@ -83,17 +97,20 @@ export function SettingsProvider({ children, initialLang }) {
       setLang: (next) => {
         setLangState(next);
         writeStorage(LANG_KEY, next);
+        localChanged("lang");
       },
       theme,
       dark,
       setTheme: (next) => {
         setThemeState(next);
         writeStorage(THEME_KEY, next === "system" ? null : next);
+        localChanged("theme");
       },
       sound,
       setSound: (on) => {
         setSoundState(on);
         writeStorage(SOUND_KEY, on ? null : "off");
+        localChanged("sound");
       },
       voice,
       setVoice: (next) => {
@@ -101,6 +118,7 @@ export function SettingsProvider({ children, initialLang }) {
         setVoiceState(id);
         setSpeechVoice(id);
         writeStorage(VOICE_KEY, id === DEFAULT_VOICE ? null : id);
+        localChanged("voice");
       },
     }),
     [lang, theme, dark, sound, voice]

@@ -4,6 +4,7 @@
 import { getItem, getPhoneTips } from "../../lib/words";
 import { symbolKey } from "../../lib/phonemes";
 import { shuffle, wordCount } from "../practice/practiceLogic";
+import { localChanged } from "../../lib/localSettings.js";
 
 // Every word is recorded and scored on the server, so a round is short.
 export const SAY_RIGHT_ROUND_LENGTH = 6;
@@ -103,6 +104,7 @@ export function saveBest(score, mode = "words", storage = globalThis.localStorag
   if (typeof score !== "number" || score <= loadBest(mode, storage)) return false;
   try {
     storage?.setItem(bestKey(mode), String(score));
+    localChanged(mode === "read" ? "sayRightReadBest" : "sayRightBest");
   } catch {
     // private mode
   }
@@ -138,6 +140,7 @@ export function recordSounds(result, storage = globalThis.localStorage) {
   }
   try {
     storage?.setItem(SOUNDS_KEY, JSON.stringify(history));
+    localChanged("sayRightSounds");
   } catch {
     // private mode
   }

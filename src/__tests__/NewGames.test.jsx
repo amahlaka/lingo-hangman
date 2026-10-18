@@ -182,6 +182,45 @@ describe('Daily word', () => {
     expect(screen.getByRole('listitem', { name: /^A /, exact: false })).toBeInTheDocument();
     expect(screen.getByText(/5 tries left/)).toBeInTheDocument();
   });
+
+  it('copies the result with a row of squares for each guess', async () => {
+    const writeText = jest.fn().mockResolvedValue();
+    Object.assign(navigator, { clipboard: { writeText } });
+    renderApp('/daily');
+    const word = today();
+    const wrong = word.word === 'ZZZZZ' ? 'YYYYY' : 'ZZZZZ';
+    typeWord(wrong);
+    typeWord(word.word);
+    await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Copy my result' })));
+    const text = writeText.mock.calls[0][0];
+    expect(text).toContain("I found today's Lingo word in 2/6 tries.");
+    expect(text).toContain('2/6\n⬜⬜⬜⬜⬜\n🟩🟩🟩🟩🟩');
+    expect(text).toMatch(/\/daily$/);
+  });
+
+  it('free play gives a new word each round and leaves the daily record alone', () => {
+    renderApp('/daily/free');
+    expect(screen.getByText('The word in Finnish')).toBeInTheDocument();
+    const daily = today();
+    const clue = () => screen.getByText('The word in Finnish').nextSibling.textContent;
+    const first = clue();
+    const word = dailyCandidates(getItems({ type: 'word' })).find((c) => c.fi === first && c.id !== daily.id);
+    typeWord(word.word);
+    expect(screen.getByText(`You found it: ${word.word.toLowerCase()}`)).toBeInTheDocument();
+    expect(screen.queryByText('Daily word streak')).not.toBeInTheDocument();
+    expect(localStorage.getItem('lingoDaily')).toBeNull();
+    expect(screen.getByRole('link', { name: "Today's word" })).toHaveAttribute('href', '/daily');
+    fireEvent.click(screen.getByRole('button', { name: 'Next word' }));
+    expect(screen.getByText(/6 tries left/)).toBeInTheDocument();
+    expect(clue()).not.toBe(first);
+  });
+
+  it('offers free play when today\'s word is done', () => {
+    renderApp('/daily');
+    typeWord(today().word);
+    fireEvent.click(screen.getByRole('link', { name: 'Free play' }));
+    expect(screen.getByText('The word in Finnish')).toBeInTheDocument();
+  });
 });
 
 describe('Read and understand', () => {

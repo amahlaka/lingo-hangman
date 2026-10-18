@@ -2,7 +2,7 @@ import { buildTalk, buildTalkRound, isTalkText, learnerSpeaker, nextTurn, pickRe
 import { buildMistakeRound, mistakeQuestion, mistakeTiles } from '../games/mistake/mistakeLogic';
 import { comboBonus, comboMultiplier, readBest, rushPoints, rushPool, saveBest } from '../games/rush/rushLogic';
 import {
-  dailyCandidates, dailyFor, emptyDaily, finishDaily, letterStates, scoreGuess, wordForDay,
+  dailyCandidates, dailyFor, emptyDaily, finishDaily, freeWord, letterStates, scoreGuess, shareGrid, wordForDay,
 } from '../games/daily/dailyLogic';
 import { buildReadRound, readQuestion } from '../games/read/readLogic';
 import { getGapItems, getItems, getTexts, getTopics } from '../lib/words';
@@ -146,6 +146,25 @@ describe('Daily word', () => {
     expect(s).toMatchObject({ played: 3, won: 2, streak: 0, bestStreak: 2 });
     s = finishDaily(s, { won: true, key: '2026-10-19', yesterday: '2026-10-18' });
     expect(s.streak).toBe(1);
+  });
+
+  it('shares the guesses as rows of coloured squares', () => {
+    expect(shareGrid(['HOUSE', 'LLAMA', 'HELLO'], 'HELLO')).toBe('🟩🟦⬜⬜🟦\n🟦🟦⬜⬜⬜\n🟩🟩🟩🟩🟩');
+    expect(shareGrid([], 'HELLO')).toBe('');
+  });
+
+  it('free play never picks today\'s word or a recent one', () => {
+    const candidates = dailyCandidates(getItems({ type: 'word' }));
+    const today = wordForDay(candidates, '2026-10-18');
+    const recent = candidates.slice(0, 5).map((c) => c.id);
+    for (let i = 0; i < 50; i++) {
+      const w = freeWord(candidates, today, recent);
+      expect(w.id).not.toBe(today.id);
+      expect(recent).not.toContain(w.id);
+    }
+    // With only today's word and recent ones left, a recent one is played again.
+    expect(freeWord([today, candidates[0]], today, [candidates[0].id])).toBe(candidates[0]);
+    expect(freeWord([today], today)).toBeNull();
   });
 });
 

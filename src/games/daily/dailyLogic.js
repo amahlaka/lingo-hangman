@@ -136,3 +136,21 @@ export function finishDaily(state, { won, key, yesterday }) {
     lastWon: won ? key : state.lastWon,
   };
 }
+
+// Free play: a random word that isn't today's daily word (so free play never
+// gives it away) or any of the `recent` words just played.
+export function freeWord(candidates, todayWord, recent = [], random = Math.random) {
+  const skip = new Set([todayWord?.id, ...recent].filter(Boolean));
+  let pool = candidates.filter((c) => !skip.has(c.id));
+  if (!pool.length) pool = candidates.filter((c) => c.id !== todayWord?.id);
+  if (!pool.length) return null;
+  return pool[Math.floor(random() * pool.length)];
+}
+
+const SQUARES = { hit: "🟩", near: "🟦", miss: "⬜" };
+
+// The guesses as rows of coloured squares for sharing, one row per guess:
+// green for the right place, blue for in the word, white for not in it.
+export function shareGrid(guesses, answer) {
+  return guesses.map((g) => scoreGuess(g, answer).map((m) => SQUARES[m]).join("")).join("\n");
+}

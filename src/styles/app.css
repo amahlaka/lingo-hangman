@@ -815,6 +815,10 @@ textarea.lg-input { padding: var(--space-2) var(--space-3); resize: vertical; }
 .mp-card { padding: var(--space-4); border-radius: var(--radius-lg); background: var(--surface-raised); box-shadow: var(--shadow-raised); }
 .mp-card__head { display: flex; align-items: center; gap: var(--space-2); color: var(--lake-strong); }
 .mp-card__head .lg-heading { margin: 0; color: var(--ink); }
+.mp-card__toggle { margin-left: auto; flex: none; }
+.mp-card__toggle svg { transition: transform .2s ease-out; }
+.mp-card__toggle--closed svg { transform: rotate(-90deg); }
+@media (prefers-reduced-motion: reduce) { .mp-card__toggle svg { transition: none; } }
 .mp-steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-3); }
 .mp-step { display: flex; align-items: center; gap: var(--space-3); }
 .mp-step__mark { flex: none; width: 32px; height: 32px; display: grid; place-items: center; border-radius: var(--radius-pill); box-shadow: inset 0 0 0 2px var(--border); font-weight: 700; color: var(--ink-muted); }

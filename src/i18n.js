@@ -499,6 +499,8 @@ const i18n = {
       play: "Play",
       done: "Path done for this week. Well done!",
       planMore: "Plan more steps",
+      collapse: "Show only the current step",
+      expand: "Show all steps",
     },
     board: {
       title: "Weekly board",
@@ -1387,6 +1389,8 @@ const i18n = {
       play: "Pelaa",
       done: "Tämän viikon polku on kuljettu. Hienoa!",
       planMore: "Suunnittele lisää askelia",
+      collapse: "Näytä vain nykyinen askel",
+      expand: "Näytä kaikki askeleet",
     },
     board: {
       title: "Viikon taulukko",

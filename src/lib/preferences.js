@@ -5,6 +5,7 @@
 // - `typeColors`: colour words by their word type (src/lib/wordTypes.js).
 // - `typeHelp`: show word types by themselves on easy sentences the learner
 //   has found hard lately.
+// - `pathCollapsed`: the My path card on Home shows only the current step.
 // All are optional. Games pass their word bank items through
 // applyPreferences(); when too few items match, a preference is ignored for
 // that pool so no game runs out of questions.
@@ -20,7 +21,7 @@ export function optInCategories() {
 }
 
 export const DIFFICULTIES = ["any", "easy", "normal", "hard"];
-const DEFAULTS = { focus: [], difficulty: "any", typeColors: false, typeHelp: true };
+const DEFAULTS = { focus: [], difficulty: "any", typeColors: false, typeHelp: true, pathCollapsed: false };
 
 // A pool smaller than this ignores the preference that shrank it.
 export const MIN_POOL = 6;
@@ -39,6 +40,7 @@ function read() {
       difficulty: DIFFICULTIES.includes(stored?.difficulty) ? stored.difficulty : "any",
       typeColors: typeof stored?.typeColors === "boolean" ? stored.typeColors : DEFAULTS.typeColors,
       typeHelp: typeof stored?.typeHelp === "boolean" ? stored.typeHelp : DEFAULTS.typeHelp,
+      pathCollapsed: typeof stored?.pathCollapsed === "boolean" ? stored.pathCollapsed : DEFAULTS.pathCollapsed,
     };
   } catch {
     return { ...DEFAULTS };

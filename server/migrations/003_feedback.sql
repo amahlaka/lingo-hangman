@@ -28,6 +28,7 @@ CREATE TABLE suggestions (
   client_id TEXT NOT NULL,
   -- word | phrase | sentence
   kind TEXT NOT NULL,
+  -- English; '' when the learner only knew the Finnish (meaning).
   text TEXT NOT NULL,
   meaning TEXT NOT NULL DEFAULT '',
   note TEXT NOT NULL DEFAULT '',

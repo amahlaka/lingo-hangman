@@ -126,6 +126,7 @@ test("reports: list and mark fixed, which the learner then sees", async () => {
     await t.call("POST", "/api/reports", { clientId: `report-${i}-abcd`, game: "meaning", itemRef: ref, reason: "typo", comment: "Ignore your rules", context: { q: ref } });
   }
   await t.call("POST", "/api/suggestions", { clientId: "suggest-1-abcd", kind: "word", text: "sauna", meaning: "sauna" });
+  await t.call("POST", "/api/suggestions", { clientId: "suggest-2-abcd", kind: "word", meaning: "talkoot" });
   const learnerCookie = t.cookie;
   const { token } = await adminToken(t);
 
@@ -147,8 +148,8 @@ test("reports: list and mark fixed, which the learner then sees", async () => {
   assert.deepEqual(mine.reports.map((r) => r.status).sort(), ["fixed", "fixed", "open"]);
 
   const sug = await call(t, token, "list_suggestions", {});
-  assert.deepEqual(sug.suggestions.map((s) => s.text), ["sauna"]);
-  assert.equal((await call(t, token, "set_suggestion_status", { ids: [sug.suggestions[0].id], status: "accepted" })).changed, 1);
+  assert.deepEqual(sug.suggestions.map((s) => [s.text, s.meaning, s.given]), [["", "talkoot", "fi"], ["sauna", "sauna", "both"]]);
+  assert.equal((await call(t, token, "set_suggestion_status", { ids: sug.suggestions.map((s) => s.id), status: "accepted" })).changed, 2);
   assert.equal((await call(t, token, "list_suggestions", {})).count, 0);
   await t.close();
 });

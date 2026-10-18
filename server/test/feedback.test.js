@@ -45,16 +45,19 @@ test("a learner sends a report once, even when it is resent, and sees its status
   });
   assert.equal(sugg.statusCode, 201);
   assert.equal((await t.call("POST", "/api/suggestions", { clientId: "s-0000000002", kind: "song", text: "x" })).statusCode, 400);
+  // Finnish only is fine (the learner may not know the English); nothing at all isn't.
+  assert.equal((await t.call("POST", "/api/suggestions", { clientId: "s-0000000003", kind: "word", meaning: "pölynimuri" })).statusCode, 201);
+  assert.equal((await t.call("POST", "/api/suggestions", { clientId: "s-0000000004", kind: "word", text: " ", meaning: "" })).statusCode, 400);
 
   const mine = (await t.call("GET", "/api/me/feedback")).json();
   assert.equal(mine.reports.length, 1);
   assert.equal(mine.reports[0].status, "open");
   assert.deepEqual(mine.reports[0].context, { question: "cat", answer: "kissa", version: "abc" });
-  assert.equal(mine.suggestions[0].text, "break a leg");
+  assert.deepEqual(mine.suggestions.map((s) => [s.text, s.meaning, s.given]), [["", "pölynimuri", "fi"], ["break a leg", "lykkyä tykö", "both"]]);
 
   const exported = (await t.call("GET", "/api/me/export")).json();
   assert.equal(exported.reports.length, 1);
-  assert.equal(exported.suggestions.length, 1);
+  assert.equal(exported.suggestions.length, 2);
   await t.close();
 });
 

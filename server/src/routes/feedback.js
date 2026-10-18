@@ -33,11 +33,17 @@ export const reportView = (r) => ({
   resolvedAt: r.resolved_at,
 });
 
+// Which of the English (text) and Finnish (meaning) the learner gave. A
+// learner may not know the English word, so a Finnish-only suggestion is
+// fine: "fi" tells the admin (or the AI) to find the English for it.
+export const givenIn = (s) => (s.text && s.meaning ? "both" : s.text ? "en" : "fi");
+
 export const suggestionView = (s) => ({
   id: s.id,
   kind: s.kind,
   text: s.text,
   meaning: s.meaning,
+  given: givenIn(s),
   note: s.note,
   status: s.status,
   createdAt: s.created_at,
@@ -73,7 +79,8 @@ export default async function feedbackRoutes(app, { db, limiter }) {
     const body = text(b.text, 300);
     const meaning = text(b.meaning, 300);
     const note = text(b.note, 1000);
-    if (!clientId || !body || meaning === null || note === null || !SUGGESTION_KINDS.includes(b.kind)) {
+    // English or Finnish, at least one of them.
+    if (!clientId || body === null || meaning === null || note === null || !(body || meaning) || !SUGGESTION_KINDS.includes(b.kind)) {
       return reply.code(400).send({ error: "bad_request" });
     }
     const userId = req.session.user_id;

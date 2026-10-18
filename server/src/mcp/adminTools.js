@@ -141,7 +141,7 @@ export const tools = [
   {
     name: "list_suggestions",
     title: "Content suggestions",
-    description: `Words, phrases and sentences learners suggested adding, with the Finnish meaning and a note when they gave one. ${LEARNER_TEXT}`,
+    description: `Words, phrases and sentences learners suggested adding: text is the English, meaning the Finnish, and given says which they wrote ("both", "en", or "fi" when the learner didn't know the English word and only gave the Finnish, so you need to find the English for it), plus a note when they gave one. ${LEARNER_TEXT}`,
     inputSchema: {
       type: "object",
       properties: {

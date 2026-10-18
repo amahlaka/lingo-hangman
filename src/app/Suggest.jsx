@@ -5,7 +5,8 @@ import { Feedback, GameScreen } from "../components/lingo";
 import { backendAvailable } from "../lib/backend";
 import { SUGGESTION_KINDS, flushFeedback, queueFeedback } from "../lib/feedback";
 
-// /suggest: suggest a word, phrase or sentence for the word base. Needs the
+// /suggest: suggest a word, phrase or sentence for the word base, in Finnish,
+// English or both (a learner may not know the English word). Needs the
 // optional backend and an account; what is typed while signed out is kept
 // and sent after sign-in (src/lib/feedback.js).
 export default function Suggest() {
@@ -27,9 +28,11 @@ export default function Suggest() {
     };
   }, []);
 
+  const canSend = Boolean(text.trim() || meaning.trim());
+
   const send = async (e) => {
     e.preventDefault();
-    if (!text.trim()) return;
+    if (!canSend) return;
     setBusy(true);
     queueFeedback("suggestion", { kind, text: text.trim(), meaning: meaning.trim(), note: note.trim() });
     setResult(await flushFeedback());
@@ -66,20 +69,21 @@ export default function Suggest() {
                 ))}
               </div>
             </fieldset>
-            <label className="lg-field">
-              <span>{f.textLabel}</span>
-              <input className="lg-input" lang="en" maxLength={300} value={text} onChange={(e) => setText(e.target.value)} required />
-            </label>
+            <p className="lg-caption">{f.eitherHint}</p>
             <label className="lg-field">
               <span>{f.meaningLabel}</span>
               <input className="lg-input" lang="fi" maxLength={300} value={meaning} onChange={(e) => setMeaning(e.target.value)} />
+            </label>
+            <label className="lg-field">
+              <span>{f.textLabel}</span>
+              <input className="lg-input" lang="en" maxLength={300} value={text} onChange={(e) => setText(e.target.value)} />
             </label>
             <label className="lg-field">
               <span>{f.noteLabel}</span>
               <textarea className="lg-input" rows={3} maxLength={1000} value={note} onChange={(e) => setNote(e.target.value)} />
             </label>
             <div>
-              <button type="submit" className="lg-btn lg-btn--primary" disabled={busy || !text.trim()}>{busy ? f.sending : f.send}</button>
+              <button type="submit" className="lg-btn lg-btn--primary" disabled={busy || !canSend}>{busy ? f.sending : f.send}</button>
             </div>
           </form>
         )}

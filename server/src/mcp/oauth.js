@@ -6,7 +6,12 @@
 import { randomToken, sha256 } from "../lib/crypto.js";
 import { TOKEN_PREFIX } from "./tokens.js";
 
-export const SCOPE = "admin";
+// "admin" for /api/mcp (admins only), "learner" for /api/mcp/me (anyone with
+// an account, their own progress only).
+export const SCOPES = ["admin", "learner"];
+export const RESOURCE_PATHS = { admin: "/api/mcp", learner: "/api/mcp/me" };
+// Where each endpoint's 401 points (routes/oauth.js serves both).
+export const METADATA_PATHS = { admin: "/api/oauth/protected-resource", learner: "/api/oauth/protected-resource/me" };
 export const ACCESS_TOKEN_SECONDS = 3600;
 export const REFRESH_TOKEN_DAYS = 90;
 export const CODE_MS = 10 * 60_000;
@@ -17,15 +22,31 @@ const REFRESH_PREFIX = "lingo_refresh_";
 // claude.ai's callbacks; other clients need OAUTH_REDIRECT_URIS on the server.
 export const KNOWN_REDIRECTS = ["https://claude.ai/api/mcp/auth_callback", "https://claude.com/api/mcp/auth_callback"];
 
-// The protected resource (RFC 9728): what the MCP endpoint's 401 points to.
-export function resourceMetadata(base) {
+// The protected resources (RFC 9728): what each MCP endpoint's 401 points to.
+export function resourceMetadata(base, scope = "admin") {
   return {
-    resource: `${base}/api/mcp`,
+    resource: `${base}${RESOURCE_PATHS[scope]}`,
     authorization_servers: [base],
-    scopes_supported: [SCOPE],
+    scopes_supported: [scope],
     bearer_methods_supported: ["header"],
-    resource_name: "Lingo admin",
+    resource_name: scope === "admin" ? "Lingo admin" : "Lingo: my progress",
   };
+}
+
+// The scope an authorization request asks for, from its scope and resource
+// (RFC 8707) parameters, or null when they don't name one scope. Neither
+// means admin, as before the learner scope existed.
+export function requestedScope(q, base) {
+  const asked = typeof q.scope === "string" && q.scope.trim() ? [...new Set(q.scope.trim().split(/\s+/))] : [];
+  if (asked.length > 1 || (asked[0] && !SCOPES.includes(asked[0]))) return null;
+  let byResource = null;
+  if (typeof q.resource === "string" && q.resource) {
+    const path = q.resource.startsWith(base) ? q.resource.slice(base.length).replace(/\/$/, "") : null;
+    byResource = SCOPES.find((s) => RESOURCE_PATHS[s] === path) || null;
+    if (!byResource) return null;
+  }
+  if (asked[0] && byResource && asked[0] !== byResource) return null;
+  return asked[0] || byResource || "admin";
 }
 
 // The authorization server (RFC 8414). Clients look for it at
@@ -41,7 +62,7 @@ export function serverMetadata(base) {
     grant_types_supported: ["authorization_code", "refresh_token"],
     code_challenge_methods_supported: ["S256"],
     token_endpoint_auth_methods_supported: ["none", "client_secret_post", "client_secret_basic"],
-    scopes_supported: [SCOPE],
+    scopes_supported: SCOPES,
     authorization_response_iss_parameter_supported: true,
   };
 }
@@ -77,11 +98,11 @@ export function findClient(db, id) {
   return row ? { ...row, redirect_uris: JSON.parse(row.redirect_uris) } : null;
 }
 
-export function createCode(db, { clientId, userId, redirectUri, codeChallenge }, now = Date.now()) {
+export function createCode(db, { clientId, userId, redirectUri, codeChallenge, scope }, now = Date.now()) {
   const code = randomToken();
   db.prepare(
-    "INSERT INTO oauth_codes (code_hash, client_id, user_id, redirect_uri, code_challenge, expires_at) VALUES (?, ?, ?, ?, ?, ?)"
-  ).run(sha256(code), clientId, userId, redirectUri, codeChallenge, now + CODE_MS);
+    "INSERT INTO oauth_codes (code_hash, client_id, user_id, redirect_uri, code_challenge, scope, expires_at) VALUES (?, ?, ?, ?, ?, ?, ?)"
+  ).run(sha256(code), clientId, userId, redirectUri, codeChallenge, scope, now + CODE_MS);
   return code;
 }
 
@@ -110,29 +131,30 @@ function newTokens(now) {
   };
 }
 
-const tokenResponse = (t) => ({
+const tokenResponse = (t, scope) => ({
   access_token: t.access,
   token_type: "Bearer",
   expires_in: ACCESS_TOKEN_SECONDS,
   refresh_token: t.refresh,
-  scope: SCOPE,
+  scope,
 });
 
-// A new approval: one api_tokens row, listed on /admin/ai under the client's name.
-export function issueTokens(db, { client, userId }, now = Date.now()) {
+// A new approval: one api_tokens row, listed under the client's name on
+// /admin/ai (admin) or the Account page (learner).
+export function issueTokens(db, { client, userId, scope }, now = Date.now()) {
   const t = newTokens(now);
   db.prepare(
     `INSERT INTO api_tokens (user_id, token_hash, name, scope, expires_at, client_id, refresh_hash, refresh_expires_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
-  ).run(userId, sha256(t.access), client.name, SCOPE, t.accessExpires, client.id, sha256(t.refresh), t.refreshExpires);
-  return tokenResponse(t);
+  ).run(userId, sha256(t.access), client.name, scope, t.accessExpires, client.id, sha256(t.refresh), t.refreshExpires);
+  return tokenResponse(t, scope);
 }
 
 // Renews an approval's tokens in place; the old refresh token stops working.
 // Returns null for an unknown, expired or other client's refresh token.
 export function refreshTokens(db, { client, refreshToken }, now = Date.now()) {
   if (typeof refreshToken !== "string" || !refreshToken.startsWith(REFRESH_PREFIX) || refreshToken.length > 120) return null;
-  const row = db.prepare("SELECT id, user_id, client_id, refresh_expires_at FROM api_tokens WHERE refresh_hash = ?").get(sha256(refreshToken));
+  const row = db.prepare("SELECT id, user_id, client_id, scope, refresh_expires_at FROM api_tokens WHERE refresh_hash = ?").get(sha256(refreshToken));
   if (!row || row.client_id !== client.id || Date.parse(row.refresh_expires_at) <= now) return null;
   const t = newTokens(now);
   db.prepare("UPDATE api_tokens SET token_hash = ?, expires_at = ?, refresh_hash = ?, refresh_expires_at = ? WHERE id = ?").run(
@@ -142,7 +164,7 @@ export function refreshTokens(db, { client, refreshToken }, now = Date.now()) {
     t.refreshExpires,
     row.id
   );
-  return { userId: row.user_id, response: tokenResponse(t) };
+  return { userId: row.user_id, scope: row.scope, response: tokenResponse(t, row.scope) };
 }
 
 export function deleteExpiredOauth(db, now = Date.now()) {

@@ -8,9 +8,11 @@ import { COOKIE, requireSession } from "../sessions.js";
 import { reportView, suggestionView } from "./feedback.js";
 import { accountProgress } from "./sync.js";
 import { storedPath } from "./path.js";
+import { createToken, listTokens, revokeToken } from "../mcp/tokens.js";
 
 const CHALLENGE_MS = 5 * 60_000;
 const MAX_PASSKEYS = 20;
+const MAX_AI_TOKENS = 10;
 
 const passkeyView = (p) => ({
   id: p.id,
@@ -161,7 +163,27 @@ export default async function accountRoutes(app, { db, config }) {
       unfinishedRounds: db
         .prepare("SELECT at, game, reason, how, answers, ms FROM give_ups WHERE user_id = ? ORDER BY at")
         .all(s.user_id),
+      // Names and dates only; the secrets aren't kept.
+      aiTokens: listTokens(db, s.user_id, "learner"),
     };
+  });
+
+  // Tokens for the learner's own AI tools (/api/mcp/me, routes/mcp.js): read
+  // only, and only this account. The secret is shown once, when it is made.
+  app.get("/api/me/tokens", async (req) => ({ tokens: listTokens(db, req.session.user_id, "learner") }));
+
+  app.post("/api/me/tokens", async (req, reply) => {
+    const name = typeof req.body?.name === "string" ? req.body.name.trim() : "";
+    const days = req.body?.days ?? 90;
+    if (!name || name.length > 60 || ![30, 90, 365].includes(days)) return reply.code(400).send({ error: "bad_request" });
+    if (listTokens(db, req.session.user_id, "learner").length >= MAX_AI_TOKENS) return reply.code(400).send({ error: "too_many_tokens" });
+    return reply.code(201).send(createToken(db, { userId: req.session.user_id, name, scope: "learner", days }));
+  });
+
+  app.post("/api/me/tokens/revoke", async (req, reply) => {
+    const id = req.body?.id;
+    if (!Number.isInteger(id) || id <= 0) return reply.code(400).send({ error: "bad_request" });
+    return revokeToken(db, req.session.user_id, id, "learner") ? { ok: true } : reply.code(404).send({ error: "not_found" });
   });
 
   // Delete the account and everything linked to it. The learner confirms by

@@ -1,7 +1,8 @@
 // Tokens for the MCP endpoint (routes/mcp.js): a random secret the AI tool
 // sends as "Authorization: Bearer <token>". The database keeps only its hash.
-// A token works only while its account still has the token's scope (an admin
-// token stops working when the account stops being an admin).
+// A token's scope picks its endpoint and tools (routes/mcp.js): "admin" tokens
+// are made at /admin/ai and work only while the account is still an admin;
+// "learner" tokens are made on the Account page and read only that account.
 
 import { randomToken, sha256 } from "../lib/crypto.js";
 
@@ -18,12 +19,12 @@ export function createToken(db, { userId, name, scope, days }, now = Date.now())
 }
 
 // A connector's token (OAuth) works as long as its refresh token does.
-export function listTokens(db, userId) {
+export function listTokens(db, userId, scope) {
   return db
     .prepare(
-      "SELECT id, name, scope, created_at, expires_at, refresh_expires_at, last_used_at, client_id FROM api_tokens WHERE user_id = ? ORDER BY id DESC"
+      "SELECT id, name, scope, created_at, expires_at, refresh_expires_at, last_used_at, client_id FROM api_tokens WHERE user_id = ? AND scope = ? ORDER BY id DESC"
     )
-    .all(userId)
+    .all(userId, scope)
     .map((t) => ({
       id: t.id,
       name: t.name,
@@ -35,8 +36,8 @@ export function listTokens(db, userId) {
     }));
 }
 
-export function revokeToken(db, userId, id) {
-  return Number(db.prepare("DELETE FROM api_tokens WHERE id = ? AND user_id = ?").run(id, userId).changes) > 0;
+export function revokeToken(db, userId, id, scope) {
+  return Number(db.prepare("DELETE FROM api_tokens WHERE id = ? AND user_id = ? AND scope = ?").run(id, userId, scope).changes) > 0;
 }
 
 // The token row with its account, or null when the secret is unknown or

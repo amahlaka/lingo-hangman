@@ -18,7 +18,7 @@ import statsRoutes from "./routes/stats.js";
 import leaderboardRoutes from "./routes/leaderboard.js";
 import pathRoutes from "./routes/path.js";
 import playRoutes from "./routes/play.js";
-import mcpRoutes, { MCP_PATH } from "./routes/mcp.js";
+import mcpRoutes, { MCP_PATHS } from "./routes/mcp.js";
 import oauthRoutes from "./routes/oauth.js";
 import { createWordClips } from "./lib/wordClips.js";
 
@@ -51,11 +51,11 @@ export function buildApp({ db, config, logger = true, limiter = createRateLimite
   // Requests that change something must come from the app itself: the custom
   // header can't be sent cross-site without a CORS preflight, which this API
   // never allows, and a browser's Origin must be one of the app's. The MCP
-  // endpoint and OAuth are for AI tools, not the app: they take tokens or
+  // endpoints and OAuth are for AI tools, not the app: they take tokens or
   // plain forms and check what they need themselves (routes/mcp.js, oauth.js).
   app.addHook("onRequest", async (req, reply) => {
     const path = req.url.split("?")[0];
-    if (SAFE_METHODS.has(req.method) || path === MCP_PATH || path.startsWith("/api/oauth/")) return;
+    if (SAFE_METHODS.has(req.method) || MCP_PATHS.includes(path) || path.startsWith("/api/oauth/")) return;
     const origin = req.headers.origin;
     if (req.headers["x-lingo"] !== "1" || (origin && !config.origins.includes(origin))) {
       return reply.code(403).send({ error: "forbidden" });

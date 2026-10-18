@@ -32,6 +32,7 @@ a { color: var(--lake); }
 .lg-display { font: 700 40px/44px var(--font-display); letter-spacing: -0.02em; margin: 0; }
 .lg-title { font: 700 28px/34px var(--font-display); letter-spacing: -0.01em; margin: 0; }
 .lg-heading { font: 600 20px/28px var(--font-display); margin: 0; }
+.lg-subheading { font: 600 16px/24px var(--font-display); margin: var(--space-2) 0 0; }
 .lg-body-lg { font-size: 18px; line-height: 28px; margin: 0; }
 .lg-caption { font-size: 13px; line-height: 18px; letter-spacing: 0.02em; color: var(--ink-muted); margin: 0; }
 

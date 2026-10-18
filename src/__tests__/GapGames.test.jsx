@@ -75,6 +75,55 @@ describe('Grammar check', () => {
   });
 });
 
+describe('Grammar check topics', () => {
+  const rules = gapQuestions({ topics: getTopics('rule'), gaps: getGapItems() });
+  beforeEach(() => localStorage.clear());
+
+  it('plays every topic until some are picked, then only those, and remembers them', () => {
+    const { unmount } = renderApp('/grammar');
+    const toggle = screen.getByRole('button', { name: /Topics: All topics/ });
+    fireEvent.click(toggle);
+    const panel = screen.getByRole('group', { name: 'Topics' });
+    expect(within(panel).getByRole('button', { name: 'All topics' })).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.click(within(panel).getByRole('button', { name: /a or an/ }));
+    fireEvent.click(within(panel).getByRole('button', { name: /much or many/ }));
+    expect(within(panel).getByRole('button', { name: 'All topics' })).toHaveAttribute('aria-pressed', 'false');
+    fireEvent.click(within(panel).getByRole('button', { name: 'Play these' }));
+    expect(screen.queryByRole('group', { name: 'Topics' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Topics: 2 topics/ })).toBeInTheDocument();
+
+    const picked = rules.filter((q) => q.setId === 'a-or-an' || q.setId === 'much-many');
+    const seen = () => {
+      const fi = screen.getByText((_, el) => el?.classList?.contains('gp-translation')).textContent;
+      return picked.find((q) => q.fi === fi);
+    };
+    expect(seen()).toBeTruthy();
+    expect(screen.getByText(`1 of ${Math.min(10, picked.length)}`)).toBeInTheDocument();
+    unmount();
+
+    renderApp('/grammar');
+    expect(screen.getByRole('button', { name: /Topics: 2 topics/ })).toBeInTheDocument();
+    expect(seen()).toBeTruthy();
+  });
+
+  it('goes back to all topics and shows topic names in Finnish', () => {
+    localStorage.setItem('lingo.gapTopics.v1', JSON.stringify({ grammar: ['a-or-an', 'gone-topic'] }));
+    renderApp('/grammar', { lang: 'fi' });
+    fireEvent.click(screen.getByRole('button', { name: /Aiheet: a vai an/ }));
+    const panel = screen.getByRole('group', { name: 'Aiheet' });
+    expect(within(panel).getByRole('button', { name: /much vai many/ })).toHaveAttribute('aria-pressed', 'false');
+    fireEvent.click(within(panel).getByRole('button', { name: 'Kaikki aiheet' }));
+    fireEvent.click(within(panel).getByRole('button', { name: 'Pelaa näitä' }));
+    expect(screen.getByRole('button', { name: /Aiheet: Kaikki aiheet/ })).toBeInTheDocument();
+    expect(JSON.parse(localStorage.getItem('lingo.gapTopics.v1')).grammar).toEqual([]);
+  });
+
+  it('has no topic picker for a single-topic link or in Mixed-up words', () => {
+    renderApp('/grammar?set=articles');
+    expect(screen.queryByRole('button', { name: /Topics:/ })).not.toBeInTheDocument();
+  });
+});
+
 describe('The rule after answering', () => {
   const rect = (top, bottom) => ({ top, bottom, left: 0, right: 0, width: 0, height: bottom - top, x: 0, y: top });
   let spy;

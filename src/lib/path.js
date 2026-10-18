@@ -10,8 +10,8 @@
 // STEP_ANSWERS answers in one game. The path is planned again each Monday,
 // once a new learner has answered enough to be placed, or when the learner asks after finishing it.
 
-import { addDays, dayKey } from "./progress";
-import { MIN_ANSWERS } from "./insights";
+import { addDays, dayKey } from "./progress.js";
+import { MIN_ANSWERS } from "./insights.js";
 import { PATH_VERSION, STEP_ANSWERS } from "./pathFormat.js";
 
 export { cleanPath } from "./pathFormat.js";

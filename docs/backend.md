@@ -484,12 +484,28 @@ endpoint for that at `/api/mcp`; the app itself never calls it.
   [lingo-wordbase](https://github.com/amahlaka/lingo-wordbase) as a pull
   request following its AUTHORING.md, and say to mark a report fixed only
   after the fix is merged ("fixed" shows "Fixed, thanks" to the learner).
-- **Later: personalised content.** A token has a `scope`; `routes/mcp.js`
-  maps each scope to its tools. A learner scope (for example tools that read
-  one learner's weak words and save a personal practice set) can be added
-  there without changing the protocol or the token table. The privacy page
-  already says the maintainer may use an AI assistant and that it never sees
-  email addresses.
+- **Learners' own assistant** (Arttu, 2026-10-18: "an mcp that players can
+  use for their own stats, learning analysis"): `/api/mcp/me`, for any
+  account. Account → AI assistant shows the address for a claude.ai custom
+  connector (the OAuth page then asks the learner, in their app language, and
+  needs no admin), makes tokens (scope `learner`, at most 10, `/api/me/tokens`)
+  with the Claude Code command, and lists and revokes both. Each endpoint
+  takes only tokens of its own scope, and its 401 points to its own
+  protected-resource metadata (`/api/oauth/protected-resource/me`, also at
+  `/.well-known/oauth-protected-resource/api/mcp/me`). The scope of an OAuth
+  approval comes from its `scope` or `resource` parameter (neither: admin),
+  and is kept on the code (migration 013). Tools
+  (`server/src/mcp/learnerTools.js`): `get_my_overview`, `get_my_words`,
+  `get_my_mistakes`, `analyze_my_learning` (the Profile page's insights and My
+  path, `src/lib/insights.js` and `path.js`, with games named and linked from
+  `src/lib/gameList.js`, a copy of the registry that a test keeps equal) and
+  `get_my_leaderboard`, plus prompts `review_my_progress`, `practice_plan` and
+  `explain_my_mistakes`. All read only, and none takes an account id: they
+  read the token's own account. No email, devices or other learners (tricky
+  words show only the published all-learner difficulty).
+- **Later: personalised content.** A learner tool that saves a personal
+  practice set would go in `learnerTools.js`; the privacy page already says a
+  learner's own assistant reads their progress under that assistant's terms.
 
 ## Deploying the API
 

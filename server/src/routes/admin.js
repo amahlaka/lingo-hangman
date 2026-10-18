@@ -129,7 +129,7 @@ export default async function adminRoutes(app, { db, config, wordClips }) {
 
   // Tokens for AI tools (the MCP endpoint, routes/mcp.js). The secret is
   // shown once, when it is made.
-  app.get("/api/admin/tokens", async (req) => ({ tokens: listTokens(db, req.session.user_id) }));
+  app.get("/api/admin/tokens", async (req) => ({ tokens: listTokens(db, req.session.user_id, "admin") }));
 
   app.post("/api/admin/tokens", async (req, reply) => {
     const name = typeof req.body?.name === "string" ? req.body.name.trim() : "";
@@ -141,6 +141,6 @@ export default async function adminRoutes(app, { db, config, wordClips }) {
   app.post("/api/admin/tokens/revoke", async (req, reply) => {
     const id = req.body?.id;
     if (!Number.isInteger(id) || id <= 0) return reply.code(400).send({ error: "bad_request" });
-    return revokeToken(db, req.session.user_id, id) ? { ok: true } : reply.code(404).send({ error: "not_found" });
+    return revokeToken(db, req.session.user_id, id, "admin") ? { ok: true } : reply.code(404).send({ error: "not_found" });
   });
 }

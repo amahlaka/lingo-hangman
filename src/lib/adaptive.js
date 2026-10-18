@@ -2,7 +2,7 @@
 // in progress state (src/lib/progress.js). Quick play uses this to mix easy
 // wins with a few challenges. Pure functions, no React.
 
-import { LEARNED_AFTER_DAYS, SLOW_FACTOR, meanMs } from "./progress";
+import { LEARNED_AFTER_DAYS, SLOW_FACTOR, meanMs } from "./progress.js";
 
 // A lesson needs this many answers before its numbers mean anything.
 export const MIN_LESSON_ANSWERS = 4;

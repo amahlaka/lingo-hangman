@@ -13,6 +13,7 @@ import { flushFeedback } from "../lib/feedback";
 import { forgetDevice } from "../lib/push";
 import { RemindersSection } from "./Reminders";
 import { LeaderboardSection } from "./Leaderboard";
+import { AiAssistantSection } from "./AiAssistant";
 
 // /account: optional sign-in with a passkey or an emailed code, and the
 // signed-in learner's passkeys, devices and data. Reached from Settings only
@@ -315,6 +316,8 @@ function SignedIn({ t, lang, me, reload, onSignedOut }) {
       <RemindersSection />
 
       <LeaderboardSection />
+
+      <AiAssistantSection />
 
       <MyFeedback t={t} me={me} />
 

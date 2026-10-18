@@ -1,7 +1,9 @@
 // /api/oauth/*: how an AI connector (claude.ai's, or any MCP client that
 // speaks OAuth) gets a token for /api/mcp. The connector registers itself,
-// sends the admin to /api/oauth/authorize, where Lingo shows who is asking and
-// the admin allows or denies it, then swaps the code for tokens. The logic is
+// sends the person to /api/oauth/authorize, where Lingo shows who is asking and
+// they allow or deny it, then swaps the code for tokens. An admin connects the
+// admin tools (/api/mcp); anyone with an account can connect their own
+// progress (/api/mcp/me, scope "learner"). The logic is
 // in mcp/oauth.js; docs/backend.md, "AI tools (MCP)".
 
 import { COOKIE, findSession } from "../sessions.js";
@@ -9,7 +11,6 @@ import { randomToken, safeEqual, sha256 } from "../lib/crypto.js";
 import { isAdmin } from "./admin.js";
 import {
   REQUEST_MS,
-  SCOPE,
   createCode,
   findClient,
   issueTokens,
@@ -17,6 +18,7 @@ import {
   redirectAllowed,
   refreshTokens,
   registerClient,
+  requestedScope,
   resourceMetadata,
   serverMetadata,
   takeCode,
@@ -40,7 +42,7 @@ button.primary{background:#1d2433;color:#fff}.small{color:#5b6475;font-size:.9re
 // A small page of the API's own (the approval is a step of the connector's
 // sign-in, not part of the app). The form may post here and then redirect to
 // the connector, so form-action allows that one origin.
-function page(reply, { title, body, status = 200, formTo = null }) {
+function page(reply, { title, body, status = 200, formTo = null, lang = "en" }) {
   reply
     .code(status)
     .type("text/html; charset=utf-8")
@@ -52,7 +54,7 @@ function page(reply, { title, body, status = 200, formTo = null }) {
       `default-src 'none'; style-src 'unsafe-inline'; form-action 'self'${formTo ? ` ${formTo}` : ""}; frame-ancestors 'none'; base-uri 'none'`
     );
   return reply.send(
-    `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)} · Lingo</title><style>${STYLE}</style></head><body><h1>${esc(title)}</h1>${body}</body></html>`
+    `<!doctype html><html lang="${lang}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)} · Lingo</title><style>${STYLE}</style></head><body><h1>${esc(title)}</h1>${body}</body></html>`
   );
 }
 
@@ -90,11 +92,13 @@ export default async function oauthRoutes(app, { db, config, limiter }) {
     reply.header("Access-Control-Allow-Origin", "*").header("Cache-Control", "public, max-age=3600");
     return fn(base);
   };
-  app.get("/api/oauth/protected-resource", metadata(resourceMetadata));
+  app.get("/api/oauth/protected-resource", metadata((b) => resourceMetadata(b, "admin")));
+  app.get("/api/oauth/protected-resource/me", metadata((b) => resourceMetadata(b, "learner")));
   app.get("/api/oauth/metadata", metadata(serverMetadata));
 
   // Dynamic client registration (RFC 7591). Anyone may register, but only to
-  // claude.ai's or a loopback address, and nothing works until an admin allows it.
+  // claude.ai's or a loopback address, and nothing works until someone signed
+  // in allows it.
   app.post("/api/oauth/register", async (req, reply) => {
     if (!limiter.allow(`oauth-register:${req.ip}`, REGISTRATIONS_PER_DAY, DAY)) return oauthError(reply, 429, "too_many_requests", "Try again tomorrow");
     const b = req.body && typeof req.body === "object" ? req.body : {};
@@ -134,7 +138,9 @@ export default async function oauthRoutes(app, { db, config, limiter }) {
     if (q.code_challenge_method !== "S256" || typeof q.code_challenge !== "string" || !/^[A-Za-z0-9_-]{43}$/.test(q.code_challenge)) {
       return fail("invalid_request", "PKCE with S256 is required");
     }
-    if (q.scope && !String(q.scope).split(" ").every((s) => s === SCOPE)) return fail("invalid_scope", `Only the "${SCOPE}" scope`);
+    const scope = requestedScope(q, base);
+    if (!scope) return fail("invalid_scope", 'One scope: "admin" (for /api/mcp) or "learner" (for /api/mcp/me)');
+    const forAdmin = scope === "admin";
 
     // Signing in happens in the app; /account?next=oauth then opens
     // /api/oauth/continue, which comes back to this page.
@@ -149,10 +155,10 @@ export default async function oauthRoutes(app, { db, config, limiter }) {
       remember();
       return page(reply, {
         title: "Sign in to Lingo",
-        body: `<p>${esc(client.name)} wants to connect to Lingo. Sign in with your admin account first; you'll come back here.</p><div class="row"><a class="btn" href="${esc(signIn)}">Sign in</a></div>`,
+        body: `<p>${esc(client.name)} wants to connect to Lingo. Sign in with your ${forAdmin ? "admin " : "Lingo "}account first; you'll come back here.</p><div class="row"><a class="btn" href="${esc(signIn)}">Sign in</a></div>`,
       });
     }
-    if (!isAdmin(db, config, { id: s.user_id, email: s.email, role: s.role })) {
+    if (forAdmin && !isAdmin(db, config, { id: s.user_id, email: s.email, role: s.role })) {
       return page(reply, { status: 403, title: "Not an admin", body: "<p>Only Lingo's admins can connect AI tools.</p>" });
     }
     if (Date.now() - s.auth_at > RECENT_SIGN_IN_MS) {
@@ -168,17 +174,34 @@ export default async function oauthRoutes(app, { db, config, limiter }) {
       id,
       s.user_id,
       client.id,
-      JSON.stringify({ redirect_uri: q.redirect_uri, code_challenge: q.code_challenge, state: q.state ?? null }),
+      JSON.stringify({ redirect_uri: q.redirect_uri, code_challenge: q.code_challenge, state: q.state ?? null, scope }),
       Date.now() + REQUEST_MS
     );
     const to = new URL(q.redirect_uri);
+    const form = `<form method="post" action="/api/oauth/authorize"><input type="hidden" name="request" value="${esc(id)}"><div class="row"><button class="primary" name="decision" value="allow">${s.lang === "fi" && !forAdmin ? "Salli" : "Allow"}</button><button name="decision" value="deny">${s.lang === "fi" && !forAdmin ? "Estä" : "Deny"}</button></div></form>`;
+    if (!forAdmin) {
+      const fi = s.lang === "fi";
+      return page(reply, {
+        title: fi ? `Yhdistetäänkö ${client.name}?` : `Connect ${client.name}?`,
+        lang: fi ? "fi" : "en",
+        formTo: to.origin,
+        body: fi
+          ? `<p><strong>${esc(client.name)}</strong> (palaa osoitteeseen ${esc(to.host)}) pyytää lupaa lukea Lingon edistymistäsi tililtä ${esc(s.email)}. Se voi:</p>
+<ul><li>lukea tasosi, putkesi, pelisi, sanasi ja virheesi</li><li>lukea Oman polkusi ja sen, mitä Lingo päättelee oppimisestasi</li></ul>
+<p>Se ei voi muuttaa mitään eikä nähdä muiden oppijoiden tietoja.</p>
+<p class="small">Salli vain, jos aloitit yhdistämisen juuri itse. Voit katkaista yhteyden milloin tahansa: Tili → Tekoälyavustaja.</p>${form}`
+          : `<p><strong>${esc(client.name)}</strong> (returns to ${esc(to.host)}) asks to read your Lingo progress as ${esc(s.email)}. It will be able to:</p>
+<ul><li>read your level, streak, games, words and mistakes</li><li>read your My path and what Lingo makes of your learning</li></ul>
+<p>It can't change anything or see other learners.</p>
+<p class="small">Only allow this if you just started connecting it yourself. You can disconnect it any time under Account → AI assistant.</p>${form}`,
+      });
+    }
     return page(reply, {
       title: `Connect ${client.name}?`,
       formTo: to.origin,
       body: `<p><strong>${esc(client.name)}</strong> (returns to ${esc(to.host)}) asks to use Lingo's admin tools as ${esc(s.email)}. It will be able to:</p>
 <ul><li>read the statistics, problem reports and suggestions</li><li>read each learner's progress, by account number (never email addresses)</li><li>mark reports fixed or dismissed, and suggestions accepted or dismissed</li></ul>
-<p class="small">Only allow this if you just started connecting it yourself. You can disconnect it any time under Account → AI tools.</p>
-<form method="post" action="/api/oauth/authorize"><input type="hidden" name="request" value="${esc(id)}"><div class="row"><button class="primary" name="decision" value="allow">Allow</button><button name="decision" value="deny">Deny</button></div></form>`,
+<p class="small">Only allow this if you just started connecting it yourself. You can disconnect it any time under Account → AI tools.</p>${form}`,
     });
   });
 
@@ -202,15 +225,17 @@ export default async function oauthRoutes(app, { db, config, limiter }) {
     const id = typeof req.body?.request === "string" ? req.body.request : "";
     const row = s && db.prepare("SELECT * FROM oauth_requests WHERE id = ? AND user_id = ?").get(id, s.user_id);
     if (row) db.prepare("DELETE FROM oauth_requests WHERE id = ?").run(id);
-    if (!row || row.expires_at <= Date.now() || !isAdmin(db, config, { id: s.user_id, email: s.email, role: s.role })) {
+    const params = row ? JSON.parse(row.params) : {};
+    // Requests from before the learner scope have none: admin.
+    const scope = params.scope || "admin";
+    if (!row || row.expires_at <= Date.now() || (scope === "admin" && !isAdmin(db, config, { id: s.user_id, email: s.email, role: s.role }))) {
       return page(reply, { status: 400, title: "Can't connect", body: "<p>This approval page has expired. Start again from your AI app.</p>" });
     }
-    const params = JSON.parse(row.params);
     if (req.body?.decision !== "allow") {
       return redirectWith(reply, params.redirect_uri, { error: "access_denied", state: params.state }, base);
     }
-    const code = createCode(db, { clientId: row.client_id, userId: s.user_id, redirectUri: params.redirect_uri, codeChallenge: params.code_challenge });
-    req.log.info({ clientId: row.client_id }, "oauth client allowed");
+    const code = createCode(db, { clientId: row.client_id, userId: s.user_id, redirectUri: params.redirect_uri, codeChallenge: params.code_challenge, scope });
+    req.log.info({ clientId: row.client_id, scope }, "oauth client allowed");
     return redirectWith(reply, params.redirect_uri, { code, state: params.state }, base);
   });
 
@@ -222,22 +247,24 @@ export default async function oauthRoutes(app, { db, config, limiter }) {
     if (client.secret_hash && !(typeof creds.secret === "string" && safeEqual(sha256(creds.secret), client.secret_hash))) {
       return oauthError(reply, 401, "invalid_client", "Wrong client secret");
     }
-    const stillAdmin = (userId) => {
+    // An admin grant needs the account to still be an admin; a learner's,
+    // only the account.
+    const stillAllowed = (userId, scope) => {
       const u = db.prepare("SELECT id, email, role FROM users WHERE id = ?").get(userId);
-      return u && isAdmin(db, config, u);
+      return Boolean(u) && (scope === "learner" || isAdmin(db, config, u));
     };
 
     if (b.grant_type === "authorization_code") {
       const grant = takeCode(db, b.code);
       if (!grant || grant.client_id !== client.id || grant.redirect_uri !== b.redirect_uri) return oauthError(reply, 400, "invalid_grant", "Unknown, used or expired code");
       if (!pkceMatches(b.code_verifier, grant.code_challenge)) return oauthError(reply, 400, "invalid_grant", "code_verifier doesn't match");
-      if (!stillAdmin(grant.user_id)) return oauthError(reply, 400, "invalid_grant", "The account is no longer an admin");
-      return issueTokens(db, { client, userId: grant.user_id });
+      if (!stillAllowed(grant.user_id, grant.scope)) return oauthError(reply, 400, "invalid_grant", "The account is no longer an admin");
+      return issueTokens(db, { client, userId: grant.user_id, scope: grant.scope });
     }
     if (b.grant_type === "refresh_token") {
       const out = refreshTokens(db, { client, refreshToken: b.refresh_token });
       if (!out) return oauthError(reply, 400, "invalid_grant", "Unknown or expired refresh token");
-      if (!stillAdmin(out.userId)) return oauthError(reply, 400, "invalid_grant", "The account is no longer an admin");
+      if (!stillAllowed(out.userId, out.scope)) return oauthError(reply, 400, "invalid_grant", "The account is no longer an admin");
       return out.response;
     }
     return oauthError(reply, 400, "unsupported_grant_type", "authorization_code or refresh_token");

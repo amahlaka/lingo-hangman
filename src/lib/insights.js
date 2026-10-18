@@ -3,8 +3,8 @@
 // practising, suggested focus areas and difficulty, and the detailed numbers
 // behind them. Pure functions over progress state (src/lib/progress.js).
 
-import { SLOW_FACTOR, addDays, answerSummary, dayKey, meanMs } from "./progress";
-import { wordStanding } from "./adaptive";
+import { SLOW_FACTOR, addDays, answerSummary, dayKey, meanMs } from "./progress.js";
+import { wordStanding } from "./adaptive.js";
 
 // Levels from the share of first-try answers. Named to encourage, never to rank.
 export const LEVELS = ["starting", "building", "confident", "strong"];

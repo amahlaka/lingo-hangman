@@ -67,7 +67,7 @@ test("discovery: the 401 points to the metadata, and nginx serves the same copy"
   // The static copies at the live site's root must match what the API says.
   const conf = fs.readFileSync(new URL("../../deploy/preview/nginx.conf", import.meta.url), "utf8");
   const served = [...conf.matchAll(/return 200 '(\{.*\})';/g)].map((m) => JSON.parse(m[1]));
-  assert.deepEqual(served, [serverMetadata("https://lingo.bololoo.com"), resourceMetadata("https://lingo.bololoo.com")]);
+  assert.deepEqual(served, [serverMetadata("https://lingo.bololoo.com"), resourceMetadata("https://lingo.bololoo.com", "admin"), resourceMetadata("https://lingo.bololoo.com", "learner")]);
   await t.close();
 });
 

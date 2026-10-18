@@ -10,6 +10,22 @@ import {
   typeQuestion,
 } from "../games/type/typeLogic";
 import { quickTargets } from "../games/quick/quickLogic";
+import bundled from "../lib/bundledContent";
+import { setContent } from "../lib/content";
+
+// The word bank"s "alike" items the checks below rely on, so they don"t
+// depend on what the published word base holds.
+const alikePack = {
+  id: "alike-test",
+  title: { en: "Same answers" },
+  items: [
+    { id: "sound-for-four", type: "alike", kind: "sound", words: ["for", "four"] },
+    { id: "sound-there-their", type: "alike", kind: "sound", words: ["there", "their"] },
+    { id: "spelling-color", type: "alike", kind: "spelling", words: ["color", "colour"] },
+  ],
+};
+beforeAll(() => setContent({ ...bundled, index: { ...bundled.index, packs: [...bundled.index.packs, "alike-test"] }, packs: [...bundled.packs, alikePack] }));
+afterAll(() => setContent(bundled));
 
 describe("checkTyped", () => {
   it("ignores capitals, punctuation and spaces around the words", () => {

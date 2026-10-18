@@ -3,7 +3,7 @@
 // while editing) and `npm run content:check`. No imports, so Node runs it as is.
 // The lingo-wordbase README describes the format for people editing it.
 
-export const ITEM_TYPES = ["word", "gap", "rule", "confusable", "group", "sound", "text"];
+export const ITEM_TYPES = ["word", "gap", "rule", "confusable", "group", "sound", "text", "alike"];
 
 // ---- Metadata, all optional (the lingo-wordbase AUTHORING.md explains each) ----
 
@@ -71,6 +71,11 @@ export const TEXT_KINDS = ["dialogue", "story", "message", "email", "notice", "i
 
 // IPA between slashes: "/ˈkɪtʃɪn/".
 const IPA_PATTERN = /^\/[^/]+\/$/;
+
+// Words that count as the same answer ("alike" items):
+//   sound     said the same, so Say it can't hear the difference: to / too / two
+//   spelling  two right ways to write one word, so Type it accepts either: color / colour
+export const ALIKE_KINDS = ["sound", "spelling"];
 
 // Pronunciation lessons ("sound" items) come in five kinds:
 //   silent   words with a letter you don't say: "[k]nife"
@@ -264,6 +269,20 @@ const CHECKS = {
         seen.add(norm(w));
       }
     }
+  },
+
+  // Words the games count as the same answer; see ALIKE_KINDS.
+  alike(item, problems) {
+    if (!ALIKE_KINDS.includes(item.kind)) problems.push(`kind must be one of ${ALIKE_KINDS.join(", ")}`);
+    if (checkWordList(item.words, "words", problems, { min: 2 })) {
+      const seen = new Set();
+      for (const w of item.words) {
+        if (seen.has(norm(w))) problems.push(`"${w}" is in words twice`);
+        if (/\s/.test(w.trim())) problems.push(`"${w}" must be one word`);
+        seen.add(norm(w));
+      }
+    }
+    checkTextMap(item.note, "note", problems, { required: false });
   },
 
   sound(item, problems) {

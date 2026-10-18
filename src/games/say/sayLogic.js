@@ -3,6 +3,8 @@
 // punctuation, numbers written as digits, contractions, homophones and extra
 // words around the target never count against the learner. No React here.
 
+import { alikeWords } from "../../lib/words";
+
 // Speaking takes longer than tapping, so a round is a little shorter.
 export const SAY_ROUND_LENGTH = 8;
 // Heard attempts per word before it is left for later. Silence doesn't count.
@@ -37,24 +39,10 @@ export const CONTRACTIONS = {
   "wouldn't": "would not", "haven't": "have not", "hasn't": "has not",
 };
 
-// Words that sound the same (or are the same word spelt the British or American
-// way). The recogniser can't tell them apart, so neither should we.
-const SOUND_ALIKE = [
-  ["to", "too", "two"], ["for", "four"], ["i", "eye"], ["our", "hour"], ["no", "know"],
-  ["right", "write"], ["see", "sea"], ["be", "bee"], ["by", "buy", "bye"],
-  ["there", "their"], ["here", "hear"], ["one", "won"], ["sun", "son"], ["flower", "flour"],
-  ["meet", "meat"], ["week", "weak"], ["new", "knew"], ["eight", "ate"], ["blue", "blew"],
-  ["mail", "male"], ["tail", "tale"], ["wait", "weight"], ["road", "rode"], ["hole", "whole"],
-  ["pear", "pair"], ["night", "knight"], ["deer", "dear"], ["where", "wear"], ["its", "it's"],
-  ["ok", "okay"], ["hi", "high"], ["sale", "sail"], ["plain", "plane"], ["piece", "peace"],
-  ["colour", "color"], ["favourite", "favorite"], ["centre", "center"], ["theatre", "theater"],
-  ["grey", "gray"], ["metre", "meter"], ["litre", "liter"], ["neighbour", "neighbor"],
-  ["travelling", "traveling"], ["cheque", "check"], ["jewellery", "jewelry"],
-];
-const CANON = new Map();
-for (const group of SOUND_ALIKE) for (const w of group) CANON.set(w, group[0]);
-
-const canon = (w) => CANON.get(w) || w;
+// Words that sound the same (to / too / two) or are one word with two
+// spellings (color / colour), from the word bank's "alike" items. The
+// recogniser can't tell them apart, so neither should we.
+const canon = (w) => alikeWords(["sound", "spelling"]).get(w) || w;
 
 // Text to comparable lowercase words.
 export function speechTokens(text = "") {

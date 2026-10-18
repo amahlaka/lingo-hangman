@@ -104,16 +104,23 @@ export const RECORDS = {
   daily: { clean: daily, merge: (current, next) => (current && current.day >= next.day ? current : next) },
 };
 
+// Looked up through Maps, so a key sent by a device can only ever reach
+// one of the rules above.
+const SETTING_RULES = new Map(Object.entries(SETTINGS));
+const RECORD_RULES = new Map(Object.entries(RECORDS));
+
 // A `setting` / `record` event payload as stored, or null when invalid.
 export function cleanSettingPayload(p) {
-  if (!isObj(p) || !Object.hasOwn(SETTINGS, p.key || "")) return null;
-  const value = SETTINGS[p.key](p.value);
+  const clean = isObj(p) && typeof p.key === "string" ? SETTING_RULES.get(p.key) : undefined;
+  if (typeof clean !== "function") return null;
+  const value = clean(p.value);
   return value === undefined ? null : { key: p.key, value };
 }
 
 export function cleanRecordPayload(p) {
-  if (!isObj(p) || !Object.hasOwn(RECORDS, p.key || "")) return null;
-  const value = RECORDS[p.key].clean(p.value);
+  const rule = isObj(p) && typeof p.key === "string" ? RECORD_RULES.get(p.key) : undefined;
+  if (!rule) return null;
+  const value = rule.clean(p.value);
   return value === undefined ? null : { key: p.key, value };
 }
 
@@ -123,8 +130,10 @@ export function applySetting(state, { key, value }) {
 }
 
 export function applyRecord(state, { key, value }) {
+  const rule = RECORD_RULES.get(key);
+  if (!rule) return state;
   const current = state.records?.[key];
-  const merged = RECORDS[key].merge(current, value);
+  const merged = rule.merge(current, value);
   return merged === current ? state : { ...state, records: { ...state.records, [key]: merged } };
 }
 

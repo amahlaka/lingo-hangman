@@ -4,8 +4,12 @@ import { resetBackendCache } from "../lib/backend";
 import bundled from "../lib/bundledContent";
 import { setContent } from "../lib/content";
 import { validateItem } from "../lib/contentSchema";
-import { buildSayRightRound, rankKey, roundSounds, sayRightPool, tipFor } from "../games/say-right/sayRightLogic";
-import { encodeWav, resample, trimSilence } from "../lib/micRecorder";
+import {
+  buildSayRightRound, loadSoundHistory, rankKey, recordSounds, roundSounds, sayRightPool, tipFor, weakestSounds,
+} from "../games/say-right/sayRightLogic";
+import { passageWords, readPool, readingPace, weakSounds, wordResults, wordsToPractise } from "../games/say-right/readAloudLogic";
+import { scorePronunciation } from "../lib/phonemes";
+import { encodeWav, recordClip, resample, trimSilence } from "../lib/micRecorder";
 
 jest.mock("../lib/micRecorder", () => {
   const real = jest.requireActual("../lib/micRecorder");
@@ -21,6 +25,14 @@ const thTip = {
   id: "phone-th-quiet", type: "phone", symbols: ["θ"], example: "thin",
   title: { en: "Quiet th, as in think", fi: "Soinniton th" },
   tip: { en: "Put your tongue between your teeth and blow.", fi: "Kieli hampaiden väliin." },
+};
+
+const thanks = {
+  id: "passage-thank-you", type: "passage", level: 1,
+  text: { en: "Thank you. I think so.", fi: "Kiitos. Luulen niin." },
+  ipa: { en: "/ˈθæŋk ju aɪ ˈθɪŋk ˈsoʊ/" },
+  say: { fi: "thänk juu ai think sou" },
+  features: ["th-sound"],
 };
 
 function useContent(items) {
@@ -139,6 +151,40 @@ describe("Say it right", () => {
     expect(screen.getByRole("button", { name: /Tap and say it/ })).toBeInTheDocument();
   });
 
+  it("reads a passage aloud and shows the weak spots, words and pace", async () => {
+    useContent([think, thTip, thanks]);
+    const calls = mockApi({
+      "GET /health": health,
+      "GET /pronounce/status": okStatus(),
+      "POST /pronounce": { status: 200, body: { phones: "t æ ŋ k j u a ɪ t ɪ ŋ k s o ʊ", left: 146 } },
+    });
+    recordClip.mockImplementationOnce(() => ({ done: Promise.resolve({ wav: new Uint8Array([1]), seconds: 2.5, error: null }), stop() {}, cancel() {} }));
+    renderApp("/say-right");
+    fireEvent.click(await screen.findByRole("button", { name: "Read aloud" }));
+    expect(await screen.findByTestId("prompt-passage")).toHaveTextContent("Thank you. I think so.");
+    fireEvent.click(screen.getByRole("button", { name: "Show the Finnish reading" }));
+    expect(screen.getByTestId("prompt-reading")).toHaveTextContent("thänk juu ai think sou");
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /Tap and read it aloud/ }));
+    });
+    expect(await screen.findByText("Weak spots in this reading")).toBeInTheDocument();
+    expect(recordClip).toHaveBeenLastCalledWith(expect.objectContaining({ maxMs: 15000, pauseMs: 1800 }));
+    expect(calls.filter((c) => c.method === "POST" && c.path === "/pronounce")).toHaveLength(1);
+    // Every word is marked; "you" was said well, "Thank" and "think" lost their th.
+    expect(screen.getByRole("button", { name: "you: said well" })).toHaveClass("sr-word--ok");
+    expect(screen.getByRole("button", { name: /^Thank:/ })).not.toHaveClass("sr-word--ok");
+    expect(screen.getByText("In: Thank, think")).toBeInTheDocument();
+    expect(screen.getByText(/Quiet th, as in think/)).toBeInTheDocument();
+    expect(screen.getByText("120 words a minute.")).toBeInTheDocument();
+    expect(screen.getByText("A good, steady pace.")).toBeInTheDocument();
+    // A word opens its sounds.
+    fireEvent.click(screen.getByRole("button", { name: /^think:/ }));
+    expect(screen.getByRole("button", { name: 'Hear "think"' })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Keep this score" })).toBeInTheDocument();
+    // The sound history now knows th is hard.
+    expect(loadSoundHistory().θ.missed).toBeGreaterThan(0);
+  });
+
   it("isn't needed for the Explorer badge or My path", () => {
     const { GAMES, PLAYABLE_GAME_IDS } = require("../games/registry");
     expect(GAMES.find((g) => g.id === "say-right")).toMatchObject({ restricted: true, noPath: true });
@@ -172,6 +218,40 @@ describe("Say it right logic", () => {
     expect(tipFor("θ").id).toBe("phone-th-quiet");
     expect(tipFor("ð")).toBe(null);
     expect(roundSounds([{ practise: [{ symbol: "θ" }, { symbol: "v" }] }, { practise: [{ symbol: "θ" }] }])).toEqual([{ symbol: "θ", n: 2 }, { symbol: "v", n: 1 }]);
+  });
+
+  it("looks at a reading word by word and sound by sound", () => {
+    useContent([thanks]);
+    expect(readPool().map((p) => p.id)).toEqual(["passage-thank-you"]);
+    const words = passageWords(thanks);
+    expect(words.map((w) => w.text)).toEqual(["Thank", "you", "I", "think", "so"]);
+    expect(words[0].ipa).toBe("/ˈθæŋk/");
+    // "Tank you, I sink so."
+    const result = scorePronunciation(thanks.ipa.en, "t æ ŋ k j u a ɪ s ɪ ŋ k s o ʊ");
+    const byWord = wordResults(result, words);
+    expect(byWord.map((w) => w.status)).toEqual(["close", "ok", "ok", "close", "ok"]);
+    expect(wordsToPractise(byWord).map((w) => w.text)).toEqual(["Thank", "think"]);
+    expect(weakSounds(result, words)[0]).toMatchObject({ symbol: "θ", total: 2, missed: 2, words: ["Thank", "think"] });
+    // "Thank you so": "I think" was left out.
+    const skipped = wordResults(scorePronunciation(thanks.ipa.en, "θ æ ŋ k j u s o ʊ"), words);
+    expect(skipped.map((w) => w.skipped)).toEqual([false, false, true, true, false]);
+    expect(skipped[3].status).toBe("miss");
+    expect(readingPace(5, 2.5)).toEqual({ wpm: 120, band: "steady" });
+    expect(readingPace(5, 6).band).toBe("slow");
+    expect(readingPace(5, 0)).toBe(null);
+  });
+
+  it("remembers the weakest sounds over many tries", () => {
+    for (let i = 0; i < 3; i++) recordSounds(scorePronunciation("/θɪŋk/", "t ɪ ŋ k"));
+    expect(weakestSounds().map((s) => s.symbol)).toEqual(["θ"]);
+    expect(weakestSounds()[0].rate).toBeGreaterThan(0.9);
+  });
+
+  it("checks read-aloud passages in the word base", () => {
+    expect(validateItem(thanks)).toEqual([]);
+    expect(validateItem({ ...thanks, ipa: { en: "/ˈθæŋk ju/" } })[0]).toMatch(/ipa.en has 2 words but text.en has 5/);
+    expect(validateItem({ ...thanks, ipa: undefined })[0]).toMatch(/ipa.en is missing/);
+    expect(validateItem({ ...thanks, text: { en: "One. Two. Three.", fi: "x" }, ipa: { en: "/ˈwʌn ˈtuː ˈθriː/" } })[0]).toMatch(/one or two/);
   });
 
   it("checks sound tips in the word bank", () => {

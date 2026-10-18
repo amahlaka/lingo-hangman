@@ -189,7 +189,7 @@ app asks `POST /api/tts { text, voice }` for an MP3 in the same voice.
 ## Pronunciation scoring
 
 *Say it right* (`src/games/say-right/`) records a learner saying a word bank
-word and asks `POST /api/pronounce` (body: the clip as `audio/wav`) for the
+word, or reading a sentence or two aloud (Read aloud), and asks `POST /api/pronounce` (body: the clip as `audio/wav`) for the
 IPA sounds in it. The app scores them against the word's IPA itself
 (`src/lib/phonemes.js`).
 
@@ -203,9 +203,11 @@ IPA sounds in it. The app scores them against the word's IPA itself
   `/admin/users` list, the same list as asking for more speech, where
   *Verify* lets them in. `GET /api/pronounce/status` says
   `{ available, allowed, limit, left, requested }`.
-- **Limits.** Clips are 16 kHz, 16-bit mono WAV of 0.25-6 seconds (about
-  190 kB at most), so a clip takes the recogniser two or three seconds.
-  `PRONOUNCE_DAILY_LIMIT` (150) clips a learner a day and 12 a minute, one at
+- **Limits.** Clips are 16 kHz, 16-bit mono WAV of 0.25-15 seconds (about
+  480 kB at most); a word takes the recogniser two or three seconds, two
+  sentences a few more. `PRONOUNCE_DAILY_LIMIT` (150) uses a learner a day,
+  where a clip is one use for every 5 seconds of it (a word 1, a reading
+  usually 2 or 3), and 12 clips a minute, one at
   a time per learner, and at most `PRONOUNCE_QUEUE_MAX` (6) waiting: Talkies
   scores one at a time. A Talkies answer of 429 or 409 (busy, or another
   model running) is `503 pronounce_queue_full`; nothing is counted for a

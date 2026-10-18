@@ -86,11 +86,12 @@ export function roundSounds(results, max = 3) {
 }
 
 const BEST_KEY = "lingoSayRightBest";
+const bestKey = (mode) => (mode === "read" ? `${BEST_KEY}Read` : BEST_KEY);
 
-// The best round average on this device.
-export function loadBest(storage = globalThis.localStorage) {
+// The best round average on this device, for "words" or "read" (Read aloud).
+export function loadBest(mode = "words", storage = globalThis.localStorage) {
   try {
-    const n = Number(storage?.getItem(BEST_KEY));
+    const n = Number(storage?.getItem(bestKey(mode)));
     return Number.isFinite(n) && n > 0 ? n : 0;
   } catch {
     return 0;
@@ -98,12 +99,57 @@ export function loadBest(storage = globalThis.localStorage) {
 }
 
 // Saves `score` when it beats the best; true when it did.
-export function saveBest(score, storage = globalThis.localStorage) {
-  if (typeof score !== "number" || score <= loadBest(storage)) return false;
+export function saveBest(score, mode = "words", storage = globalThis.localStorage) {
+  if (typeof score !== "number" || score <= loadBest(mode, storage)) return false;
   try {
-    storage?.setItem(BEST_KEY, String(score));
+    storage?.setItem(bestKey(mode), String(score));
   } catch {
     // private mode
   }
   return true;
+}
+
+const SOUNDS_KEY = "lingoSayRightSounds";
+// Older tries count a little less each time, so the list follows the learner.
+const SOUNDS_FADE = 0.97;
+
+// How each sound has gone on this device: { [symbol]: { seen, missed } }, with
+// a nearly said sound counting half a miss.
+export function loadSoundHistory(storage = globalThis.localStorage) {
+  try {
+    const data = JSON.parse(storage?.getItem(SOUNDS_KEY) || "{}");
+    return data && typeof data === "object" && !Array.isArray(data) ? data : {};
+  } catch {
+    return {};
+  }
+}
+
+// Adds a scored try (a scorePronunciation result) to the history and saves it.
+export function recordSounds(result, storage = globalThis.localStorage) {
+  const history = loadSoundHistory(storage);
+  for (const entry of Object.values(history)) {
+    entry.seen *= SOUNDS_FADE;
+    entry.missed *= SOUNDS_FADE;
+  }
+  for (const s of result?.sounds || []) {
+    const entry = history[s.symbol] || (history[s.symbol] = { seen: 0, missed: 0 });
+    entry.seen += 1;
+    entry.missed += s.status === "miss" ? 1 : s.status === "close" ? 0.5 : 0;
+  }
+  try {
+    storage?.setItem(SOUNDS_KEY, JSON.stringify(history));
+  } catch {
+    // private mode
+  }
+  return history;
+}
+
+// The learner's weakest sounds so far, worst first: [{ symbol, rate }], each
+// heard at least a few times and missed about a third of the time or more.
+export function weakestSounds(history = loadSoundHistory(), max = 3) {
+  return Object.entries(history)
+    .filter(([, e]) => e.seen >= 2.5 && e.missed / e.seen >= 0.3)
+    .map(([symbol, e]) => ({ symbol, rate: e.missed / e.seen }))
+    .sort((a, b) => b.rate - a.rate)
+    .slice(0, max);
 }

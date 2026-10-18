@@ -499,7 +499,19 @@ export default function ItemForm({ item, onChange, languages, topics, categories
         </>
       )}
 
-      {(item.type === "word" || item.type === "gap" || item.type === "text") && <Metadata item={item} set={set} />}
+      {item.type === "passage" && (
+        <>
+          <TextMap label="The sentence or two to read aloud" value={item.text} langs={EN_FI} multiline onChange={(text) => set({ text })} />
+          <Field label="IPA, US" hint="The whole passage between slashes, one IPA word for every English word, as said in normal speech: /aɪ ˈlaɪk ˈtiː/.">
+            <TextInput value={item.ipa?.en} onChange={(v) => set({ ipa: { ...item.ipa, en: v } })} spellCheck={false} />
+          </Field>
+          <Field label="Finnish reading (optional)" hint="How a Finn would read it as Finnish, shown on a tap: ai laik tii.">
+            <TextInput value={item.say?.fi} onChange={(v) => set({ say: v ? { ...item.say, fi: v } : undefined })} spellCheck={false} />
+          </Field>
+        </>
+      )}
+
+      {(item.type === "word" || item.type === "gap" || item.type === "text" || item.type === "passage") && <Metadata item={item} set={set} />}
     </div>
   );
 }

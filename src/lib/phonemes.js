@@ -186,7 +186,7 @@ export function soundStatus(cost) {
 }
 
 // Score how `heard` (the recogniser's IPA) matches the word bank `ipa`.
-// { score: 0-100, sounds: [{ text, symbol, word, status, heard }], heard, nothing }.
+// { score: 0-100, sounds: [{ text, symbol, word, cost, status, heard }], heard, nothing }.
 // `heard` on a sound is what the recogniser heard in its place ("" for nothing).
 export function scorePronunciation(ipa, heard) {
   const sounds = ipaSounds(ipa);
@@ -194,7 +194,7 @@ export function scorePronunciation(ipa, heard) {
   const got = heardPhones(heard);
   if (!expected.length) return { score: 0, sounds: [], heard: got.join(" "), nothing: !got.length };
   if (!got.length) {
-    return { score: 0, sounds: sounds.map((s) => ({ ...s, status: "miss", heard: "" })), heard: "", nothing: true };
+    return { score: 0, sounds: sounds.map((s) => ({ ...s, cost: MISSING_COST, status: "miss", heard: "" })), heard: "", nothing: true };
   }
   const { costs, matched, total } = alignPhones(expected, got);
   let k = 0;
@@ -203,7 +203,7 @@ export function scorePronunciation(ipa, heard) {
     const said = matched.slice(k, k + s.phones.length).filter(Boolean).join("");
     k += s.phones.length;
     const cost = own.reduce((a, b) => a + b, 0) / own.length;
-    return { ...s, status: soundStatus(cost), heard: said };
+    return { ...s, cost, status: soundStatus(cost), heard: said };
   });
   const score = Math.round(100 * Math.max(0, 1 - total / expected.length));
   return { score, sounds: scored, heard: got.join(" "), nothing: false };

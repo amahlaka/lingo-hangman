@@ -3,7 +3,7 @@
 // while editing) and `npm run content:check`. No imports, so Node runs it as is.
 // The lingo-wordbase README describes the format for people editing it.
 
-export const ITEM_TYPES = ["word", "gap", "rule", "confusable", "group", "sound", "text", "alike", "phone"];
+export const ITEM_TYPES = ["word", "gap", "rule", "confusable", "group", "sound", "text", "alike", "phone", "passage"];
 
 // ---- Metadata, all optional (the lingo-wordbase AUTHORING.md explains each) ----
 
@@ -84,6 +84,19 @@ export const ALIKE_KINDS = ["sound", "spelling"];
 //   pairs    words that sound alike (ship / sheep); each word names its `pair`
 //   letters  English letter names: "A" is said "ei"
 export const SOUND_KINDS = ["silent", "sound", "spell", "pairs", "letters"];
+
+// The words of an IPA transcription ("/aɪ ˈlaɪk ˈtiː/" -> 3), split at spaces.
+export function ipaWords(ipa) {
+  return String(ipa || "")
+    .replace(/^\s*\/|\/\s*$/g, "")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+}
+
+// A read-aloud passage (Say it right's Read aloud) is one or two sentences.
+export const PASSAGE_MAX_WORDS = 30;
+export const PASSAGE_MAX_SENTENCES = 2;
 
 // One IPA sound as the word bank writes it inside slashes: "θ", "tʃ", "ɚ", "oʊ".
 const SYMBOL_PATTERN = /^[^\s/[\]]{1,4}$/u;
@@ -381,6 +394,25 @@ const CHECKS = {
     if (item.lesson !== undefined && !(isText(item.lesson) && (!ctx.soundIds || ctx.soundIds.has(item.lesson)))) {
       problems.push(`lesson "${item.lesson}" is not the id of a pronunciation lesson`);
     }
+  },
+
+  // One or two sentences to read aloud in Say it right, with US IPA word for
+  // word, so the game can score every word and sound of the reading.
+  passage(item, problems) {
+    checkTextMap(item.text, "text", problems, { mustHave: ["en"] });
+    const en = isObject(item.text) && isText(item.text.en) ? item.text.en : null;
+    if (!isText(item.ipa?.en)) problems.push('ipa.en is missing (the US IPA of the whole passage, like "/aɪ ˈlaɪk ˈtiː/")');
+    if (en) {
+      const words = sentenceWords(en).length;
+      if (words > PASSAGE_MAX_WORDS) problems.push(`text.en has ${words} words; a passage has at most ${PASSAGE_MAX_WORDS}`);
+      const sentences = (en.match(/[.!?]+(\s|$)/g) || []).length || 1;
+      if (sentences > PASSAGE_MAX_SENTENCES) problems.push(`text.en has ${sentences} sentences; a passage has one or two`);
+      if (isText(item.ipa?.en)) {
+        const sounds = ipaWords(item.ipa.en).length;
+        if (sounds !== words) problems.push(`ipa.en has ${sounds} words but text.en has ${words}; write one IPA word for every word`);
+      }
+    }
+    checkTextMap(item.note, "note", problems, { required: false });
   },
 
   // Several sentences that belong together: a dialogue, a short story, a

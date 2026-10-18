@@ -10,10 +10,10 @@ import { scoreClip } from "../../lib/pronounce";
 import { scorePronunciation, soundsToPractise } from "../../lib/phonemes";
 import { useQuestionControls } from "../practice/questionControls";
 import { getItem } from "../../lib/words";
-import { GREAT_SCORE, MAX_SAY_RIGHT_TRIES, PASS_SCORE, firstTip, ipaOf, rankKey } from "./sayRightLogic";
+import { GREAT_SCORE, MAX_SAY_RIGHT_TRIES, PASS_SCORE, firstTip, ipaOf, rankKey, recordSounds } from "./sayRightLogic";
 
 // Counts up to `value` once, for a little moment of suspense.
-function useCountUp(value, ms = 700) {
+export function useCountUp(value, ms = 700) {
   const [shown, setShown] = useState(0);
   useEffect(() => {
     if (typeof value !== "number") return undefined;
@@ -73,7 +73,7 @@ export function SoundMap({ result, p }) {
 }
 
 // The score of the last try, with its name.
-function ScoreBadge({ score, best, p }) {
+export function ScoreBadge({ score, best, p }) {
   const shown = useCountUp(score);
   const pass = score >= PASS_SCORE;
   return (
@@ -87,7 +87,7 @@ function ScoreBadge({ score, best, p }) {
 }
 
 // A word bank tip on a missed sound.
-function SoundTip({ found, lang, p }) {
+export function SoundTip({ found, lang, p }) {
   const { sound, tip } = found;
   const text = (m) => m?.[lang] || m?.en;
   return (
@@ -113,7 +113,7 @@ function SoundTip({ found, lang, p }) {
   );
 }
 
-const ERROR_KEYS = {
+export const ERROR_KEYS = {
   "no-speech": "sayNothing",
   "not-allowed": "sayRightMicBlocked",
   "audio-capture": "sayRightMicBlocked",
@@ -210,6 +210,7 @@ export default function SayRightQuestion({ word, learningLang, nativeLang, done,
       setError("no-speech");
       return;
     }
+    recordSounds(scored);
     const all = [...tries, scored].slice(-MAX_SAY_RIGHT_TRIES);
     setTries(all);
     if (scored.score >= PASS_SCORE) sounds.correct();

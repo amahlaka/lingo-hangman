@@ -90,6 +90,14 @@ test("a verified learner's clip goes to the phoneme model and comes back as soun
   await t.close();
 });
 
+test("a longer reading counts more of the daily limit", async () => {
+  const t = setup({ ...TALKIES, PRONOUNCE_DAILY_LIMIT: "10" }, { pronounce: fakeTalkies() });
+  await verified(t);
+  assert.equal((await send(t, wav(12))).json().left, 7);
+  assert.equal((await send(t, wav(2))).json().left, 6);
+  await t.close();
+});
+
 test("only short 16 kHz mono WAV clips are sent", async () => {
   const fake = fakeTalkies();
   const t = setup(TALKIES, { pronounce: fake });
@@ -97,10 +105,10 @@ test("only short 16 kHz mono WAV clips are sent", async () => {
   for (const body of [wav(0.1), wav(1, { rate: 44100 }), wav(1, { channels: 2 }), Buffer.from("not a wav file at all, just some text here....")]) {
     assert.equal((await send(t, body)).statusCode, 400);
   }
-  assert.equal((await send(t, wav(7))).statusCode, 413);
+  assert.equal((await send(t, wav(16))).statusCode, 413);
   assert.equal((await t.call("POST", "/api/pronounce", { audio: "x" })).statusCode, 400);
   assert.equal(fake.calls.length, 0);
-  assert.ok(wavInfo(wav(5.9)));
+  assert.ok(wavInfo(wav(14.9)));
   await t.close();
 });
 

@@ -41,6 +41,7 @@ export function itemLabel(item) {
     case "text": return item.title?.en || item.id;
     case "alike": return (item.words || []).filter(Boolean).join(" / ") || item.id;
     case "phone": return item.title?.en || (item.symbols || []).join(" ") || item.id;
+    case "passage": return item.text?.en || item.id;
     default: return item.id;
   }
 }
@@ -55,6 +56,7 @@ export const TYPE_NAMES = {
   text: "Text (several sentences)",
   alike: "Same answer (sound or spelling)",
   phone: "Sound tip (Say it right)",
+  passage: "Read aloud (Say it right)",
 };
 
 // A new item of `type` with an id that isn't taken yet.
@@ -72,6 +74,7 @@ export function blankItem(type, takenIds) {
     case "text": return { id, type, kind: "dialogue", title: { en: "", fi: "" }, sentences: [{ en: "", fi: "", speaker: "" }, { en: "", fi: "", speaker: "" }] };
     case "alike": return { id, type, kind: "sound", words: [] };
     case "phone": return { id, type, symbols: [], title: { en: "", fi: "" }, tip: { en: "", fi: "" } };
+    case "passage": return { id, type, text: { en: "", fi: "" }, ipa: { en: "" } };
     default: return { id, type };
   }
 }

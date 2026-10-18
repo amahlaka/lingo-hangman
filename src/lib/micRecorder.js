@@ -122,8 +122,9 @@ function audioSession(type) {
 // { wav: Uint8Array | null, seconds, error } where error is "not-allowed",
 // "audio-capture", "unsupported", "no-speech" or null. `stop` ends early and
 // keeps what was said; `cancel` throws it away. `onLevel(0..1)` gets the
-// loudness about 20 times a second, for a meter.
-export function recordClip({ onLevel, maxMs = MAX_MS } = {}) {
+// loudness about 20 times a second, for a meter. `pauseMs`: how long a quiet
+// moment after speaking ends the recording (longer when reading sentences).
+export function recordClip({ onLevel, maxMs = MAX_MS, pauseMs = PAUSE_MS } = {}) {
   if (!canRecord()) return { done: Promise.resolve({ wav: null, seconds: 0, error: "unsupported" }), stop() {}, cancel() {} };
   let finish;
   const done = new Promise((resolve) => {
@@ -213,7 +214,7 @@ export function recordClip({ onLevel, maxMs = MAX_MS } = {}) {
       }
       onLevel?.(Math.min(1, level * 8));
       if (now - startedAt >= maxMs) end();
-      else if (voiceAt && quietSince && now - quietSince >= PAUSE_MS) end();
+      else if (voiceAt && quietSince && now - quietSince >= pauseMs) end();
       else if (!voiceAt && now - startedAt >= NO_SPEECH_MS) end();
     };
     source.connect(node);

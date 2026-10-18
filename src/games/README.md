@@ -256,6 +256,18 @@ is for verified accounts and admins only; others see how to sign in or ask
 to be verified. Its registry entry has `restricted: true` (not needed for the
 Explorer badge) and `noPath: true`.
 
+*Read aloud* (`?mode=read`, the Words / Read aloud switch under the
+instruction) asks three word bank `passage` items (`getPassages()`): one or
+two sentences with US IPA word for word. The recording may run to 15 seconds
+and a pause between sentences doesn't end it. `ReadAloudQuestion.jsx` scores
+the whole reading in one clip and `readAloudLogic.js` looks at it: every word
+marked (tap one for its sounds), the reading pace in words a minute, the
+weak sounds of the reading with their tips, and the words to practise. The
+best of two readings counts. Both modes add every scored sound to a history
+on the device (`recordSounds`, older tries fading), and the end screen lists
+the learner's weakest sounds so far (`weakestSounds`). Every scored word and
+passage can show its Finnish-style reading (`say.fi`) on a tap.
+
 ## Word types
 
 `src/lib/wordTypes.js` and `src/components/lingo/WordTypes.jsx` give every game

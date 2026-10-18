@@ -3,6 +3,8 @@
 // Each guess colours its letters: right place, in the word, or not in it.
 // No React here so the rules are easy to test.
 
+import { localChanged } from "../../lib/localSettings.js";
+
 export const WORD_LENGTH = 5;
 export const MAX_GUESSES = 6;
 // After this many guesses the word can be heard for free.
@@ -111,6 +113,7 @@ export function loadDaily(storage = globalThis.localStorage) {
 export function saveDaily(state, storage = globalThis.localStorage) {
   try {
     storage?.setItem(STORAGE_KEY, JSON.stringify(state));
+    if (state.recorded) localChanged("daily");
   } catch {
     // ignore: progress then lasts for this visit only
   }
@@ -129,6 +132,8 @@ export function finishDaily(state, { won, key, yesterday }) {
   return {
     ...state,
     recorded: true,
+    // The last day finished, which the learner's other devices compare.
+    finishedDay: key,
     played: state.played + 1,
     won: state.won + (won ? 1 : 0),
     streak,

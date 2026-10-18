@@ -148,8 +148,21 @@ Signed out, nothing is sent and the app works as before.
   another account gets the choice above.
 - **Limits:** 500 events per request, 300 requests an hour per account, and
   event times at most 10 minutes ahead of the server's clock.
-- Settings other than the daily goal (language, theme, voice, focus areas)
-  are not synced yet.
+- **Settings and game records** follow the learner too, as `setting` and
+  `record` events folded into the progress state's `settings` and `records`
+  (`src/lib/accountSettings.js`, also copied into the API image). Settings
+  (language, theme, sound, voice, focus areas, difficulty, word-type colours
+  and help, My path collapsed, Grammar check / Sounds of English topics):
+  the latest change wins. Records: the best score wins (Word rush, Say it
+  right, Read aloud), the Daily word record of the latest day played wins
+  (with that day's board, so another device shows it finished), and Say it
+  right's sound history: the latest wins. The app keeps them where it always
+  did in localStorage; `src/lib/localSettings.js` maps them, sends changes
+  (`localChanged(key)` from each place that saves one) and stores the
+  account's after every sync. On sign-in, settings the account doesn't have
+  yet and records better than the account's go up from the device; the
+  account's settings win otherwise. Device-only: the reminder and account
+  offers, play tracking, cached difficulty numbers and the feedback outbox.
 
 ## On-demand speech
 

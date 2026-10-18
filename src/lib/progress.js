@@ -21,6 +21,7 @@
 // misses, answer time and last few results (see `recent` below).
 
 import { addGems, emptyShop } from "./cosmetics.js";
+import { cleanRecords, cleanSettings, mergeRecords, mergeSettings } from "./accountSettings.js";
 
 export const XP_PER_LEVEL = 250;
 export const DAILY_GOAL_OPTIONS = [5, 10, 20];
@@ -50,6 +51,10 @@ export function emptyProgress() {
     stats: { games: {}, lessons: {} },
     // Cosmetics bought with points: { spent, owned, equipped }, see cosmetics.js.
     shop: emptyShop(),
+    // Settings and game records that follow a signed-in learner to every
+    // device, see accountSettings.js. Only filled while signed in.
+    settings: {},
+    records: {},
   };
 }
 
@@ -489,6 +494,8 @@ export function mergeProgress(a, b) {
     games: sumFields(a.games, b.games),
     achievements,
     stats: { games: mergeTallies(a.stats.games, b.stats.games), lessons: mergeTallies(a.stats.lessons, b.stats.lessons) },
+    settings: mergeSettings(older.settings, newer.settings),
+    records: mergeRecords(a.records, b.records),
     shop: {
       ...newer.shop,
       gems: (a.shop.gems || 0) + (b.shop.gems || 0),
@@ -573,6 +580,8 @@ export function normalizeProgress(parsed) {
     streak: { ...base.streak, ...streak, restDays: Array.isArray(streak.restDays) ? streak.restDays : [] },
     totals: { ...base.totals, ...obj(parsed.totals) },
     stats: { games: obj(obj(parsed.stats).games), lessons: obj(obj(parsed.stats).lessons) },
+    settings: cleanSettings(parsed.settings),
+    records: cleanRecords(parsed.records),
     shop: {
       ...base.shop,
       ...shop,

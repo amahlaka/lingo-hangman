@@ -99,3 +99,36 @@ test("an event from the future is kept at the server's time", async () => {
   assert.ok(at < "2099");
   await t.close();
 });
+
+test("settings and game records follow the learner: last setting wins, best record wins", async () => {
+  const t = setup();
+  await t.signIn();
+  const at = (s) => new Date(`2026-10-18T${s}:00.000Z`);
+  // An account state cached before settings existed still takes them.
+  await t.call("POST", "/api/sync", { events: [answer("cat", "2026-10-18T08:00:00.000Z")] });
+  const events = [
+    makeEvent("setting", { key: "theme", value: "dark" }, at("09:00")),
+    makeEvent("setting", { key: "theme", value: "light" }, at("10:00")),
+    makeEvent("setting", { key: "focus", value: ["food", "travel"] }, at("09:00")),
+    makeEvent("record", { key: "rushBest", value: 320 }, at("09:00")),
+    makeEvent("record", { key: "rushBest", value: 200 }, at("10:00")),
+  ];
+  let res = await t.call("POST", "/api/sync", { events });
+  assert.equal(res.statusCode, 200);
+  let state = res.json().state;
+  assert.deepEqual(state.settings, { theme: "light", focus: ["food", "travel"] });
+  assert.deepEqual(state.records, { rushBest: 320 });
+
+  // An offline device's older change doesn't beat the newer one.
+  res = await t.call("POST", "/api/sync", { events: [makeEvent("setting", { key: "theme", value: "system" }, at("09:30"))] });
+  assert.equal(res.json().state.settings.theme, "light");
+
+  for (const bad of [
+    makeEvent("setting", { key: "theme", value: "pink" }),
+    makeEvent("setting", { key: "nickname", value: "x" }),
+    makeEvent("record", { key: "rushBest", value: -5 }),
+  ]) {
+    assert.equal((await t.call("POST", "/api/sync", { events: [bad] })).statusCode, 400);
+  }
+  await t.close();
+});

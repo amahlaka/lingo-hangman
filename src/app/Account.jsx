@@ -192,7 +192,7 @@ function MyFeedback({ t, me }) {
           status: r.status,
           at: r.createdAt,
         })),
-        ...me.feedback.suggestions.map((s) => ({ key: `s${s.id}`, title: `${f.kinds[s.kind] || s.kind}: ${s.text}`, status: s.status, at: s.createdAt })),
+        ...me.feedback.suggestions.map((s) => ({ key: `s${s.id}`, title: `${f.kinds[s.kind] || s.kind}: ${s.text || s.meaning}`, status: s.status, at: s.createdAt })),
       ].sort((a, b) => b.at.localeCompare(a.at))
     : [];
   return (

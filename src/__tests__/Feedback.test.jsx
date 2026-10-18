@@ -150,13 +150,25 @@ test("suggesting a word", async () => {
   const calls = mockApi({ "GET /health": health, "POST /suggestions": { status: 201, body: { id: 3 } } });
   renderApp("/suggest");
   fireEvent.click(await screen.findByRole("button", { name: "Phrase" }));
-  fireEvent.change(screen.getByLabelText("In English"), { target: { value: "break a leg" } });
-  fireEvent.change(screen.getByLabelText("In Finnish (optional)"), { target: { value: "lykkyä tykö" } });
+  fireEvent.change(screen.getByLabelText("In English (if you know it)"), { target: { value: "break a leg" } });
+  fireEvent.change(screen.getByLabelText("In Finnish"), { target: { value: "lykkyä tykö" } });
   fireEvent.click(screen.getByRole("button", { name: "Send" }));
   expect(await screen.findByText("Thanks, it's sent")).toBeInTheDocument();
   expect(calls.find((c) => c.path === "/suggestions").body).toMatchObject({ kind: "phrase", text: "break a leg", meaning: "lykkyä tykö" });
   fireEvent.click(screen.getByRole("button", { name: "Suggest another" }));
-  expect(screen.getByLabelText("In English")).toHaveValue("");
+  expect(screen.getByLabelText("In English (if you know it)")).toHaveValue("");
+});
+
+test("a suggestion can be in Finnish only", async () => {
+  const calls = mockApi({ "GET /health": health, "POST /suggestions": { status: 201, body: { id: 4 } } });
+  renderApp("/suggest");
+  const send = await screen.findByRole("button", { name: "Send" });
+  expect(send).toBeDisabled();
+  fireEvent.change(screen.getByLabelText("In Finnish"), { target: { value: "kuusikerroksinen kerrostalo" } });
+  expect(send).toBeEnabled();
+  fireEvent.click(send);
+  expect(await screen.findByText("Thanks, it's sent")).toBeInTheDocument();
+  expect(calls.find((c) => c.path === "/suggestions").body).toMatchObject({ kind: "word", text: "", meaning: "kuusikerroksinen kerrostalo" });
 });
 
 test("the admin queue lists reports by question and marks them fixed", async () => {
@@ -188,6 +200,28 @@ test("the admin queue lists reports by question and marks them fixed", async () 
   expect(calls.find((c) => c.path === "/admin/reports/status").body).toEqual({ ids: [1, 2], status: "fixed" });
 });
 
+test("the admin queue flags Finnish-only suggestions", async () => {
+  mockApi({
+    "GET /health": health,
+    "GET /admin/reports?status=open": { status: 200, body: { groups: [] } },
+    "GET /admin/suggestions?status=open": {
+      status: 200,
+      body: {
+        suggestions: [
+          { id: 1, kind: "word", text: "", meaning: "talkoot", given: "fi", note: "", createdAt: "2026-10-18T10:00:00Z" },
+          { id: 2, kind: "word", text: "lamp", meaning: "lamppu", given: "both", note: "", createdAt: "2026-10-18T09:00:00Z" },
+        ],
+      },
+    },
+  });
+  renderApp("/admin/reports");
+  fireEvent.click(await screen.findByRole("button", { name: "Suggestions" }));
+  expect(await screen.findByText("talkoot")).toHaveAttribute("lang", "fi");
+  expect(screen.getByText("Finnish only · find the English")).toBeInTheDocument();
+  expect(screen.getByText("English + Finnish")).toBeInTheDocument();
+  expect(screen.getAllByRole("link", { name: "Add in editor" })[0]).toHaveAttribute("href", "/admin?new=word&fi=talkoot");
+});
+
 test("the admin queue explains what it needs", async () => {
   mockApi({ "GET /health": health, "GET /admin/reports?status=open": { status: 403, body: { error: "not_admin" } } });
   renderApp("/admin/reports");
@@ -205,6 +239,7 @@ test("report helpers", () => {
   expect(q.f).toBeUndefined();
   expect(editorLink("silent-k:knife")).toBe("/admin?item=silent-k");
   expect(suggestionLink({ text: "lamp", meaning: "lamppu" })).toBe("/admin?new=word&en=lamp&fi=lamppu");
+  expect(suggestionLink({ text: "", meaning: "lamppu" })).toBe("/admin?new=word&fi=lamppu");
 });
 
 test("the word bank editor opens an item from a link", async () => {

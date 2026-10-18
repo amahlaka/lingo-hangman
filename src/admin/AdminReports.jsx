@@ -27,7 +27,8 @@ export function editorLink(itemRef) {
 }
 
 export function suggestionLink(s) {
-  const q = new URLSearchParams({ new: "word", en: s.text });
+  const q = new URLSearchParams({ new: "word" });
+  if (s.text) q.set("en", s.text);
   if (s.meaning) q.set("fi", s.meaning);
   return `/admin?${q}`;
 }
@@ -108,14 +109,24 @@ function ReportGroup({ group, status, onStatus, busy }) {
   );
 }
 
+// The learner may only have known the Finnish: then the Finnish is the
+// title and a badge says the English is still to be found.
 function SuggestionItem({ s, status, onStatus, busy }) {
+  const finnishOnly = !s.text;
   return (
     <li className="fb-group">
       <div className="fb-group__head">
-        <span className="fb-group__title" lang="en">{s.text}</span>
+        <span className="fb-group__title" lang={finnishOnly ? "fi" : "en"}>{finnishOnly ? s.meaning : s.text}</span>
         <span className="lg-caption">{s.kind} · {when(s.createdAt)}</span>
       </div>
-      {s.meaning && <p className="fb-report" lang="fi">{s.meaning}</p>}
+      <p className="fb-langs">
+        {finnishOnly ? (
+          <span className="fb-lang fb-lang--fi">Finnish only · find the English</span>
+        ) : (
+          <span className="fb-lang">{s.meaning ? "English + Finnish" : "English only"}</span>
+        )}
+      </p>
+      {!finnishOnly && s.meaning && <p className="fb-report" lang="fi">{s.meaning}</p>}
       {s.note && <p className="fb-report">{s.note}</p>}
       <div className="lg-row">
         <Link className="lg-btn lg-btn--secondary" to={suggestionLink(s)}>Add in editor</Link>

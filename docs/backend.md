@@ -101,7 +101,10 @@ are hidden.
   the Next button and in the settings menu. `itemRef` is the word base item id
   when the question has one, else `answer:<answer>`; `context` is a short copy
   of what the question showed (`describeQuestion`) plus the app version.
-  Suggestions are made at `/suggest` (linked from Settings and Account).
+  Suggestions are made at `/suggest` (linked from Settings and Account), in
+  Finnish, English or both: a learner may not know the English word. The API
+  returns `given` (`fi`, `en` or `both`) so the queue and the admin MCP can
+  flag Finnish-only ones as needing the English found.
 - **Outbox:** both go through a small queue in localStorage
   (`src/lib/feedback.js`) with an id per entry, so a report resent after a
   dropped connection or after signing in is stored once.
@@ -110,7 +113,8 @@ are hidden.
 - **Queue:** `/admin/reports` groups open reports by question. "Open in
   editor" opens the item in the word bank editor (`/admin?item=<id>` or
   `/admin?q=<text>`); "Add in editor" starts a suggested word
-  (`/admin?new=word&en=..&fi=..`). Marking a report fixed shows "Fixed, thanks"
+  (`/admin?new=word&en=..&fi=..`); a Finnish-only suggestion is marked "Find
+  the English". Marking a report fixed shows "Fixed, thanks"
   to the learner on their Account page. Reports are never posted to GitHub:
   the repositories are public and reports can hold personal text.
 

@@ -10,6 +10,7 @@ export const GAME_LIST = [
   { id: "phrase", name: "Build the phrase", nameFi: "Rakenna lause", skill: "Sentences", path: "/phrase" },
   { id: "listening", name: "Listen and choose", nameFi: "Kuuntele ja valitse", skill: "Listening", path: "/listening" },
   { id: "say", name: "Say it", nameFi: "Sano se", skill: "Speaking", path: "/say" },
+  { id: "say-right", name: "Say it right", nameFi: "Sano se oikein", skill: "Pronunciation", path: "/say-right", noPath: true },
   { id: "type-it", name: "Type it", nameFi: "Kirjoita se", skill: "Spelling", path: "/type-it" },
   { id: "grammar", name: "Grammar check", nameFi: "Kielioppitreeni", skill: "Grammar", path: "/grammar" },
   { id: "mixed-up", name: "Mixed-up words", nameFi: "Sekoittuvat sanat", skill: "Vocabulary", path: "/mixed-up" },

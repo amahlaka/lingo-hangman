@@ -90,7 +90,7 @@ test("the tools read only the token's own progress", async () => {
   assert.equal(init.serverInfo.name, "lingo-me");
   assert.match(init.instructions, /app language/);
   const { tools } = (await rpc(t, token, "tools/list")).json().result;
-  assert.deepEqual(tools.map((x) => x.name), ["get_my_overview", "get_my_words", "get_my_mistakes", "analyze_my_learning", "get_my_leaderboard"]);
+  assert.deepEqual(tools.map((x) => x.name), ["get_my_overview", "get_my_words", "get_my_mistakes", "get_my_pronunciation", "analyze_my_learning", "get_my_leaderboard"]);
   assert.ok(tools.every((x) => x.annotations.readOnlyHint && !("id" in (x.inputSchema.properties || {}))));
   const { prompts } = (await rpc(t, token, "prompts/list")).json().result;
   assert.deepEqual(prompts.map((p) => p.name), ["review_my_progress", "practice_plan", "explain_my_mistakes"]);

@@ -5,6 +5,7 @@ import { api, backendAvailable } from "../lib/backend";
 import { GAMES } from "../games/registry";
 import { GATES } from "./AdminReports";
 import { kindRows, mistakeLabel } from "./mistakeLabels";
+import PronunciationStats from "./PronunciationStats";
 
 // /admin/users/:id: one learner's own progress and account details, from
 // their synced progress (server/src/routes/admin.js). Read only. English
@@ -153,6 +154,8 @@ export default function AdminLearner() {
                 </>
               )}
             </section>
+
+            {data.pronunciation?.answers > 0 && <PronunciationStats data={data.pronunciation} />}
 
             <section className="lg-section">
               <h2 className="lg-heading">Devices</h2>

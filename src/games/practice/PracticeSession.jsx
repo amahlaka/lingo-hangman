@@ -198,6 +198,8 @@ export default function PracticeSession({
       triesLeft: outcome.solved ? outcome.triesLeft : 0,
       perfect: outcome.solved && outcome.firstTry,
       ms: now - shownAt.current,
+      // Say it right's pronunciation numbers (src/lib/pronunciationStats.js).
+      ...(Number.isInteger(outcome.score) ? { score: outcome.score, mode: outcome.mode, phones: outcome.phones, wpm: outcome.wpm } : {}),
     });
     shownAt.current = now;
     const banner = bannerFor(events, { t, lang, dailyGoal, answer: outcome.answer });

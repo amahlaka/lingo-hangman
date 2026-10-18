@@ -8,6 +8,7 @@ import { RATE_SLOW, speak, stopSpeaking } from "../../lib/speech";
 import { recordClip } from "../../lib/micRecorder";
 import { scoreClip } from "../../lib/pronounce";
 import { scorePronunciation, soundsToPractise } from "../../lib/phonemes";
+import { phoneCounts } from "../../lib/pronunciationStats";
 import { useQuestionControls } from "../practice/questionControls";
 import { ERROR_KEYS, ScoreBadge, SoundMap } from "./SayRightQuestion";
 import { GREAT_SCORE, PASS_SCORE, recordSounds, tipFor } from "./sayRightLogic";
@@ -190,6 +191,9 @@ export default function ReadAloudQuestion({ passage, learningLang, nativeLang, d
       answer: text,
       meaning: passage.text[nativeLang] || "",
       score,
+      mode: "read",
+      phones: phoneCounts(all.map((r) => r.result)),
+      ...(top?.analysis.pace ? { wpm: top.analysis.pace.wpm } : {}),
       practise: top ? soundsToPractise(top.result) : [],
       wrong: [],
     });

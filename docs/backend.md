@@ -214,7 +214,9 @@ IPA sounds in it. The app scores them against the word's IPA itself
   failed clip. The daily counts live in memory and start again when the
   container restarts.
 - **Privacy.** Clips are passed on and dropped: never written to disk, logged
-  or kept. Only the count per learner and day is kept, in memory.
+  or kept. Only the count per learner and day is kept, in memory. The scores
+  and sound counts the app works out are synced like any other answer (see
+  "Statistics").
 
 ### Saved word-base clips
 
@@ -332,6 +334,15 @@ an account are counted, since only they sync.
   `/admin/stats` shows the kinds per game and wrong answers that at least 3
   different learners gave; `/admin/users/:id` shows that learner's counts by
   kind and their latest 30 mistakes.
+- **Pronunciation** (Arttu, 2026-10-18): a Say it right answer also carries
+  `score` (the best try, 0-100), `mode` (`words` or `read`), `phones` (each
+  IPA sound of every try: times seen, missed, nearly said) and, in Read aloud,
+  `wpm` (`src/lib/pronunciationStats.js`, shared with the API). `/admin/stats`
+  shows scores by mode, the sounds missed most and the words and readings
+  with the lowest scores, each only when 3 learners had them;
+  `/admin/users/:id` shows the same for one learner with their latest 20
+  scores. The admin MCP has it as `get_statistics` section `pronunciation`
+  and in `get_learner`; a learner's own MCP has `get_my_pronunciation`.
 - **Difficulty data:** `GET /api/difficulty` (no sign-in, cached for an hour)
   gives each word's answer count, first-try share and median time. A word is
   in it, and in the admin lists, only after 5 answers from 3 different
@@ -498,7 +509,8 @@ endpoint for that at `/api/mcp`; the app itself never calls it.
   approval comes from its `scope` or `resource` parameter (neither: admin),
   and is kept on the code (migration 013). Tools
   (`server/src/mcp/learnerTools.js`): `get_my_overview`, `get_my_words`,
-  `get_my_mistakes`, `analyze_my_learning` (the Profile page's insights and My
+  `get_my_mistakes`, `get_my_pronunciation` (Say it right scores and weakest
+  sounds), `analyze_my_learning` (the Profile page's insights and My
   path, `src/lib/insights.js` and `path.js`, with games named and linked from
   `src/lib/gameList.js`, a copy of the registry that a test keeps equal) and
   `get_my_leaderboard`, plus prompts `review_my_progress`, `practice_plan` and

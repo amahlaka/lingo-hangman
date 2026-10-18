@@ -8,6 +8,7 @@ import { RATE_SLOW, speak, stopSpeaking } from "../../lib/speech";
 import { recordClip } from "../../lib/micRecorder";
 import { scoreClip } from "../../lib/pronounce";
 import { scorePronunciation, soundsToPractise } from "../../lib/phonemes";
+import { phoneCounts } from "../../lib/pronunciationStats";
 import { useQuestionControls } from "../practice/questionControls";
 import { getItem } from "../../lib/words";
 import { GREAT_SCORE, MAX_SAY_RIGHT_TRIES, PASS_SCORE, firstTip, ipaOf, rankKey, recordSounds } from "./sayRightLogic";
@@ -166,6 +167,8 @@ export default function SayRightQuestion({ word, learningLang, nativeLang, done,
       answer: text,
       meaning: word.native,
       score,
+      mode: "words",
+      phones: phoneCounts(all),
       practise: top ? soundsToPractise(top) : [],
       wrong: [],
     });

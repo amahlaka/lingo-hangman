@@ -86,7 +86,7 @@ export function weakSounds(result, words = [], max = 3) {
   const weakness = (e) => (e.missed + e.close / 2) / e.total;
   return [...by.values()]
     .filter((e) => e.missed + e.close > 0 && weakness(e) >= 1 / 3)
-    .sort((a, b) => weakness(b) * Math.min(b.total, 3) - weakness(a) * Math.min(a.total, 3) || b.total - a.total)
+    .sort((a, b) => weakness(b) * Math.min(b.total, 3) - weakness(a) * Math.min(a.total, 3) || b.missed - a.missed || b.total - a.total)
     .slice(0, max);
 }
 

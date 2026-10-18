@@ -239,6 +239,23 @@ Finnish way, "wooter"). For a word the learner already says well (`wordStanding`
 "known"), the reading stays behind a free "Show how to say it" button until
 answered.
 
+## Say it right (pronunciation scores)
+
+`src/games/say-right/` scores how the learner says a word, sound by sound.
+It asks short word bank words that have US `ipa` (about half with a feature
+like `th-sound` or `w-v-sound`). `src/lib/micRecorder.js` records one
+utterance (it stops after a short pause) as a 16 kHz mono WAV, and
+`src/lib/pronounce.js` sends it to `POST /api/pronounce`, which passes it to
+the server's Talkies phoneme recogniser and answers with the IPA sounds it
+heard. `src/lib/phonemes.js` lines those up with the word's IPA: every sound
+is said well, nearly or not yet, and the score is 0-100 (60 counts as solved,
+90 ends the word early; the best of three tries counts). A missed sound shows
+its tip from the word bank's `phone` items (`getPhoneTips()`), with a link to
+its Sounds of English lesson. Scoring runs on Lingo's own server, so the game
+is for verified accounts and admins only; others see how to sign in or ask
+to be verified. Its registry entry has `restricted: true` (not needed for the
+Explorer badge) and `noPath: true`.
+
 ## Word types
 
 `src/lib/wordTypes.js` and `src/components/lingo/WordTypes.jsx` give every game

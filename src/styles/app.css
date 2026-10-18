@@ -445,6 +445,37 @@ a { color: var(--lake); }
 .sy-privacy, .sy-self-note { margin: 0; text-align: center; }
 .sy-self { display: flex; flex-direction: column; align-items: center; gap: var(--space-2); }
 
+/* Say it right (pronunciation scores). Prefix sr-; the mic is Say it's sy-mic. */
+.sr-score { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: center; gap: var(--space-1) var(--space-2); text-align: center; }
+.sr-score__num { font: 800 56px/60px var(--font-display); color: var(--cloudberry-ink); font-variant-numeric: tabular-nums; }
+.sr-score--pass .sr-score__num { color: var(--pine); }
+.sr-score__of { font: 600 20px/28px var(--font-sans); color: var(--ink-muted); }
+.sr-score__rank { flex-basis: 100%; font: 700 20px/28px var(--font-display); color: var(--ink); }
+.sr-map { display: flex; flex-direction: column; align-items: center; gap: var(--space-2); text-align: center; }
+.sr-map__ipa { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: var(--space-1); margin: 0; font: 500 26px/36px var(--font-sans); color: var(--ink-muted); }
+.sr-map__word { display: inline-flex; gap: 2px; margin: 0 var(--space-1); }
+.sr-sound { display: inline-block; padding: 0 var(--space-1); border-radius: var(--radius-sm); color: var(--ink); animation: lg-reveal .3s ease-out both; }
+.sr-sound--ok { background: var(--pine-soft); border-bottom: 3px solid var(--pine); }
+.sr-sound--close { background: var(--cloudberry-soft); border-bottom: 3px solid var(--cloudberry); }
+.sr-sound--miss { background: transparent; border: 2px dashed var(--cloudberry); color: var(--ink-muted); }
+.sr-key { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--space-2); margin: 0; }
+.sr-key__item { padding: 0 var(--space-2); font-size: 14px; line-height: 22px; animation: none; }
+.sr-heard { margin: 0; overflow-wrap: anywhere; }
+.sr-heard__ipa { font-size: 16px; color: var(--ink); }
+.sr-tip { display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-3) var(--space-4); border-radius: var(--radius-md); background: var(--lake-soft); color: var(--ink); }
+.sr-tip__title { margin: 0; font: 700 17px/24px var(--font-sans); }
+.sr-tip__symbol { display: inline-block; margin-right: var(--space-1); font: 700 18px/24px var(--font-sans); color: var(--lake-strong); }
+.sr-tip__body { margin: 0; font-size: 16px; line-height: 24px; }
+.sr-tip__actions { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.sr-tip__actions .lg-btn { gap: var(--space-2); }
+.sr-summary { display: flex; flex-direction: column; align-items: center; gap: var(--space-3); text-align: center; }
+.sr-summary__avg { display: flex; flex-direction: column; align-items: center; margin: 0; }
+.sr-summary__num { font: 800 48px/52px var(--font-display); color: var(--pine); }
+.sr-summary__sounds { width: 100%; text-align: left; }
+.sr-summary__list { margin: var(--space-1) 0 0; padding-left: var(--space-6); }
+.sr-summary__list li { margin: var(--space-1) 0; }
+.sr-gate .lg-row { flex-wrap: wrap; }
+
 /* Type it (typing practice). Prefix ty-. */
 .ty-support { margin: var(--space-1) 0 0; font-size: 16px; line-height: 24px; overflow-wrap: anywhere; }
 .ty-form { display: flex; flex-direction: column; gap: var(--space-1); }

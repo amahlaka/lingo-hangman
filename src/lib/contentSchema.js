@@ -3,7 +3,7 @@
 // while editing) and `npm run content:check`. No imports, so Node runs it as is.
 // The lingo-wordbase README describes the format for people editing it.
 
-export const ITEM_TYPES = ["word", "gap", "rule", "confusable", "group", "sound", "text", "alike"];
+export const ITEM_TYPES = ["word", "gap", "rule", "confusable", "group", "sound", "text", "alike", "phone"];
 
 // ---- Metadata, all optional (the lingo-wordbase AUTHORING.md explains each) ----
 
@@ -84,6 +84,9 @@ export const ALIKE_KINDS = ["sound", "spelling"];
 //   pairs    words that sound alike (ship / sheep); each word names its `pair`
 //   letters  English letter names: "A" is said "ei"
 export const SOUND_KINDS = ["silent", "sound", "spell", "pairs", "letters"];
+
+// One IPA sound as the word bank writes it inside slashes: "θ", "tʃ", "ɚ", "oʊ".
+const SYMBOL_PATTERN = /^[^\s/[\]]{1,4}$/u;
 
 // Square brackets mark the letters a pronunciation word is about: "[k]nife".
 const MARK_PATTERN = /^([^[\]]*)\[([^[\]]+)\]([^[\]]*)$/;
@@ -363,6 +366,23 @@ const CHECKS = {
     });
   },
 
+  // A tip on saying one English sound, which "Say it right" shows when a
+  // learner misses it: `symbols` are the IPA sounds it covers ("θ"),
+  // `example` a word with the sound, `lesson` a Sounds of English lesson.
+  phone(item, problems, ctx) {
+    if (!Array.isArray(item.symbols) || !item.symbols.length || !item.symbols.every((s) => typeof s === "string" && SYMBOL_PATTERN.test(s))) {
+      problems.push('symbols must be a list of IPA sounds without slashes, like ["θ"]');
+    } else if (new Set(item.symbols).size !== item.symbols.length) {
+      problems.push("symbols lists a sound twice");
+    }
+    checkTextMap(item.title, "title", problems, { mustHave: ["en"] });
+    checkTextMap(item.tip, "tip", problems, { mustHave: ["en"] });
+    if (item.example !== undefined && !isText(item.example)) problems.push("example is empty");
+    if (item.lesson !== undefined && !(isText(item.lesson) && (!ctx.soundIds || ctx.soundIds.has(item.lesson)))) {
+      problems.push(`lesson "${item.lesson}" is not the id of a pronunciation lesson`);
+    }
+  },
+
   // Several sentences that belong together: a dialogue, a short story, a
   // message. Each sentence in English, usually with Finnish; dialogue lines
   // name their speaker. `questions` (optional) test understanding. A
@@ -465,6 +485,7 @@ export function contentContext({ languages = [], packs = [] }) {
   return {
     languageCodes: new Set(languages.map((l) => l?.code).filter(isText)),
     topicIds: new Set(items.filter((i) => i?.type === "rule" || i?.type === "confusable").map((i) => i.id)),
+    soundIds: new Set(items.filter((i) => i?.type === "sound").map((i) => i.id)),
   };
 }
 

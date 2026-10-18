@@ -10,6 +10,7 @@ import WordPairsGame from "./word-pairs/WordPairsGame";
 import FillGapGame from "./fill-gap/FillGapGame";
 import { GrammarGame, MixedUpGame } from "./gap/GapGames";
 import SayGame from "./say/SayGame";
+import SayRightGame from "./say-right/SayRightGame";
 import TypeGame from "./type/TypeGame";
 import SoundsGame from "./sounds/SoundsGame";
 import QuickPlay from "./quick/QuickPlay";
@@ -105,6 +106,21 @@ export const GAMES = [
     skill: "Speaking",
     path: "/say",
     routes: [{ path: "/say", Component: SayGame }],
+  },
+  {
+    id: "say-right",
+    name: "Say it right",
+    nameFi: "Sano se oikein",
+    description: "Say a word and get a score for every sound in it. For verified players.",
+    descriptionFi: "Sano sana ja saat pisteet sen jokaisesta äänteestä. Vahvistetuille pelaajille.",
+    art: "92 /θ/",
+    minutes: 4,
+    skill: "Pronunciation",
+    path: "/say-right",
+    // Verified players only, so it is left out of My path and the Explorer badge.
+    restricted: true,
+    noPath: true,
+    routes: [{ path: "/say-right", Component: SayRightGame }],
   },
   {
     id: "type-it",
@@ -246,4 +262,4 @@ export const GAMES = [
   },
 ];
 
-export const PLAYABLE_GAME_IDS = GAMES.filter((g) => !g.soon && !g.featured).map((g) => g.id);
+export const PLAYABLE_GAME_IDS = GAMES.filter((g) => !g.soon && !g.featured && !g.restricted).map((g) => g.id);

@@ -182,6 +182,34 @@ app asks `POST /api/tts { text, voice }` for an MP3 in the same voice.
   account (`lingo.sync.v1` has a user), and after signing in; it asks
   `GET /api/tts/status`. Signed out, or with `TTS_URL` unset, nothing changes.
 
+## Pronunciation scoring
+
+*Say it right* (`src/games/say-right/`) records a learner saying a word bank
+word and asks `POST /api/pronounce` (body: the clip as `audio/wav`) for the
+IPA sounds in it. The app scores them against the word's IPA itself
+(`src/lib/phonemes.js`).
+
+- **The service.** The API forwards the clip to Talkies
+  (psyb0t/docker-talkies, `TALKIES_URL`, on the same Docker network) with its
+  bearer token (`TALKIES_TOKEN`), as `POST /v1/audio/transcriptions` with the
+  phoneme model `zipa-ipa` (`TALKIES_MODEL`). It answers `{ phones, left }`.
+  Without `TALKIES_URL` the game says scoring isn't available.
+- **Who.** Verified learners and admins only (`role` verified or admin). Others
+  get `403 not_verified`; `POST /api/pronounce/request` puts a learner on the
+  `/admin/users` list, the same list as asking for more speech, where
+  *Verify* lets them in. `GET /api/pronounce/status` says
+  `{ available, allowed, limit, left, requested }`.
+- **Limits.** Clips are 16 kHz, 16-bit mono WAV of 0.25-6 seconds (about
+  190 kB at most), so a clip takes the recogniser two or three seconds.
+  `PRONOUNCE_DAILY_LIMIT` (150) clips a learner a day and 12 a minute, one at
+  a time per learner, and at most `PRONOUNCE_QUEUE_MAX` (6) waiting: Talkies
+  scores one at a time. A Talkies answer of 429 or 409 (busy, or another
+  model running) is `503 pronounce_queue_full`; nothing is counted for a
+  failed clip. The daily counts live in memory and start again when the
+  container restarts.
+- **Privacy.** Clips are passed on and dropped: never written to disk, logged
+  or kept. Only the count per learner and day is kept, in memory.
+
 ### Saved word-base clips
 
 Hangman's *Listen* hint says the answer with its recorded clip. When a

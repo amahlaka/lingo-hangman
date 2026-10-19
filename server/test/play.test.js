@@ -46,6 +46,42 @@ test("visits and games are counted per hour, with or without an account", async 
   await t.close();
 });
 
+test("scanners, made-up games and floods from one address are not counted", async () => {
+  const t = setup();
+  const burp = { headers: { "user-agent": "Mozilla/5.0 (compatible; Burp Suite Professional)" } };
+  assert.equal((await t.call("POST", "/api/play/count", { visit: true }, burp)).statusCode, 200);
+  assert.equal((await t.call("POST", "/api/play/count", { game: "hangmanbq3og3rzkf" })).statusCode, 400);
+  for (let i = 0; i < 15; i++) assert.equal((await t.call("POST", "/api/play/count", { visit: true })).statusCode, 200);
+  for (let i = 0; i < 65; i++) await t.call("POST", "/api/play/count", { game: "hangman" });
+  const count = (metric) => t.db.prepare("SELECT COALESCE(SUM(value), 0) AS n FROM play_counts WHERE metric = ?").get(metric).n;
+  assert.equal(count("visits"), 10);
+  assert.equal(count("games_anon"), 60);
+  await t.close();
+});
+
+test("hidden hours are left out of visits and games without an account", async () => {
+  const t = setup();
+  const hour = ago(3 * 3600_000).slice(0, 13);
+  const next = ago(2 * 3600_000).slice(0, 13);
+  t.db
+    .prepare(
+      `INSERT INTO play_counts (hour, metric, key, value) VALUES
+       (?1, 'visits', '', 200), (?1, 'games_anon', 'hangman', 30), (?1, 'games_account', 'hangman', 2),
+       (?2, 'visits', '', 100), (?3, 'visits', '', 4), (?3, 'games_anon', 'meaning', 1)`
+    )
+    .run(hour, next, ago(3600_000).slice(0, 13));
+  t.db.exec("DELETE FROM play_hidden_hours");
+  t.db.prepare("INSERT INTO play_hidden_hours (hour, note) VALUES (?, 'Scan'), (?, 'Scan')").run(hour, next);
+  const play = playStats(t.db);
+  assert.equal(play.recentHours.reduce((a, h) => a + h.visits, 0), 4);
+  assert.deepEqual(play.popular, [
+    { id: "hangman", anon: 0, account: 2, total: 2 },
+    { id: "meaning", anon: 1, account: 0, total: 1 },
+  ]);
+  assert.deepEqual(play.hidden, [{ from: `${hour}:00:00.000Z`, to: new Date(Date.parse(`${next}:00:00Z`) + 3600_000).toISOString(), note: "Scan", visits: 300, gamesAnon: 30 }]);
+  await t.close();
+});
+
 test("play sessions and unfinished rounds need an account and are kept once", async () => {
   const t = setup();
   const body = {

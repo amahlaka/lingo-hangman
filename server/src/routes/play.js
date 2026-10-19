@@ -3,15 +3,27 @@
 // POST /api/play/count: a visit or a game started, from anyone. Only adds 1
 // to a count for the current hour; nothing about the device or person is
 // kept, and whether they had an account comes from their session cookie.
+// Not every call is counted: not from known scanners and bots, not for a game
+// the app doesn't have, and only so many from one address in an hour (a
+// browser counts a visit once per tab), so a scan can't swell the numbers.
 //
 // POST /api/play/sessions: a signed-in learner's finished play sessions and
 // the rounds they left unfinished.
 
 import { findSession, requireSession, COOKIE } from "../sessions.js";
 import { cleanGiveUp, cleanPlaySession, isGameId } from "../../../src/lib/playSession.js";
+import { GAME_LIST } from "../../../src/lib/gameList.js";
 
 const HOUR = 3600_000;
 const COUNTS_PER_HOUR = 240;
+// Counted from one address in an hour; past these the call is answered but
+// not counted. Room for a few tabs, a shared connection and a lot of play.
+const VISITS_COUNTED_PER_HOUR = 10;
+const GAMES_COUNTED_PER_HOUR = 60;
+const GAME_IDS = new Set(GAME_LIST.map((g) => g.id));
+// Security scanners and crawlers that say who they are.
+export const SCANNER =
+  /burp|sqlmap|nikto|nuclei|nmap|zgrab|masscan|acunetix|nessus|openvas|qualys|netsparker|invicti|wpscan|dirbuster|gobuster|ffuf|wfuzz|owasp|zap\/|arachni|w3af|skipfish|headlesschrome|bot\/|crawler|spider|curl\/|wget\/|python-requests|python-urllib|go-http-client|httpx|aiohttp|okhttp|java\/|libwww|scrapy/i;
 const SENDS_PER_HOUR = 60;
 const MAX_ITEMS = 50;
 // Older than this is not taken (a device that was away for weeks).
@@ -31,9 +43,11 @@ export default async function playRoutes(app, { db, limiter }) {
   app.post("/api/play/count", async (req, reply) => {
     const body = req.body || {};
     const visit = body.visit === true;
-    const game = isGameId(body.game) ? body.game : null;
+    const game = isGameId(body.game) && GAME_IDS.has(body.game) ? body.game : null;
     if (visit === Boolean(game)) return reply.code(400).send({ error: "bad_request" });
     if (!limiter.allow(`play:${req.ip}`, COUNTS_PER_HOUR, HOUR)) return reply.code(429).send({ error: "too_many_requests" });
+    if (SCANNER.test(req.headers["user-agent"] || "")) return { ok: true };
+    if (!limiter.allow(`play-counted:${visit ? "visit" : "game"}:${req.ip}`, visit ? VISITS_COUNTED_PER_HOUR : GAMES_COUNTED_PER_HOUR, HOUR)) return { ok: true };
     if (visit) addCount(db, "visits");
     else addCount(db, findSession(db, req.cookies[COOKIE]) ? "games_account" : "games_anon", game);
     return { ok: true };

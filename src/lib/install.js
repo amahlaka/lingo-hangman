@@ -62,7 +62,7 @@ export function installWay() {
   if (/iPhone|iPad|iPod/.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)) return "ios";
   if (/Android/.test(ua)) return "android";
   if (/Edg\/|Chrome\//.test(ua)) return "desktop";
-  if (/Macintosh/.test(ua) && /Version\/\d+.*Safari\//.test(ua)) return "mac-safari";
+  if (/Macintosh/.test(ua) && ua.includes("Version/") && ua.includes("Safari/")) return "mac-safari";
   return null;
 }
 

@@ -418,7 +418,8 @@ const CHECKS = {
   // Several sentences that belong together: a dialogue, a short story, a
   // message. Each sentence in English, usually with Finnish; dialogue lines
   // name their speaker. `questions` (optional) test understanding. A
-  // dialogue's `you` (optional) names the speaker the learner plays in Your turn.
+  // dialogue's `you` (optional) names the speaker the learner plays in Your turn,
+  // and `scene` (optional) says where they are and what they want.
   text(item, problems) {
     checkTextMap(item.title, "title", problems, { mustHave: ["en"] });
     if (!TEXT_KINDS.includes(item.kind)) problems.push(`kind must be one of ${TEXT_KINDS.join(", ")}`);
@@ -438,6 +439,10 @@ const CHECKS = {
       const speakers = Array.isArray(item.sentences) ? item.sentences.map((l) => l?.speaker) : [];
       if (item.kind !== "dialogue") problems.push("you is only for dialogues");
       else if (!isText(item.you) || !speakers.includes(item.you)) problems.push("you must be the name of one of the speakers");
+    }
+    if (item.scene !== undefined) {
+      if (item.kind !== "dialogue") problems.push("scene is only for dialogues");
+      else checkTextMap(item.scene, "scene", problems, { mustHave: ["en", "fi"] });
     }
     if (item.questions !== undefined) {
       if (!Array.isArray(item.questions)) problems.push("questions must be a list");

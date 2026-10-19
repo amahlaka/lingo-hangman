@@ -885,7 +885,8 @@ const i18n = {
     },
     talk: {
       name: "Your turn",
-      intro: "You are one person in an everyday conversation. Pick what to say next.",
+      intro: "You are one person in an everyday conversation. Read the situation, then pick what to say next.",
+      situation: "The situation",
       youAre: "You are {name}, talking with {partner}.",
       tapLines: "Tap a line to hear it again. Tap In Finnish to see what it means.",
       showFinnish: "In Finnish",
@@ -896,7 +897,7 @@ const i18n = {
       tryAnother: "Not quite. Try another reply.",
       why: {
         later: "Not quite: that comes later in this conversation. Try another reply.",
-        other: "Not quite: that belongs to a different conversation. Try another reply.",
+        other: "Not quite: that belongs to a different situation. Check where you are and try another reply.",
       },
       empty: "There are no conversations yet.",
     },
@@ -1860,7 +1861,8 @@ const i18n = {
     },
     talk: {
       name: "Sinun vuorosi",
-      intro: "Olet yksi puhujista arkisessa keskustelussa. Valitse, mitä sanot seuraavaksi.",
+      intro: "Olet yksi puhujista arkisessa keskustelussa. Lue tilanne ja valitse, mitä sanot seuraavaksi.",
+      situation: "Tilanne",
       youAre: "Sinä olet {name}. Toinen puhuja: {partner}.",
       // Roles in the word bank's dialogues; names of people stay as they are.
       roles: { Cashier: "Kassamyyjä", Clerk: "Virkailija", Doctor: "Lääkäri", Pharmacist: "Farmaseutti", Receptionist: "Vastaanottovirkailija", Server: "Tarjoilija", Waiter: "Tarjoilija", Woman: "Nainen", Man: "Mies", Customer: "Asiakas", Driver: "Kuljettaja", Nurse: "Hoitaja" },
@@ -1873,7 +1875,7 @@ const i18n = {
       tryAnother: "Ei ihan. Kokeile toista vastausta.",
       why: {
         later: "Ei ihan: tuo sanotaan myöhemmin tässä keskustelussa. Kokeile toista vastausta.",
-        other: "Ei ihan: tuo kuuluu toiseen keskusteluun. Kokeile toista vastausta.",
+        other: "Ei ihan: tuo kuuluu toiseen tilanteeseen. Katso, missä olet, ja kokeile toista vastausta.",
       },
       empty: "Keskusteluja ei ole vielä.",
     },

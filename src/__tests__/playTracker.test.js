@@ -11,7 +11,7 @@ function memoryStorage() {
   };
 }
 
-function setup({ signedIn = true, storage = memoryStorage() } = {}) {
+function setup({ signedIn = true, storage = memoryStorage(), automated = false } = {}) {
   let clock = Date.parse("2026-10-17T10:00:00Z");
   const posts = [];
   const tracker = createPlayTracker({
@@ -20,6 +20,7 @@ function setup({ signedIn = true, storage = memoryStorage() } = {}) {
     now: () => clock,
     available: async () => true,
     isSignedIn: () => signedIn,
+    automated: () => automated,
     post: async (path, body) => {
       posts.push({ path, body: JSON.parse(JSON.stringify(body)) });
       return { ok: true, status: 200 };
@@ -35,6 +36,15 @@ function setup({ signedIn = true, storage = memoryStorage() } = {}) {
 
 const right = { solved: true };
 const wrong = { solved: false };
+
+test("a browser run by a program (a scanner's crawler) is not counted", async () => {
+  const { tracker, posts, settle } = setup({ automated: true, signedIn: false });
+  tracker.start();
+  tracker.openGame("hangman");
+  tracker.answer(right);
+  await settle();
+  expect(posts.filter((p) => p.path === "/play/count")).toEqual([]);
+});
 
 test("one session runs across games until the app closes", async () => {
   const { tracker, posts, advance, settle } = setup();

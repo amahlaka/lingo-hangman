@@ -43,7 +43,9 @@ const syncedAccount = (storage) => {
 
 // storage: localStorage; tabStorage: sessionStorage (one visit per tab);
 // now: clock; post(path, body, keepalive) -> { ok, status }; available(): Promise<boolean>;
-// isSignedIn(): whether a learner is signed in.
+// isSignedIn(): whether a learner is signed in; automated(): a browser run by a
+// program (a security scanner's crawler, a test robot), whose visits and games
+// are not counted.
 export function createPlayTracker({
   storage = globalThis.localStorage,
   tabStorage = globalThis.sessionStorage,
@@ -51,6 +53,7 @@ export function createPlayTracker({
   post = (path, body, keepalive) => api(path, { method: "POST", body, keepalive }),
   available = backendAvailable,
   isSignedIn = () => syncedAccount(storage),
+  automated = () => globalThis.navigator?.webdriver === true,
 } = {}) {
   let state = load(storage);
   let sending = false;
@@ -80,6 +83,7 @@ export function createPlayTracker({
   };
 
   const count = (body, keepalive = false) =>
+    !automated() &&
     available().then((ok) => ok && post("/play/count", body, keepalive)).catch(() => {});
 
   const gameEntry = (id) => {

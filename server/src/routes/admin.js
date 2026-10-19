@@ -16,6 +16,7 @@ import {
   suggestionList,
 } from "../adminData.js";
 import { createToken, listTokens, revokeToken } from "../mcp/tokens.js";
+import { addLeftOut, removeLeftOut } from "../stats/play.js";
 
 const RECENT_SIGN_IN_MS = 24 * 3600_000;
 
@@ -119,6 +120,20 @@ export default async function adminRoutes(app, { db, config, wordClips }) {
 
   // The Statistics page (adminData.js).
   app.get("/api/admin/stats", async () => adminStats(db));
+
+  // Hours left out of the visit and game counts (a security scan, test
+  // traffic): { from, to, note } -> the range. The counts stay; removing the
+  // range brings them back.
+  app.post("/api/admin/play/left-out", async (req, reply) => {
+    const range = addLeftOut(db, req.body || {});
+    return range ? reply.code(201).send(range) : reply.code(400).send({ error: "bad_request" });
+  });
+
+  app.post("/api/admin/play/left-out/remove", async (req, reply) => {
+    const id = req.body?.id;
+    if (!Number.isInteger(id) || id <= 0) return reply.code(400).send({ error: "bad_request" });
+    return removeLeftOut(db, id) ? { ok: true } : reply.code(404).send({ error: "not_found" });
+  });
 
   // One learner's own progress and account details. Read only.
   app.get("/api/admin/users/:id", async (req, reply) => {

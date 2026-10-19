@@ -5,11 +5,14 @@ import { DEFAULT_LEARNING_LANG, DEFAULT_NATIVE_LANG, getGapItems, getTopics } fr
 import PracticeSession from "../practice/PracticeSession";
 import MistakeQuestion from "./MistakeQuestion";
 import { buildMistakeRound } from "./mistakeLogic";
+import { ROUND_LENGTH } from "../practice/practiceLogic";
+import { useRounds } from "../../lib/rounds";
 
 // Spot the mistake: grammar and mixed-up words sentences with one typical
 // mistake in them. `?set=<topic id>` practises one topic.
 export default function MistakeGame() {
   const [params] = useSearchParams();
+  const rounds = useRounds(ROUND_LENGTH);
   const { t } = useSettings();
   const setId = params.get("set");
   const build = useMemo(
@@ -17,9 +20,9 @@ export default function MistakeGame() {
       const all = [...getTopics("rule"), ...getTopics("confusable")];
       const one = setId ? all.filter((topic) => topic.id === setId) : [];
       const topics = one.length ? one : all;
-      return buildMistakeRound({ topics, gaps: getGapItems({ lang: DEFAULT_LEARNING_LANG, preferences: true }) });
+      return buildMistakeRound({ topics, gaps: getGapItems({ lang: DEFAULT_LEARNING_LANG, preferences: true }) }, { count: rounds });
     },
-    [setId]
+    [setId, rounds]
   );
 
   return (

@@ -25,7 +25,8 @@ import SayQuestion from "../say/SayQuestion";
 import useSayMic from "../say/useSayMic";
 import HangmanQuestion from "../hangman/HangmanQuestion";
 import { PairsBoard } from "../word-pairs/WordPairsGame";
-import { buildQuickRound, preferenceFilter, quickTargets } from "./quickLogic";
+import { QUICK_ROUND, buildQuickRound, preferenceFilter, quickQuota, quickTargets } from "./quickLogic";
+import { useRounds } from "../../lib/rounds";
 import { getDifficulty } from "../../lib/difficulty";
 
 const learningLang = DEFAULT_LEARNING_LANG;
@@ -179,6 +180,7 @@ function QuickQuestion({ question, done, onDone, onItem, t, lang, mic }) {
 export default function QuickPlay() {
   const { t, lang } = useSettings();
   const { state } = useProgress();
+  const rounds = useRounds(QUICK_ROUND);
   const targets = useMemo(
     () =>
       quickTargets({
@@ -212,7 +214,14 @@ export default function QuickPlay() {
       endTitleKey="endTitleQuick"
       countQuestions
       recapTitleKey="recapQuick"
-      buildQuestions={() => buildQuickRound(targets, stateRef.current, { include: preferenceFilter(targets), difficulty: getDifficulty() })}
+      buildQuestions={() =>
+        buildQuickRound(targets, stateRef.current, {
+          count: rounds,
+          quota: quickQuota(rounds),
+          include: preferenceFilter(targets),
+          difficulty: getDifficulty(),
+        })
+      }
       renderQuestion={({ question, done, onDone, onItem }) => (
         <QuickQuestion question={question} done={done} onDone={onDone} onItem={onItem} t={t} lang={lang} mic={mic} />
       )}

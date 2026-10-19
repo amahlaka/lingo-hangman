@@ -7,7 +7,7 @@ import { fill } from "../i18n";
 import { GAMES, PLAYABLE_GAME_IDS } from "../games/registry";
 import { achievementList, answerSummary } from "../lib/progress";
 import { wordStanding } from "../lib/adaptive";
-import { Achievements, DailyProgress, Feedback, GameCard, SettingsMenu } from "../components/lingo";
+import { Achievements, DailyProgress, Feedback, GameCard, RoundCard, SettingsMenu } from "../components/lingo";
 import { ShopCard } from "./Shop";
 import { RemindersOffer } from "./Reminders";
 import AccountOffer from "./AccountOffer";
@@ -18,18 +18,20 @@ const MIN_ANSWERS_FOR_STATS = 10;
 
 const seconds = (ms) => (ms / 1000).toFixed(1);
 
-// Quick play, above the game cards.
+const QUICK_PLAY = GAMES.find((g) => g.id === "quick-play");
+
+// Quick play, above the game cards. Like them, it has a round menu.
 function QuickPlayCard({ t, lang }) {
   const q = t.quick;
   return (
-    <Link to="/quick" className="lg-card qp-card">
+    <RoundCard game={QUICK_PLAY} className="lg-card qp-card">
       <span className="qp-card__icon" aria-hidden="true"><Shuffle size={28} strokeWidth={2} /></span>
       <span className="qp-card__text">
         <span className="lg-card__name">{q.name}</span>
         <span className="lg-card__fi" lang={lang === "fi" ? "en" : "fi"}>{q.nameFi}</span>
         <span className="lg-card__desc">{q.cardDesc}</span>
       </span>
-    </Link>
+    </RoundCard>
   );
 }
 

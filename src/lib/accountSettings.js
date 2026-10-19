@@ -11,6 +11,7 @@
 //   topics  { [gameId]: [topic ids] }          (src/games/practice/topicChoice.js)
 // records: each has its own rule, see RECORDS.
 //   rushBest, sayRightBest, sayRightReadBest   the best score wins
+//   rushBest30, rushBest90  Word rush's other round lengths, the same
 //   sayRightSounds  { [sound]: { seen, missed } } the last change wins
 //   daily   the Daily word record of the latest day played wins
 //
@@ -97,6 +98,8 @@ const higher = (current, next) => (current !== undefined && current >= next ? cu
 // Record -> { clean, merge(current, next) }: merge gives the stored value.
 export const RECORDS = {
   rushBest: { clean: score, merge: higher },
+  rushBest30: { clean: score, merge: higher },
+  rushBest90: { clean: score, merge: higher },
   sayRightBest: { clean: score, merge: higher },
   sayRightReadBest: { clean: score, merge: higher },
   sayRightSounds: { clean: sounds, merge: (current, next) => next },

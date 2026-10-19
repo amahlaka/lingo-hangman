@@ -117,6 +117,8 @@ const PLACES = {
     write: (s, v) => set(s, TOPICS_KEY, JSON.stringify(v)),
   },
   rushBest: { read: (s) => number(get(s, RUSH_KEY)), write: (s, v) => set(s, RUSH_KEY, String(v)) },
+  rushBest30: { read: (s) => number(get(s, `${RUSH_KEY}30`)), write: (s, v) => set(s, `${RUSH_KEY}30`, String(v)) },
+  rushBest90: { read: (s) => number(get(s, `${RUSH_KEY}90`)), write: (s, v) => set(s, `${RUSH_KEY}90`, String(v)) },
   sayRightBest: { read: (s) => number(get(s, SAY_RIGHT_KEY)), write: (s, v) => set(s, SAY_RIGHT_KEY, String(v)) },
   sayRightReadBest: {
     read: (s) => number(get(s, `${SAY_RIGHT_KEY}Read`)),

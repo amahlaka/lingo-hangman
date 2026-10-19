@@ -1,8 +1,9 @@
 import React from "react";
-import { Link } from "react-router-dom";
 import i18n from "../../i18n";
+import RoundCard from "./RoundCard";
 
 // One game's entry on the home screen. `game` is a registry entry (src/games/registry.js).
+// A long press, right-click or its ⋯ button picks the round length.
 export default function GameCard({ game, lang }) {
   const skills = (i18n[lang] || i18n.en).profile.skills;
   const fi = lang === "fi";
@@ -25,8 +26,8 @@ export default function GameCard({ game, lang }) {
   );
   if (game.soon) return <div className="lg-card lg-card--soon">{body}</div>;
   return (
-    <Link className="lg-card" to={game.path}>
+    <RoundCard className="lg-card" game={game}>
       {body}
-    </Link>
+    </RoundCard>
   );
 }

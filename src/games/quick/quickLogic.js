@@ -32,6 +32,13 @@ import { isHangmanWord } from "../hangman/hangmanWords";
 
 export const QUICK_ROUND = 10;
 export const QUICK_QUOTA = { easy: 3, challenge: 3 };
+
+// The easy wins and challenges in a round of `count`, in the same share as a
+// full round (a one-question round is a new word).
+export function quickQuota(count) {
+  const n = Math.floor((count * QUICK_QUOTA.easy) / QUICK_ROUND);
+  return { easy: n, challenge: Math.floor((count * QUICK_QUOTA.challenge) / QUICK_ROUND) };
+}
 // Shares of learners right on the first try (src/lib/difficulty.js) below
 // which a new word counts as hard, and from which it counts as easy.
 const GLOBAL_HARD = 0.5;

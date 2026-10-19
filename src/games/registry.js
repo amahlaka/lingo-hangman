@@ -1,5 +1,6 @@
 // Every game in Lingo. The home screen shows one card per entry and App
 // creates its routes. See ./README.md for how to add a game.
+// `rounds` is what the card's round menu offers (src/lib/rounds.js).
 import HangmanCustomWords from "./hangman/HangmanCustomWords";
 import HangmanGame from "./hangman/HangmanGame";
 import MeaningGame from "./meaning/MeaningGame";
@@ -168,6 +169,8 @@ export const GAMES = [
     minutes: 4,
     skill: "Pronunciation",
     path: "/sounds",
+    // The round menu plays a mix of every lesson; the card opens the lesson list.
+    rounds: { options: [1, 5, 10], unit: "round", path: "/sounds?set=mix" },
     routes: [{ path: "/sounds", Component: SoundsGame }],
   },
   {
@@ -180,6 +183,7 @@ export const GAMES = [
     minutes: 3,
     skill: "Vocabulary",
     path: "/word-pairs",
+    rounds: { options: [1, 2, 4], unit: "board" },
     routes: [{ path: "/word-pairs", Component: WordPairsGame }],
   },
   {
@@ -204,6 +208,7 @@ export const GAMES = [
     minutes: 4,
     skill: "Conversation",
     path: "/talk",
+    rounds: { options: [1, 2, 3], unit: "dialogue" },
     routes: [{ path: "/talk", Component: TalkGame }],
   },
   {
@@ -228,6 +233,8 @@ export const GAMES = [
     minutes: 1,
     skill: "Vocabulary",
     path: "/word-rush",
+    // Seconds on the clock, not questions.
+    rounds: { options: [30, 60, 90], unit: "second" },
     routes: [{ path: "/word-rush", Component: RushGame }],
   },
   {
@@ -240,6 +247,8 @@ export const GAMES = [
     minutes: 3,
     skill: "Spelling",
     path: "/daily",
+    // One word a day for everyone.
+    rounds: false,
     // Played once a day, so My path doesn't plan steps of it.
     noPath: true,
     routes: [
@@ -258,6 +267,7 @@ export const GAMES = [
     minutes: 5,
     skill: "Reading",
     path: "/read",
+    rounds: { options: [1, 2, 3], unit: "text" },
     routes: [{ path: "/read", Component: ReadGame }],
   },
 ];

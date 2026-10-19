@@ -6,6 +6,7 @@ import { buildRound, practicePool, wordCount } from "../practice/practiceLogic";
 import { MAX_SAY_WORDS, SAY_ROUND_LENGTH } from "./sayLogic";
 import SayQuestion from "./SayQuestion";
 import useSayMic from "./useSayMic";
+import { useRounds } from "../../lib/rounds";
 
 export const SAY_KEYS = {
   correctTitle: "sayCorrectTitle",
@@ -17,6 +18,7 @@ export const SAY_KEYS = {
 // See an English word, hear it, then say it into the microphone.
 export default function SayGame() {
   const [params] = useSearchParams();
+  const rounds = useRounds(SAY_ROUND_LENGTH);
   const { t } = useSettings();
   const p = t.practice;
   const search = params.toString();
@@ -36,7 +38,7 @@ export default function SayGame() {
       nativeLang={nativeLang}
       meaningInFeedback={false}
       keys={SAY_KEYS}
-      buildQuestions={() => buildRound(pairs, SAY_ROUND_LENGTH)}
+      buildQuestions={() => buildRound(pairs, rounds)}
       renderQuestion={({ question, done, onDone }) => (
         <SayQuestion
           word={question}

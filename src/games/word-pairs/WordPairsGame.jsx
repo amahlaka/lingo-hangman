@@ -5,7 +5,8 @@ import { languageLabel } from "../../lib/words";
 import { useLooseWordType } from "../../components/lingo";
 import { sounds } from "../../lib/sounds";
 import PracticeSession from "../practice/PracticeSession";
-import { MAX_MISSES, buildPairBoards, isPairCandidate, practicePool } from "../practice/practiceLogic";
+import { MAX_MISSES, PAIR_BOARDS, buildPairBoards, isPairCandidate, practicePool } from "../practice/practiceLogic";
+import { useRounds } from "../../lib/rounds";
 
 // One board: English words on one side, meanings on the other. Tap one from
 // each side to make a pair. A found pair stays where it is, with the meaning
@@ -121,6 +122,7 @@ export function PairsBoard({ board, done, onItem, onDone, p, learningLang, nativ
 // Match English words with their Finnish meanings, five pairs to a board.
 export default function WordPairsGame() {
   const [params] = useSearchParams();
+  const rounds = useRounds(PAIR_BOARDS, { max: 4 });
   const { t } = useSettings();
   const p = t.practice;
   const search = params.toString();
@@ -138,7 +140,7 @@ export default function WordPairsGame() {
       intro={p.pairsIntro}
       learningLang={learningLang}
       nativeLang={nativeLang}
-      buildQuestions={() => buildPairBoards(pairs)}
+      buildQuestions={() => buildPairBoards(pairs, { boards: rounds })}
       renderQuestion={({ question, done, onDone, onItem }) => (
         <PairsBoard
           board={question}

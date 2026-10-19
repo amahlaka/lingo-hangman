@@ -84,6 +84,15 @@ function Visits({ play }) {
       <p className="lg-caption">
         Everyone, with or without an account: the app opened in a browser tab, once per tab. Finnish time. Only counts are kept, nothing about who.
       </p>
+      {play.hidden?.length > 0 && (
+        <ul className="lg-caption">
+          {play.hidden.map((h) => (
+            <li key={h.from}>
+              Left out: {when(h.from)}–{time(h.to)}, {h.note} ({h.visits} visits, {h.gamesAnon} games without an account).
+            </li>
+          ))}
+        </ul>
+      )}
       <h3 className="lg-heading">Per hour, last 48 hours</h3>
       <Bars
         label="Visits per hour"

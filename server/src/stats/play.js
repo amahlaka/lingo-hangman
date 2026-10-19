@@ -2,7 +2,9 @@
 // statistics"), worked out when the page asks: the tables are small.
 //
 // Visits and games started are plain hourly counts over everyone. Play
-// sessions and unfinished rounds are from signed-in learners only.
+// sessions and unfinished rounds are from signed-in learners only. Hours in
+// play_hidden_hours (a security scan, say) are left out of the visits and the
+// games without an account, and listed as left out.
 
 import { GIVE_UP_REASONS } from "../../../src/lib/playSession.js";
 
@@ -55,7 +57,15 @@ export function playStats(db, now = Date.now()) {
   const hourOfDay = Array(24).fill(0);
   const popular = new Map();
   const popularFrom = isoHour(now - PLAY_DAYS * 86400_000);
+  const hiddenNotes = new Map(db.prepare("SELECT hour, note FROM play_hidden_hours WHERE hour >= ?").all(isoHour(dailySinceMs)).map((r) => [r.hour, r.note]));
+  const hidden = new Map(); // hour -> { visits, gamesAnon }
   for (const r of counts) {
+    if (hiddenNotes.has(r.hour) && r.metric !== "games_account") {
+      const h = hidden.get(r.hour) || { visits: 0, gamesAnon: 0 };
+      h[r.metric === "visits" ? "visits" : "gamesAnon"] += r.value;
+      hidden.set(r.hour, h);
+      continue;
+    }
     const local = localHour(r.hour);
     if (r.metric === "visits") {
       if (r.hour >= recentFrom && recent.has(r.hour)) recent.set(r.hour, recent.get(r.hour) + r.value);
@@ -128,6 +138,8 @@ export function playStats(db, now = Date.now()) {
     hourOfDay,
     daily: [...days.values()].sort((a, b) => a.day.localeCompare(b.day)),
     popular: [...popular.values()].sort((a, b) => b.total - a.total),
+    // Runs of hidden hours with one note: from the first hour to the end of the last.
+    hidden: hiddenRuns(hiddenNotes, hidden),
     sessions: {
       count: sessionRows.length,
       learners: learners.size,
@@ -157,10 +169,28 @@ export function playStats(db, now = Date.now()) {
   };
 }
 
+function hiddenRuns(notes, counts) {
+  const runs = [];
+  for (const hour of [...notes.keys()].sort()) {
+    const c = counts.get(hour) || { visits: 0, gamesAnon: 0 };
+    const last = runs.at(-1);
+    const start = Date.parse(`${hour}:00:00Z`);
+    if (last && last.note === notes.get(hour) && Date.parse(last.to) === start) {
+      last.to = new Date(start + 3600_000).toISOString();
+      last.visits += c.visits;
+      last.gamesAnon += c.gamesAnon;
+    } else {
+      runs.push({ from: new Date(start).toISOString(), to: new Date(start + 3600_000).toISOString(), note: notes.get(hour), ...c });
+    }
+  }
+  return runs;
+}
+
 // Housekeeping: play data older than PLAY_KEEP_DAYS goes.
 export function prunePlay(db, now = Date.now()) {
   const before = new Date(now - PLAY_KEEP_DAYS * 86400_000).toISOString();
   db.prepare("DELETE FROM play_counts WHERE hour < ?").run(before.slice(0, 13));
+  db.prepare("DELETE FROM play_hidden_hours WHERE hour < ?").run(before.slice(0, 13));
   db.prepare("DELETE FROM play_sessions WHERE started_at < ?").run(before);
   db.prepare("DELETE FROM give_ups WHERE at < ?").run(before);
 }

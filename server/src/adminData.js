@@ -105,7 +105,6 @@ export function learnerView(db, id) {
   const days = state
     ? Object.entries(state.days)
         .sort(([a], [b]) => b.localeCompare(a))
-        .slice(0, 30)
         .map(([day, d]) => ({ day, words: d.words, solved: d.solved, firstTry: d.firstTry || 0, goalMet: Boolean(d.goalMet) }))
     : [];
   return {
@@ -168,8 +167,7 @@ export function learnerPronunciation(db, userId) {
 }
 
 // How one learner has gone wrong: counts by kind over their synced answers,
-// and the latest mistakes with what they answered.
-const RECENT_MISTAKES = 30;
+// and every mistake with what they answered, newest first.
 function learnerMistakes(db, userId) {
   const kinds = {};
   const recent = [];
@@ -180,7 +178,7 @@ function learnerMistakes(db, userId) {
     const { result, day } = JSON.parse(row.payload);
     for (const m of answerMistakes(result)) {
       kinds[m.kind] = (kinds[m.kind] || 0) + 1;
-      if (recent.length < RECENT_MISTAKES) recent.push({ day, game: result.gameId, word: result.word || "", given: m.given, kind: m.kind });
+      recent.push({ day, game: result.gameId, word: result.word || "", given: m.given, kind: m.kind });
     }
   }
   return { kinds, recent };

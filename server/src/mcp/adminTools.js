@@ -209,7 +209,7 @@ export const tools = [
     name: "get_learner",
     title: "One learner's progress",
     description:
-      "One learner's progress by account id: level, XP, streak, daily goal, the last 30 days, games played, most missed words, every learned word (solved on 3 different days), mistake kinds and their latest 30 mistakes with what they answered, and their Say it right pronunciation: scores by mode, weakest IPA sounds, hardest words and readings, latest 20 scores. No email or devices.",
+      "One learner's progress by account id: level, XP, streak, daily goal, every day played (newest first), games played, most missed words, every learned word (solved on 3 different days), mistake kinds and every mistake with what they answered (newest first), and their Say it right pronunciation: scores by mode, weakest IPA sounds, hardest words and readings, latest 20 scores. No email or devices.",
     inputSchema: {
       type: "object",
       properties: { id: { type: "integer", minimum: 1, description: "Account id from list_learners." } },

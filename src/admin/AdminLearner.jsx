@@ -43,6 +43,23 @@ function Table({ head, rows }) {
   );
 }
 
+// Long tables (every day played, every mistake) start with the latest rows.
+const FIRST_ROWS = 30;
+
+function LongTable({ head, rows }) {
+  const [all, setAll] = useState(false);
+  return (
+    <>
+      <Table head={head} rows={all ? rows : rows.slice(0, FIRST_ROWS)} />
+      {rows.length > FIRST_ROWS && (
+        <button type="button" className="lg-btn lg-btn--quiet" onClick={() => setAll(!all)}>
+          {all ? `Show latest ${FIRST_ROWS}` : `Show all ${rows.length}`}
+        </button>
+      )}
+    </>
+  );
+}
+
 export default function AdminLearner() {
   const { id } = useParams();
   const [gate, setGate] = useState(null);
@@ -98,11 +115,11 @@ export default function AdminLearner() {
                 </section>
 
                 <section className="lg-section">
-                  <h2 className="lg-heading">Recent days</h2>
+                  <h2 className="lg-heading">Days played</h2>
                   {p.days.length === 0 ? (
                     <p className="lg-caption">Nothing played yet.</p>
                   ) : (
-                    <Table
+                    <LongTable
                       head={["Day", "Words", "Right", "First try", "Goal"]}
                       rows={p.days.map((d) => [shortDay(d.day), d.words, d.solved, d.words ? pct(d.firstTry / d.words) : "–", d.goalMet ? "✓" : ""])}
                     />
@@ -146,8 +163,8 @@ export default function AdminLearner() {
               ) : (
                 <>
                   <Table head={["Kind", "Times"]} rows={kindRows(data.mistakes.kinds).map(([k, n]) => [mistakeLabel(k), n])} />
-                  <p className="lg-caption">Latest mistakes, newest first.</p>
-                  <Table
+                  <p className="lg-caption">Every mistake, newest first.</p>
+                  <LongTable
                     head={["Day", "Game", "Word", "Answered", "Kind"]}
                     rows={data.mistakes.recent.map((m) => [shortDay(m.day), gameName(m.game), m.word, m.given || "–", mistakeLabel(m.kind)])}
                   />

@@ -5,14 +5,16 @@ import { getSentences } from "../../lib/words";
 import { canSpeak } from "../../lib/speech";
 import PracticeSession from "../practice/PracticeSession";
 import { practicePool } from "../practice/practiceLogic";
-import { TYPE_SENTENCES, buildTypeRound } from "./typeLogic";
+import { TYPE_ROUND, buildTypeRound, typeSentences } from "./typeLogic";
 import TypeQuestion from "./TypeQuestion";
+import { useRounds } from "../../lib/rounds";
 
 // Type it (/type-it): type the English for a Finnish word, and type English
 // sentences you hear. Hints (the word's shape, the next letter or word,
 // hearing the word) cost some of the round's points.
 export default function TypeGame() {
   const [params] = useSearchParams();
+  const rounds = useRounds(TYPE_ROUND);
   const { t } = useSettings();
   const p = t.practice;
   const search = params.toString();
@@ -33,7 +35,7 @@ export default function TypeGame() {
       intro={withSound ? p.typeIntro : p.typeIntroWords}
       learningLang={learningLang}
       nativeLang={nativeLang}
-      buildQuestions={() => buildTypeRound(pairs, sentences, { sentences: withSound ? TYPE_SENTENCES : 0 })}
+      buildQuestions={() => buildTypeRound(pairs, sentences, { length: rounds, sentences: withSound ? typeSentences(rounds) : 0 })}
       renderQuestion={({ question, done, onDone }) => (
         <TypeQuestion
           question={question}

@@ -8,6 +8,7 @@ export { default as WordRecap } from "./WordRecap";
 export { default as TriesMeter } from "./TriesMeter";
 export { default as ScorePill } from "./ScorePill";
 export { default as GameCard } from "./GameCard";
+export { default as RoundCard } from "./RoundCard";
 export { default as Achievements } from "./Achievements";
 export { default as SettingsMenu } from "./SettingsMenu";
 export { Flame, Shield, GoalRing } from "./Icons";

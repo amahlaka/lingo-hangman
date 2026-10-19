@@ -5,7 +5,9 @@ import { DEFAULT_LEARNING_LANG, DEFAULT_NATIVE_LANG, getGapItems, getTopics } fr
 import PracticeSession from "../practice/PracticeSession";
 import GapQuestion from "./GapQuestion";
 import { buildGapRound, gapTopics } from "./gapLogic";
+import { ROUND_LENGTH } from "../practice/practiceLogic";
 import TopicPicker, { useTopicChoice } from "../practice/TopicPicker";
+import { useRounds } from "../../lib/rounds";
 
 // A round of gap sentences on the word bank's topics of one type ("rule" or
 // "confusable"). `?set=<topic id>` practises a single topic, e.g.
@@ -13,6 +15,7 @@ import TopicPicker, { useTopicChoice } from "../practice/TopicPicker";
 // topics to play; the choice is remembered on this device.
 function GapGame({ gameId, topicType, title, intro, pickTopics = false }) {
   const [params] = useSearchParams();
+  const rounds = useRounds(ROUND_LENGTH);
   const setId = params.get("set");
   const content = useMemo(
     () => ({ topics: getTopics(topicType), gaps: getGapItems({ lang: DEFAULT_LEARNING_LANG }) }),
@@ -21,8 +24,8 @@ function GapGame({ gameId, topicType, title, intro, pickTopics = false }) {
   const topics = useMemo(() => gapTopics(content), [content]);
   const { chosen, choose, round } = useTopicChoice(gameId, topics, pickTopics);
   const build = useMemo(
-    () => () => buildGapRound(content, { setId, setIds: chosen }),
-    [content, setId, chosen.join(",")]
+    () => () => buildGapRound(content, { count: rounds, setId, setIds: chosen }),
+    [content, setId, rounds, chosen.join(",")]
   );
   const picker =
     pickTopics && !setId && topics.length > 1 ? <TopicPicker topics={topics} chosen={chosen} onChoose={choose} /> : null;

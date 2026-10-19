@@ -20,6 +20,7 @@ import {
   practicePool,
 } from "../practice/practiceLogic";
 import { useQuestionControls } from "../practice/questionControls";
+import { useRounds } from "../../lib/rounds";
 
 const PHRASE_ROUND = 6;
 
@@ -265,6 +266,7 @@ export function PhraseQuestion({ puzzle, done, onDone, p, learningLang, nativeLa
 // See a Finnish sentence, tap its English words into the right order.
 export default function PhraseGame() {
   const [params] = useSearchParams();
+  const rounds = useRounds(PHRASE_ROUND);
   const { t } = useSettings();
   const p = t.practice;
   const search = params.toString();
@@ -296,7 +298,7 @@ export default function PhraseGame() {
           learningLang={learningLang}
           nativeLang={nativeLang}
           buildQuestions={() =>
-            buildRound(pairs, PHRASE_ROUND).map((w) => {
+            buildRound(pairs, rounds).map((w) => {
               const puzzle = buildPhrasePuzzle(w);
               return english ? { ...puzzle, lesson: sentenceLesson(w) } : puzzle;
             })

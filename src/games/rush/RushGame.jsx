@@ -8,7 +8,7 @@ import { DailyProgress, Feedback, GameScreen, ScorePill, WordRecap, useConfetti 
 import { sounds } from "../../lib/sounds";
 import { practicePool } from "../practice/practiceLogic";
 import {
-  MISS_PAUSE_MS, RUSH_SECONDS, buildRushQuestions, comboBonus, comboMultiplier, readBest, rushPoints, rushPool, saveBest,
+  MISS_PAUSE_MS, buildRushQuestions, comboBonus, comboMultiplier, readBest, rushPoints, rushPool, rushSeconds, saveBest,
 } from "./rushLogic";
 
 const TICK_MS = 100;
@@ -23,6 +23,8 @@ export default function RushGame() {
   const k = t.rush;
   const { recordWord, resetWordStreak } = useProgress();
   const { celebrate, confetti } = useConfetti();
+  // A game card's menu can ask for a shorter or longer rush (`?rounds=30`).
+  const rushLength = rushSeconds(Number(params.get("rounds")));
   const search = params.toString();
   const { pairs, learningLang, nativeLang } = useMemo(() => {
     const pool = practicePool(new URLSearchParams(search));
@@ -42,7 +44,7 @@ export default function RushGame() {
   const [results, setResults] = useState([]);
   const [missed, setMissed] = useState(null);
   const [bonus, setBonus] = useState(null);
-  const [best, setBest] = useState(readBest);
+  const [best, setBest] = useState(() => readBest(rushLength));
   const [newBest, setNewBest] = useState(false);
   const shownAt = useRef(0);
   const pause = useRef(null);
@@ -64,7 +66,7 @@ export default function RushGame() {
     clearTimeout(pause.current);
     setPhase("done");
     if (score > best) {
-      saveBest(score);
+      saveBest(score, rushLength);
       setBest(score);
       setNewBest(true);
     }
@@ -86,7 +88,7 @@ export default function RushGame() {
     setBonus(null);
     setNewBest(false);
     setNow(at);
-    setEndsAt(at + RUSH_SECONDS * 1000);
+    setEndsAt(at + rushLength * 1000);
     shownAt.current = at;
     setPhase("playing");
   };
@@ -169,9 +171,9 @@ export default function RushGame() {
     return (
       <GameScreen title={k.name}>
         <main className="lg-board wr-ready">
-          <p className="wr-ready__clock" aria-hidden="true">{RUSH_SECONDS}</p>
+          <p className="wr-ready__clock" aria-hidden="true">{rushLength}</p>
           <h2 className="lg-display">{k.readyTitle}</h2>
-          <p className="lg-body-lg">{fill(k.readyBody, { n: RUSH_SECONDS })}</p>
+          <p className="lg-body-lg">{fill(k.readyBody, { n: rushLength })}</p>
           <p className="lg-caption">{k.readyCombo}</p>
           {best > 0 && <p className="lg-caption">{fill(k.bestSoFar, { n: best })}</p>}
         </main>
@@ -219,7 +221,7 @@ export default function RushGame() {
   }
 
   const seconds = Math.ceil(left / 1000);
-  const share = Math.min(1, left / (RUSH_SECONDS * 1000));
+  const share = Math.min(1, left / (rushLength * 1000));
   const multiplier = comboMultiplier(combo);
   return (
     <GameScreen title={k.name} score={scorePill} menuActions={menuActions} className="wr-screen">

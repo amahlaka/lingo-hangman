@@ -5,12 +5,14 @@ import { DEFAULT_LEARNING_LANG, DEFAULT_NATIVE_LANG, getTexts } from "../../lib/
 import { applyPreferences } from "../../lib/preferences";
 import PracticeSession from "../practice/PracticeSession";
 import TalkQuestion from "./TalkQuestion";
-import { buildTalkRound, isTalkText } from "./talkLogic";
+import { TALK_ROUND, buildTalkRound, isTalkText } from "./talkLogic";
+import { useRounds } from "../../lib/rounds";
 
 // Your turn: everyday conversations (the word bank's dialogue texts) where the
 // learner plays one speaker. `?set=<text id>` plays one conversation.
 export default function TalkGame() {
   const [params] = useSearchParams();
+  const rounds = useRounds(TALK_ROUND, { max: 3 });
   const { t } = useSettings();
   const setId = params.get("set");
   const build = useMemo(
@@ -18,9 +20,9 @@ export default function TalkGame() {
       const all = getTexts({ kind: "dialogue" }).filter(isTalkText);
       const one = setId ? all.filter((d) => d.id === setId) : [];
       const pool = one.length ? one : applyPreferences(all, { min: 3 });
-      return buildTalkRound(pool, { allTexts: all });
+      return buildTalkRound(pool, { count: rounds, allTexts: all });
     },
-    [setId]
+    [setId, rounds]
   );
 
   return (

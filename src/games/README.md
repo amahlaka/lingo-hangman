@@ -26,6 +26,18 @@ import WordPairsGame from "./word-pairs/WordPairsGame";
 Replace the matching `soon: true` placeholder if there is one. An entry with
 `soon: true` shows as a dashed "Coming later" card and has no routes.
 
+### Round length
+
+A long press, right-click or the ⋯ button on a game card opens a menu of
+round lengths (1, 5 or 10 by default). Picking one opens the game with
+`?rounds=N`; read it with `useRounds(yourUsualLength)` from
+`src/lib/rounds.js` and build that many questions. A plain tap has no
+`rounds`, so the game plays its usual length, and "Play again" keeps the
+address. Add `rounds: { options: [1, 2, 3], unit: "text" }` to the registry
+entry when a round is something bigger than a question (units and their
+labels are in `roundMenu` in `src/i18n.js`), `path` there when the card opens
+a menu page rather than the game, or `rounds: false` for a fixed length.
+
 ## 2. Get words
 
 `src/lib/words.js` is shared by every game:

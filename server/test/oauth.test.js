@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import crypto from "node:crypto";
 import { setup } from "./helpers.js";
-import { resourceMetadata, serverMetadata } from "../src/mcp/oauth.js";
+import { MAX_WAITING_CLIENTS, resourceMetadata, serverMetadata } from "../src/mcp/oauth.js";
 
 const CALLBACK = "https://claude.ai/api/mcp/auth_callback";
 const verifier = crypto.randomBytes(32).toString("base64url");
@@ -180,5 +180,31 @@ test("a client with a secret must send it", async () => {
   const ok = await form(t, "/api/oauth/token", { ...body, code: code2 }, { headers: { authorization: `Basic ${basic}` } });
   assert.equal(ok.statusCode, 200);
   assert.ok(ok.json().access_token);
+  await t.close();
+});
+
+test("the approval page says where access goes and that the name is the app's own", async () => {
+  const t = setup();
+  const client = (await register(t, { client_name: "Cla‮ude\u0000", redirect_uris: [CALLBACK, "http://127.0.0.1:33418/callback"] })).json();
+  assert.equal(client.client_name, "Claude");
+  await t.signIn("boss@example.com");
+  const open = (redirect) =>
+    t.app.inject({ method: "GET", url: authorizeUrl(client.client_id, { redirect_uri: redirect }), headers: { cookie: `lingo_session=${t.cookie}` } });
+  const claude = await open(CALLBACK);
+  assert.match(claude.body, /the name the app gave itself/);
+  assert.match(claude.body, /Access goes to <strong>claude\.ai<\/strong>/);
+  assert.match(claude.body, /admin tools/);
+  const local = await open("http://127.0.0.1:33418/callback");
+  assert.match(local.body, /a program running on this computer<\/strong> \(port 33418\)/);
+  await t.close();
+});
+
+test("registration stops while too many registrations wait for approval", async () => {
+  const t = setup();
+  const insert = t.db.prepare("INSERT INTO oauth_clients (id, secret_hash, name, redirect_uris) VALUES (?, NULL, 'x', '[]')");
+  for (let i = 0; i < MAX_WAITING_CLIENTS; i++) insert.run(`lingo_client_fill${i}`);
+  assert.equal((await register(t)).statusCode, 429);
+  t.db.prepare("DELETE FROM oauth_clients WHERE id = 'lingo_client_fill0'").run();
+  assert.equal((await register(t)).statusCode, 201);
   await t.close();
 });

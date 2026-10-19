@@ -475,7 +475,16 @@ endpoint for that at `/api/mcp`; the app itself never calls it.
   use). An approval is one `api_tokens` row named after the client, shown on
   `/admin/ai` as a connector; Disconnect ends both tokens. Redirects go only
   to claude.ai's callback, loopback addresses (local tools), and any in
-  `OAUTH_REDIRECT_URIS`. Logic in `server/src/mcp/oauth.js`, routes and page
+  `OAUTH_REDIRECT_URIS`. Registration is open on purpose (claude.ai's
+  connectors register without an account, and the discovery files are public
+  with `Access-Control-Allow-Origin: *` as RFC 8414 expects); a registration
+  alone grants nothing. The approval page marks the client's name as the
+  app's own claim, says where access goes (claude.ai, a program on this
+  computer with its port, or a configured host), and admin scope is checked
+  again when the code and every refresh token are used. Control and
+  text-direction characters are stripped from names, and registering stops
+  while 500 registrations wait for approval (unapproved ones go after a day).
+  Logic in `server/src/mcp/oauth.js`, routes and page
   in `server/src/routes/oauth.js`.
 - **Discovery files:** clients read the authorization server's metadata from
   the site root (`/.well-known/oauth-authorization-server`, also

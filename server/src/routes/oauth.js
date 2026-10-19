@@ -22,6 +22,9 @@ import {
   resourceMetadata,
   serverMetadata,
   takeCode,
+  MAX_WAITING_CLIENTS,
+  redirectKind,
+  waitingClients,
 } from "../mcp/oauth.js";
 
 const RECENT_SIGN_IN_MS = 24 * 3600_000;
@@ -96,11 +99,14 @@ export default async function oauthRoutes(app, { db, config, limiter }) {
   app.get("/api/oauth/protected-resource/me", metadata((b) => resourceMetadata(b, "learner")));
   app.get("/api/oauth/metadata", metadata(serverMetadata));
 
-  // Dynamic client registration (RFC 7591). Anyone may register, but only to
-  // claude.ai's or a loopback address, and nothing works until someone signed
-  // in allows it.
+  // Dynamic client registration (RFC 7591). Anyone may register: claude.ai's
+  // connectors register this way, without an account. A registration only
+  // gets claude.ai's or a loopback address, and nothing works until someone
+  // signed in allows it on the approval page; admin access also needs that
+  // person to be an admin. Unapproved registrations go after a day.
   app.post("/api/oauth/register", async (req, reply) => {
     if (!limiter.allow(`oauth-register:${req.ip}`, REGISTRATIONS_PER_DAY, DAY)) return oauthError(reply, 429, "too_many_requests", "Try again tomorrow");
+    if (waitingClients(db) >= MAX_WAITING_CLIENTS) return oauthError(reply, 429, "too_many_requests", "Too many registrations waiting; try again tomorrow");
     const b = req.body && typeof req.body === "object" ? req.body : {};
     const uris = b.redirect_uris;
     if (!Array.isArray(uris) || uris.length === 0 || uris.length > 5 || !uris.every((u) => redirectAllowed(u, config))) {
@@ -111,7 +117,10 @@ export default async function oauthRoutes(app, { db, config, limiter }) {
     if (b.grant_types && !(Array.isArray(b.grant_types) && b.grant_types.every((g) => ["authorization_code", "refresh_token"].includes(g)))) {
       return oauthError(reply, 400, "invalid_client_metadata", "Unsupported grant_types");
     }
-    const name = typeof b.client_name === "string" && b.client_name.trim() ? b.client_name.trim().slice(0, 80) : "AI assistant";
+    // No control or text-direction characters, which could make the name on
+    // the approval page read as something else.
+    const given = typeof b.client_name === "string" ? b.client_name.replace(/[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u202a-\u202e\u2066-\u2069]/g, "").trim() : "";
+    const name = given ? given.slice(0, 80) : "AI assistant";
     const client = registerClient(db, { name, redirectUris: uris, withSecret: method !== "none" });
     req.log.info({ clientId: client.id, name }, "oauth client registered");
     return reply.code(201).send({
@@ -178,19 +187,32 @@ export default async function oauthRoutes(app, { db, config, limiter }) {
       Date.now() + REQUEST_MS
     );
     const to = new URL(q.redirect_uri);
-    const form = `<form method="post" action="/api/oauth/authorize"><input type="hidden" name="request" value="${esc(id)}"><div class="row"><button class="primary" name="decision" value="allow">${s.lang === "fi" && !forAdmin ? "Salli" : "Allow"}</button><button name="decision" value="deny">${s.lang === "fi" && !forAdmin ? "Estä" : "Deny"}</button></div></form>`;
+    // The name is whatever the registration said, so the page names where
+    // the access goes too, and warns when that is this computer.
+    const kind = redirectKind(q.redirect_uri);
+    const fi = s.lang === "fi" && !forAdmin;
+    const who = fi
+      ? `<strong>${esc(client.name)}</strong> <span class="small">(nimi, jonka sovellus antoi itselleen)</span>`
+      : `<strong>${esc(client.name)}</strong> <span class="small">(the name the app gave itself)</span>`;
+    const where = {
+      claude: fi ? "Pääsy menee osoitteeseen <strong>claude.ai</strong>." : "Access goes to <strong>claude.ai</strong>.",
+      loopback: fi
+        ? `Pääsy menee <strong>tällä tietokoneella toimivalle ohjelmalle</strong> (portti ${esc(to.port || "80")}). Salli vain, jos käynnistit sen itse tällä tietokoneella.`
+        : `Access goes to <strong>a program running on this computer</strong> (port ${esc(to.port || "80")}). Only allow this if you started it yourself, on this computer.`,
+      configured: fi ? `Pääsy menee osoitteeseen <strong>${esc(to.host)}</strong>.` : `Access goes to <strong>${esc(to.host)}</strong>.`,
+    }[kind];
+    const form = `<form method="post" action="/api/oauth/authorize"><input type="hidden" name="request" value="${esc(id)}"><div class="row"><button class="primary" name="decision" value="allow">${fi ? "Salli" : "Allow"}</button><button name="decision" value="deny">${fi ? "Estä" : "Deny"}</button></div></form>`;
     if (!forAdmin) {
-      const fi = s.lang === "fi";
       return page(reply, {
         title: fi ? `Yhdistetäänkö ${client.name}?` : `Connect ${client.name}?`,
         lang: fi ? "fi" : "en",
         formTo: to.origin,
         body: fi
-          ? `<p><strong>${esc(client.name)}</strong> (palaa osoitteeseen ${esc(to.host)}) pyytää lupaa lukea Lingon edistymistäsi tililtä ${esc(s.email)}. Se voi:</p>
+          ? `<p>${who} pyytää lupaa lukea Lingon edistymistäsi tililtä ${esc(s.email)}. ${where} Se voi:</p>
 <ul><li>lukea tasosi, putkesi, pelisi, sanasi ja virheesi</li><li>lukea Oman polkusi ja sen, mitä Lingo päättelee oppimisestasi</li></ul>
 <p>Se ei voi muuttaa mitään eikä nähdä muiden oppijoiden tietoja.</p>
 <p class="small">Salli vain, jos aloitit yhdistämisen juuri itse. Voit katkaista yhteyden milloin tahansa: Tili → Tekoälyavustaja.</p>${form}`
-          : `<p><strong>${esc(client.name)}</strong> (returns to ${esc(to.host)}) asks to read your Lingo progress as ${esc(s.email)}. It will be able to:</p>
+          : `<p>${who} asks to read your Lingo progress as ${esc(s.email)}. ${where} It will be able to:</p>
 <ul><li>read your level, streak, games, words and mistakes</li><li>read your My path and what Lingo makes of your learning</li></ul>
 <p>It can't change anything or see other learners.</p>
 <p class="small">Only allow this if you just started connecting it yourself. You can disconnect it any time under Account → AI assistant.</p>${form}`,
@@ -199,7 +221,7 @@ export default async function oauthRoutes(app, { db, config, limiter }) {
     return page(reply, {
       title: `Connect ${client.name}?`,
       formTo: to.origin,
-      body: `<p><strong>${esc(client.name)}</strong> (returns to ${esc(to.host)}) asks to use Lingo's admin tools as ${esc(s.email)}. It will be able to:</p>
+      body: `<p>${who} asks to use Lingo's <strong>admin tools</strong> as ${esc(s.email)}. ${where} It will be able to:</p>
 <ul><li>read the statistics, problem reports and suggestions</li><li>read each learner's progress, by account number (never email addresses)</li><li>mark reports fixed or dismissed, and suggestions accepted or dismissed</li></ul>
 <p class="small">Only allow this if you just started connecting it yourself. You can disconnect it any time under Account → AI tools.</p>${form}`,
     });

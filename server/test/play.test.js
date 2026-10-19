@@ -46,6 +46,75 @@ test("visits and games are counted per hour, with or without an account", async 
   await t.close();
 });
 
+test("scanners, bots and unknown games are not counted", async () => {
+  const t = setup();
+  for (const ua of [
+    "Mozilla/5.0 (Windows NT 10.0) AppleWebKit/537.36 HeadlessChrome/140.0 Safari/537.36",
+    "curl/8.5.0",
+    "python-requests/2.32",
+    "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)",
+    "",
+  ]) {
+    assert.equal((await t.call("POST", "/api/play/count", { visit: true }, { headers: { "user-agent": ua } })).statusCode, 200);
+  }
+  // A made-up game id (a scanner trying values) is refused.
+  assert.equal((await t.call("POST", "/api/play/count", { game: "hangmanbq3og3rzkf" })).statusCode, 400);
+  assert.equal(t.db.prepare("SELECT COUNT(*) AS n FROM play_counts").get().n, 0);
+
+  // One address opening the app more often than people do: the rest isn't counted.
+  for (let i = 0; i < 70; i++) await t.call("POST", "/api/play/count", { visit: true });
+  assert.equal(t.db.prepare("SELECT value FROM play_counts WHERE metric = 'visits'").get().value, 60);
+  await t.close();
+});
+
+test("hours left out are not in the visit and game numbers, and can be counted again", async () => {
+  const t = setup();
+  t.db.exec("DELETE FROM play_left_out");
+  const hour = (h) => new Date(Date.now() - h * 3600_000).toISOString().slice(0, 13);
+  t.db
+    .prepare("INSERT INTO play_counts (hour, metric, key, value) VALUES (?, 'visits', '', 200), (?, 'games_anon', 'hangman', 30), (?, 'visits', '', 2)")
+    .run(hour(3), hour(3), hour(1));
+  await t.signIn("boss@example.com");
+  const stats = async () => (await t.call("GET", "/api/admin/stats")).json().play;
+  assert.equal((await stats()).hourOfDay.reduce((a, b) => a + b, 0), 202);
+
+  const from = `${hour(3)}:10:00Z`;
+  const to = `${hour(3)}:50:00Z`;
+  assert.equal((await t.call("POST", "/api/admin/play/left-out", { from, to: from.replace(/^\d{4}/, "2000") })).statusCode, 400);
+  const made = await t.call("POST", "/api/admin/play/left-out", { from, to, note: "Burp scan" });
+  assert.equal(made.statusCode, 201);
+  const range = made.json();
+  assert.equal(range.note, "Burp scan");
+  assert.equal(range.from, `${hour(3)}:00:00Z`);
+
+  let play = await stats();
+  assert.deepEqual(play.leftOut.map((r) => r.id), [range.id]);
+  assert.equal(play.hourOfDay.reduce((a, b) => a + b, 0), 2);
+  assert.equal(play.popular.length, 0);
+  assert.equal(play.recentHours.find((h) => h.hour.startsWith(hour(3))).leftOut, true);
+  assert.equal(play.daily.reduce((a, d) => a + d.visits, 0), 2);
+  // The counts themselves are kept.
+  assert.equal(t.db.prepare("SELECT COUNT(*) AS n FROM play_counts").get().n, 3);
+
+  assert.equal((await t.call("POST", "/api/admin/play/left-out/remove", { id: range.id })).statusCode, 200);
+  play = await stats();
+  assert.equal(play.hourOfDay.reduce((a, b) => a + b, 0), 202);
+  assert.equal(play.leftOut.length, 0);
+
+  // Admins only.
+  t.cookie = null;
+  await t.signIn("a@example.com");
+  assert.equal((await t.call("POST", "/api/admin/play/left-out", { from, to })).statusCode, 403);
+  await t.close();
+});
+
+test("the Burp scan of 2026-10-19 is left out", () => {
+  const t = setup();
+  const [scan] = playStats(t.db).leftOut;
+  assert.deepEqual([scan.from, scan.to, scan.note], ["2026-10-19T12:00:00Z", "2026-10-19T13:59:59Z", "Burp security scan"]);
+  return t.close();
+});
+
 test("play sessions and unfinished rounds need an account and are kept once", async () => {
   const t = setup();
   const body = {

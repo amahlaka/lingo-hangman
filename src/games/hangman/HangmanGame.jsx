@@ -15,6 +15,7 @@ import HintButtons, { HINT_COSTS } from "./HintButtons";
 import { FREE_HINTS } from "../practice/practiceLogic";
 import { ReportButton, useReportSubject } from "../../app/FeedbackContext";
 import { describeQuestion, itemRefFor } from "../../lib/feedback";
+import { useRounds } from "../../lib/rounds";
 
 export const MAX_MISSES = 6;
 
@@ -31,7 +32,9 @@ export default function HangmanGame() {
   const [draw, setDraw] = useState(0);
   // "Right in a row" counts within this set of words only.
   useEffect(() => resetWordStreak(), [search, draw, resetWordStreak]);
-  const wordSet = useMemo(() => loadWordSet(new URLSearchParams(search)), [search, draw]);
+  // A shared link plays its own words; otherwise `?rounds=` sets how many.
+  const rounds = useRounds(undefined);
+  const wordSet = useMemo(() => loadWordSet(new URLSearchParams(search), { count: rounds }), [search, draw, rounds]);
   const { pairs: words, learningLang, nativeLang, swap: swapMode, fromLink } = wordSet;
 
   // Words still to solve, by index into `words`. A lost word moves to the end.

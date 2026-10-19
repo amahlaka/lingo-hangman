@@ -6,13 +6,14 @@ import { fill } from "../../i18n";
 import { canRecord } from "../../lib/micRecorder";
 import { askToBeVerified, pronounceStatus } from "../../lib/pronounce";
 import {
-  buildSayRightRound, loadBest, roundAverage, roundSounds, saveBest, sayRightPool, tipFor, weakestSounds,
+  SAY_RIGHT_ROUND_LENGTH, buildSayRightRound, loadBest, roundAverage, roundSounds, saveBest, sayRightPool, tipFor, weakestSounds,
 } from "./sayRightLogic";
-import { buildReadRound, readPool } from "./readAloudLogic";
+import { READ_ROUND_LENGTH, buildReadRound, readPool } from "./readAloudLogic";
 import ReadAloudQuestion from "./ReadAloudQuestion";
 import PracticeSession from "../practice/PracticeSession";
 import { practicePool } from "../practice/practiceLogic";
 import SayRightQuestion from "./SayRightQuestion";
+import { useRounds } from "../../lib/rounds";
 
 export const SAY_RIGHT_KEYS = {
   correctTitle: "sayRightCorrectTitle",
@@ -150,6 +151,9 @@ export default function SayRightGame() {
   const { t, lang } = useSettings();
   const p = t.practice;
   const mode = params.get("mode") === "read" ? "read" : "words";
+  // Every clip goes through the scoring server, so a long round stops at ten
+  // words, and at the usual few passages when reading aloud.
+  const rounds = useRounds(SAY_RIGHT_ROUND_LENGTH, { max: 10 });
   const search = (() => {
     const rest = new URLSearchParams(params);
     rest.delete("mode");
@@ -229,7 +233,7 @@ export default function SayRightGame() {
         endTitleKey="endTitleSentences"
         recapTitleKey="recapSentences"
         empty={p.sayRightNoPassages}
-        buildQuestions={() => buildReadRound(passages).map((passage) => ({ id: passage.id, learning: passage.text.en, native: passage.text[nativeLang] || "", passage }))}
+        buildQuestions={() => buildReadRound(passages, Math.min(rounds, READ_ROUND_LENGTH)).map((passage) => ({ id: passage.id, learning: passage.text.en, native: passage.text[nativeLang] || "", passage }))}
         endNote={(results) => <RoundSummary results={results} p={p} lang={lang} mode="read" />}
         renderQuestion={({ question, done, onDone }) => (
           <ReadAloudQuestion
@@ -258,7 +262,7 @@ export default function SayRightGame() {
       nativeLang={nativeLang}
       meaningInFeedback={false}
       keys={SAY_RIGHT_KEYS}
-      buildQuestions={() => buildSayRightRound(pairs)}
+      buildQuestions={() => buildSayRightRound(pairs, rounds)}
       endNote={(results) => <RoundSummary results={results} p={p} lang={lang} mode="words" />}
       renderQuestion={({ question, done, onDone }) => (
         <SayRightQuestion

@@ -5,21 +5,23 @@ import { DEFAULT_LEARNING_LANG, DEFAULT_NATIVE_LANG, getTexts } from "../../lib/
 import { applyPreferences } from "../../lib/preferences";
 import PracticeSession from "../practice/PracticeSession";
 import ReadQuestion from "./ReadQuestion";
-import { buildReadRound, isReadText } from "./readLogic";
+import { READ_ROUND, buildReadRound, isReadText } from "./readLogic";
+import { useRounds } from "../../lib/rounds";
 
 // Read and understand: short real-life texts with easy questions.
 // `?set=<text id>` reads one text.
 export default function ReadGame() {
   const [params] = useSearchParams();
+  const rounds = useRounds(READ_ROUND, { max: 3 });
   const { t } = useSettings();
   const setId = params.get("set");
   const build = useMemo(
     () => () => {
       const all = getTexts().filter(isReadText);
       const one = setId ? all.filter((x) => x.id === setId) : [];
-      return buildReadRound(one.length ? one : applyPreferences(all, { min: 4 }));
+      return buildReadRound(one.length ? one : applyPreferences(all, { min: 4 }), { count: rounds });
     },
-    [setId]
+    [setId, rounds]
   );
 
   return (

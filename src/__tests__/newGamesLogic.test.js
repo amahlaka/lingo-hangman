@@ -1,6 +1,6 @@
 import { buildTalk, buildTalkRound, isTalkText, learnerSpeaker, nextTurn, pickReplies } from '../games/talk/talkLogic';
 import { buildMistakeRound, mistakeQuestion, mistakeTiles } from '../games/mistake/mistakeLogic';
-import { comboBonus, comboMultiplier, readBest, rushPoints, rushPool, saveBest } from '../games/rush/rushLogic';
+import { comboBonus, comboMultiplier, readBest, rushPoints, rushPool, rushSeconds, saveBest } from '../games/rush/rushLogic';
 import {
   dailyCandidates, dailyFor, emptyDaily, finishDaily, freeWord, letterStates, scoreGuess, shareGrid, wordForDay,
 } from '../games/daily/dailyLogic';
@@ -111,9 +111,19 @@ describe('Word rush', () => {
   it('keeps short words and remembers the best score', () => {
     expect(rushPool([{ learning: 'dog', native: 'koira' }, { learning: 'how are you today', native: 'mitä kuuluu' }])).toHaveLength(1);
     const storage = memoryStorage();
-    expect(readBest(storage)).toBe(0);
-    saveBest(120, storage);
-    expect(readBest(storage)).toBe(120);
+    expect(readBest(60, storage)).toBe(0);
+    saveBest(120, 60, storage);
+    expect(readBest(60, storage)).toBe(120);
+    // Each round length keeps its own best; the minute keeps its old key.
+    expect(storage.getItem('lingoRushBest')).toBe('120');
+    expect(readBest(30, storage)).toBe(0);
+    saveBest(70, 30, storage);
+    expect(readBest(30, storage)).toBe(70);
+    expect(readBest(60, storage)).toBe(120);
+  });
+
+  it('plays only the offered rush lengths', () => {
+    expect([30, 60, 90, 45, NaN].map(rushSeconds)).toEqual([30, 60, 90, 60, 60]);
   });
 });
 

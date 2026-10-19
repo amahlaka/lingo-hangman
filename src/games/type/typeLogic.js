@@ -13,6 +13,12 @@ import { alikeWords } from "../../lib/words";
 export const TYPE_ROUND = 10;
 // Dictation sentences in a round, when the browser can read them aloud.
 export const TYPE_SENTENCES = 4;
+
+// Dictation sentences in a round of `length`: the same share as a full round,
+// so a one-question round is a word.
+export function typeSentences(length) {
+  return Math.min(TYPE_SENTENCES, Math.floor((length * TYPE_SENTENCES) / TYPE_ROUND));
+}
 // Checked attempts per question before the answer is shown.
 export const MAX_TYPE_TRIES = 3;
 // Longest dictation sentence, in words.

@@ -4,11 +4,13 @@ import { useSettings } from "../../app/SettingsContext";
 import { languageLabel } from "../../lib/words";
 import PracticeSession from "../practice/PracticeSession";
 import ChoiceQuestion from "../practice/ChoiceQuestion";
-import { buildChoiceQuestion, buildRound, practicePool } from "../practice/practiceLogic";
+import { ROUND_LENGTH, buildChoiceQuestion, buildRound, practicePool } from "../practice/practiceLogic";
+import { useRounds } from "../../lib/rounds";
 
 // See a Finnish word, pick its English meaning from four options.
 export default function MeaningGame() {
   const [params] = useSearchParams();
+  const rounds = useRounds(ROUND_LENGTH);
   const { t } = useSettings();
   const p = t.practice;
   const search = params.toString();
@@ -22,7 +24,7 @@ export default function MeaningGame() {
       intro={p.meaningIntro}
       learningLang={learningLang}
       nativeLang={nativeLang}
-      buildQuestions={() => (pairs.length >= 4 ? buildRound(pairs).map((w) => buildChoiceQuestion(w, pairs)) : [])}
+      buildQuestions={() => (pairs.length >= 4 ? buildRound(pairs, rounds).map((w) => buildChoiceQuestion(w, pairs)) : [])}
       renderQuestion={({ question, done, onDone }) => (
         <ChoiceQuestion
           question={question}

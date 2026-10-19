@@ -7,6 +7,7 @@ import { sounds } from "../../lib/sounds";
 import PracticeSession from "../practice/PracticeSession";
 import { MAX_MISSES, buildGapRound, isGapCandidate, practicePool, usableWords } from "../practice/practiceLogic";
 import { useQuestionControls } from "../practice/questionControls";
+import { useRounds } from "../../lib/rounds";
 
 const GAP_ROUND = 8;
 
@@ -116,6 +117,7 @@ export function GapQuestion({ question, done, onDone, p, learningLang, nativeLan
 // Read a sentence with a missing word and choose the word that fits.
 export default function FillGapGame() {
   const [params] = useSearchParams();
+  const rounds = useRounds(GAP_ROUND);
   const { t, lang } = useSettings();
   const p = t.practice;
   const search = params.toString();
@@ -145,7 +147,7 @@ export default function FillGapGame() {
       intro={p.gapIntro}
       learningLang={learningLang}
       nativeLang={nativeLang}
-      buildQuestions={() => buildGapRound(sentences, pairs, GAP_ROUND, Math.random, { items, nativeLang })}
+      buildQuestions={() => buildGapRound(sentences, pairs, rounds, Math.random, { items, nativeLang })}
       renderQuestion={({ question, done, onDone }) => (
         <GapQuestion
           question={question}

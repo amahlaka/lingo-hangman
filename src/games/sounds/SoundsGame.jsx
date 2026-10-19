@@ -11,6 +11,8 @@ import PracticeSession from "../practice/PracticeSession";
 import TopicPicker, { useTopicChoice } from "../practice/TopicPicker";
 import SoundQuestion, { MarkedWord } from "./SoundQuestion";
 import { BY_EAR, KINDS, buildSoundRound, lessonProgress, lessonWords, soundKinds } from "./soundsLogic";
+import { ROUND_LENGTH } from "../practice/practiceLogic";
+import { useRounds } from "../../lib/rounds";
 
 const MIX = "mix";
 
@@ -172,6 +174,7 @@ function Practice({ setId }) {
   const lessons = useMemo(() => getSoundLessons(), []);
   const mix = setId === MIX;
   const withSound = canSpeak();
+  const rounds = useRounds(ROUND_LENGTH);
   const topics = useKindTopics(lessons, withSound);
   const { chosen, choose, round } = useTopicChoice("sounds", topics, mix);
   const picker = mix && topics.length > 1 ? <TopicPicker topics={topics} chosen={chosen} onChoose={choose} /> : null;
@@ -185,7 +188,7 @@ function Practice({ setId }) {
       learningLang={DEFAULT_LEARNING_LANG}
       nativeLang={DEFAULT_NATIVE_LANG}
       meaningInFeedback={false}
-      buildQuestions={() => buildSoundRound(lessons, { setId: mix ? null : setId, kinds: mix ? chosen : [], withSound })}
+      buildQuestions={() => buildSoundRound(lessons, { setId: mix ? null : setId, kinds: mix ? chosen : [], count: rounds, withSound })}
       renderQuestion={({ question, done, onDone }) => (
         <SoundQuestion question={question} done={done} onDone={onDone} showRule={mix} />
       )}

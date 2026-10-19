@@ -953,3 +953,48 @@ textarea.lg-input { padding: var(--space-2) var(--space-3); resize: vertical; }
 /* Install the app (src/app/Install.jsx) */
 .in-steps { margin: 0; padding-left: 1.4em; display: flex; flex-direction: column; gap: var(--space-1); }
 .in-icon { display: inline-block; vertical-align: -3px; color: var(--lake); }
+
+/* Round menu on a game card (src/components/lingo/RoundCard.jsx): a long
+   press, right-click or the ⋯ button opens it over the card. The button sits
+   at the end of the card's meta line, clear of the art and the name. */
+.lg-card-wrap { position: relative; display: flex; flex-direction: column; container-type: inline-size; }
+.lg-card-wrap > .lg-card { flex: 1; }
+/* No text selection or link preview while the finger is held down. */
+.lg-card--rounds { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+.lg-card--rounds .lg-card__meta { padding-right: 44px; flex-wrap: wrap; column-gap: var(--space-3); }
+/* On a narrow card the meta line wraps; a gap reads better there than a dot. */
+.lg-card--rounds .lg-card__meta > [aria-hidden="true"] { display: none; }
+.lg-card--rounds.qp-card { padding-right: 56px; }
+.lg-card__more {
+  position: absolute; bottom: var(--space-2); right: var(--space-2); z-index: 2;
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 44px; height: 44px; padding: 0; border: 0; border-radius: var(--radius-pill);
+  background: transparent; color: var(--ink-muted); cursor: pointer;
+}
+.qp-card + .lg-card__more { bottom: auto; top: 50%; transform: translateY(-50%); color: var(--lake); }
+.lg-card__more:hover, .lg-card__more[aria-expanded="true"] { color: var(--lake); background: var(--lake-soft); }
+.lg-card__more:focus-visible { outline: 3px solid var(--lingon); outline-offset: 2px; }
+.lg-roundmenu {
+  position: absolute; top: var(--space-2); right: var(--space-2); left: var(--space-2); z-index: 30;
+  display: flex; flex-direction: column; gap: var(--space-2);
+  padding: var(--space-3); border-radius: var(--radius-lg);
+  background: var(--surface-raised); box-shadow: var(--shadow-dialog);
+  animation: lg-roundmenu-in 160ms ease-out;
+}
+.lg-roundmenu__title { margin: 0; font: 700 15px/20px var(--font-sans); }
+/* One under another on a narrow card, side by side on a wide one. */
+.lg-roundmenu__opts { display: grid; grid-template-columns: 1fr; gap: var(--space-2); }
+@container (min-width: 260px) {
+  .lg-roundmenu__opts { grid-template-columns: repeat(3, 1fr); }
+  .lg-roundmenu .lg-roundmenu__opt { min-width: 0; white-space: normal; }
+}
+.lg-roundmenu__opt {
+  display: flex; align-items: center; justify-content: center; min-height: 44px; padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-md); background: var(--lake-soft); color: var(--lake);
+  font: 700 15px/18px var(--font-sans); text-align: center; text-decoration: none; white-space: nowrap;
+}
+.lg-roundmenu__opt:hover { background: var(--lake); color: var(--on-lake); }
+.lg-roundmenu__opt:focus-visible { outline: 3px solid var(--lingon); outline-offset: 2px; }
+.lg-roundmenu__hint { margin: 0; font-size: 13px; line-height: 18px; color: var(--ink-muted); }
+@keyframes lg-roundmenu-in { from { opacity: 0; transform: translateY(-4px) scale(.98); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .lg-roundmenu { animation: none; } }

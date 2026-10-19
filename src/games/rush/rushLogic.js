@@ -6,12 +6,27 @@ import { buildChoiceQuestion, isPairCandidate, shuffle } from "../practice/pract
 import { localChanged } from "../../lib/localSettings.js";
 
 export const RUSH_SECONDS = 60;
+// Round lengths a game card's menu offers. Each has its own best score.
+export const RUSH_LENGTHS = [30, 60, 90];
 // Every this many right answers in a row adds bonus time.
 export const COMBO_BONUS_EVERY = 5;
 export const COMBO_BONUS_SECONDS = 3;
 // How long a missed question stays on screen with its answer shown.
 export const MISS_PAUSE_MS = 700;
 const BEST_KEY = "lingoRushBest";
+
+// A round length the game plays: one of RUSH_LENGTHS, else the usual minute.
+export function rushSeconds(asked) {
+  return RUSH_LENGTHS.includes(asked) ? asked : RUSH_SECONDS;
+}
+
+// Where the best score of a `seconds` round is kept, and its synced record
+// name (src/lib/accountSettings.js). The minute keeps the names it always had.
+export function bestKeys(seconds = RUSH_SECONDS) {
+  return seconds === RUSH_SECONDS
+    ? { storage: BEST_KEY, record: "rushBest" }
+    : { storage: `${BEST_KEY}${seconds}`, record: `rushBest${seconds}` };
+}
 
 // Score multiplier for a run of right answers: x1, then x2 from 3 in a row,
 // x3 from 6 in a row.
@@ -42,19 +57,20 @@ export function buildRushQuestions(pool, random = Math.random) {
   return shuffle(pool, random).map((w) => buildChoiceQuestion(w, pool, random));
 }
 
-export function readBest(storage = globalThis.localStorage) {
+export function readBest(seconds = RUSH_SECONDS, storage = globalThis.localStorage) {
   try {
-    const n = Number(storage?.getItem(BEST_KEY));
+    const n = Number(storage?.getItem(bestKeys(seconds).storage));
     return Number.isFinite(n) && n > 0 ? n : 0;
   } catch {
     return 0;
   }
 }
 
-export function saveBest(score, storage = globalThis.localStorage) {
+export function saveBest(score, seconds = RUSH_SECONDS, storage = globalThis.localStorage) {
+  const keys = bestKeys(seconds);
   try {
-    storage?.setItem(BEST_KEY, String(score));
-    localChanged("rushBest");
+    storage?.setItem(keys.storage, String(score));
+    localChanged(keys.record);
   } catch {
     // ignore: the best score then lasts for this visit only
   }

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { GameScreen } from "../components/lingo";
 import { api, backendAvailable } from "../lib/backend";
@@ -134,14 +134,16 @@ export default function AdminStats() {
   const [gate, setGate] = useState(null);
   const [data, setData] = useState(null);
 
-  useEffect(() => {
-    (async () => {
-      if (!(await backendAvailable())) return setGate("unavailable");
-      const res = await api("/admin/stats");
-      if (!res.ok) return setGate(res.data?.error in GATES ? res.data.error : res.status === 0 ? "unavailable" : "signed_out");
-      setData(res.data);
-    })();
+  const load = useCallback(async () => {
+    if (!(await backendAvailable())) return setGate("unavailable");
+    const res = await api("/admin/stats");
+    if (!res.ok) return setGate(res.data?.error in GATES ? res.data.error : res.status === 0 ? "unavailable" : "signed_out");
+    setData(res.data);
   }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
 
   const days = data?.days || [];
   return (
@@ -172,7 +174,7 @@ export default function AdminStats() {
               </p>
             </section>
 
-            <AdminPlayStats play={data.play} />
+            <AdminPlayStats play={data.play} onChange={load} />
 
             {days.length > 0 && (
               <section className="lg-section">

@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import {
   ChartNoAxesColumn,
   CircleUser,
+  Download,
   Flag,
   Gem,
   Headphones,
@@ -20,12 +21,14 @@ import { useProgress } from "../../app/ProgressContext";
 import { DAILY_GOAL_OPTIONS } from "../../lib/progress";
 import { backendAvailable } from "../../lib/backend";
 import { useFeedback } from "../../app/FeedbackContext";
+import { useInstallWay } from "../../lib/useInstallWay";
 
 // Settings popover, top to bottom: game-specific `actions` ([{ label, onClick }])
 // such as "Restart" and (with the optional backend) reporting a problem with
 // the question on screen; one compact row each for language, theme, sound
 // effects, voice and daily goal; then a grid of places to go: Practice
-// settings, profile, shop and, with the backend, account, hear a sentence and
+// settings, profile, shop, installing the app (until it is installed) and,
+// with the backend, account, hear a sentence and
 // suggest content.
 export default function SettingsMenu({ actions = [] }) {
   const { lang, setLang, theme, setTheme, sound, setSound, voice, setVoice, t } = useSettings();
@@ -34,6 +37,7 @@ export default function SettingsMenu({ actions = [] }) {
   const [open, setOpen] = useState(false);
   const [hasBackend, setHasBackend] = useState(false);
   const ref = useRef(null);
+  const installWay = useInstallWay();
 
   // Asked only once the menu opens, so screens never wait on the network.
   useEffect(() => {
@@ -90,6 +94,7 @@ export default function SettingsMenu({ actions = [] }) {
     { to: "/preferences", label: t.preferencesTitle, Icon: SlidersHorizontal },
     { to: "/profile", label: t.profile.title, Icon: ChartNoAxesColumn },
     { to: "/shop", label: t.shop.title, Icon: Gem },
+    ...(installWay ? [{ to: "/install", label: t.install.title, Icon: Download }] : []),
     ...(hasBackend
       ? [
           { to: "/account", label: t.account.title, Icon: CircleUser },

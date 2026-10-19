@@ -11,6 +11,7 @@ import { Achievements, DailyProgress, Feedback, GameCard, SettingsMenu } from ".
 import { ShopCard } from "./Shop";
 import { RemindersOffer } from "./Reminders";
 import AccountOffer from "./AccountOffer";
+import { InstallOffer } from "./Install";
 import MyPathCard from "./MyPath";
 
 // Show answer statistics once there are enough answers to say something.
@@ -136,6 +137,7 @@ export default function Home() {
         <Feedback variant={nudge.variant} icon={nudge.icon} title={nudge.title} />
         <RemindersOffer />
         <AccountOffer />
+        <InstallOffer />
 
         <MyPathCard />
 

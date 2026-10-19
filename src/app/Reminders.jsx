@@ -17,6 +17,7 @@ import {
   subscribeDevice,
   unsubscribeDevice,
 } from "../lib/push";
+import { claimHomeOffer } from "../lib/homeOffers";
 
 // Reminders by web push (docs/backend.md, "Reminders"): the section under
 // Account, and the one-time offer on Home after a few days of playing.
@@ -191,7 +192,10 @@ export function RemindersOffer() {
   useEffect(() => {
     if (!eligible) return undefined;
     let live = true;
-    api("/push").then((res) => live && res.ok && setView(res.data));
+    // Shown only when no other Home offer has the day (src/lib/homeOffers.js).
+    api("/push").then(
+      (res) => live && res.ok && (!res.data.available || res.data.enabled || claimHomeOffer("reminders")) && setView(res.data)
+    );
     return () => {
       live = false;
     };

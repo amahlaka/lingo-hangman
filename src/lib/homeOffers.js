@@ -3,15 +3,15 @@
 // offer claims the day just before it shows; the others then wait for another
 // day. The same offer may show again on that day (e.g. after a reload).
 
-const KEY = "lingo.homeOffer.v1";
+const STORAGE_ITEM = "lingo.homeOffer.v1";
 
 const todayKey = () => new Date().toISOString().slice(0, 10);
 
 export function claimHomeOffer(name) {
   try {
-    const held = JSON.parse(localStorage.getItem(KEY) || "null");
+    const held = JSON.parse(localStorage.getItem(STORAGE_ITEM) || "null");
     if (held && held.day === todayKey() && held.name !== name) return false;
-    localStorage.setItem(KEY, JSON.stringify({ day: todayKey(), name }));
+    localStorage.setItem(STORAGE_ITEM, JSON.stringify({ day: todayKey(), name }));
     return true;
   } catch {
     return true;

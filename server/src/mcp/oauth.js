@@ -80,6 +80,26 @@ export function redirectAllowed(uri, config) {
   }
 }
 
+// Where an approval's code goes, for the approval page: claude.ai, a program
+// on the person's own computer (loopback; anything running there could be
+// listening), or an address the server's admin added.
+export function redirectKind(uri) {
+  if (KNOWN_REDIRECTS.includes(uri)) return "claude";
+  const u = new URL(uri);
+  return u.protocol === "http:" && ["localhost", "127.0.0.1", "[::1]"].includes(u.hostname) ? "loopback" : "configured";
+}
+
+// Registrations nobody has approved yet; registering stops at
+// MAX_WAITING_CLIENTS so an anonymous flood can't fill the database.
+export const MAX_WAITING_CLIENTS = 500;
+export const waitingClients = (db) =>
+  db
+    .prepare(
+      `SELECT COUNT(*) AS n FROM oauth_clients
+        WHERE id NOT IN (SELECT client_id FROM api_tokens WHERE client_id IS NOT NULL)`
+    )
+    .get().n;
+
 export function registerClient(db, { name, redirectUris, withSecret }) {
   const id = `lingo_client_${randomToken(12)}`;
   const secret = withSecret ? randomToken() : null;

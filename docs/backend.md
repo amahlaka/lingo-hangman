@@ -382,6 +382,17 @@ numbers in `server/src/stats/play.js`, shown on `/admin/stats`.
   limit. The admin page shows visits per hour for 48 hours, visits by hour of
   the day, games played per day without an account, and the most popular games
   (all in Finnish time).
+- **Not counted** (Arttu's Burp scan, 2026-10-19, made the numbers
+  misleading): a browser run by a program (`navigator.webdriver`, so a
+  scanner's crawler or a test robot) doesn't send counts; the API answers but
+  doesn't count a User-Agent that looks like a scanner, bot, HTTP library or
+  headless browser (`isAutomated` in `routes/play.js`), a game id that isn't
+  in `src/lib/gameList.js`, or visits past 60 an hour from one address.
+- **Hours left out** (`play_left_out`): an admin can leave out a range of
+  hours on `/admin/stats` (`POST /api/admin/play/left-out` `{ from, to, note
+  }`, `.../remove` `{ id }`). Those hours' counts are kept but not in the
+  numbers, and the 48-hour chart marks them. Migration 014 leaves out the scan,
+  2026-10-19 12:00–13:59 UTC.
 - **Play sessions, signed in only** (`POST /api/play/sessions`): a session runs
   from the first game opened, across any games after it, until 30 minutes pass
   without play (`SESSION_GAP_MS`) or the page closes (`pagehide`). It is sent

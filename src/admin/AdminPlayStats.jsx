@@ -1,5 +1,6 @@
-import React from "react";
+import React, { useState } from "react";
 import { GAMES } from "../games/registry";
+import { api } from "../lib/backend";
 
 // The play part of /admin/stats (server/src/stats/play.js): visits and games
 // started by everyone, and play sessions and unfinished rounds of learners
@@ -72,7 +73,78 @@ function Table({ head, rows }) {
   );
 }
 
-function Visits({ play }) {
+// Hours whose visits and games are left out of the numbers (a security scan,
+// test traffic). The counts are kept; removing a range brings them back.
+function LeftOut({ play, onChange }) {
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
+  const [note, setNote] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(false);
+  const when = (iso) =>
+    new Date(iso).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: play.zone });
+  const ranges = play.leftOut || [];
+
+  const add = async (e) => {
+    e.preventDefault();
+    const start = new Date(from).getTime();
+    // "15:00 to 17:00" leaves out the 15 and 16 o'clock hours.
+    const end = Math.max(start, new Date(to).getTime() - 60_000);
+    setBusy(true);
+    const res = await api("/admin/play/left-out", {
+      method: "POST",
+      body: { from: new Date(start).toISOString(), to: new Date(end).toISOString(), note: note.trim() },
+    });
+    setBusy(false);
+    setError(!res.ok);
+    if (res.ok) {
+      setFrom("");
+      setTo("");
+      setNote("");
+    }
+    onChange?.();
+  };
+
+  const remove = async (id) => {
+    setBusy(true);
+    await api("/admin/play/left-out/remove", { method: "POST", body: { id } });
+    setBusy(false);
+    onChange?.();
+  };
+
+  return (
+    <details className="lg-details" open={ranges.length > 0 || undefined}>
+      <summary>Left out of these numbers{ranges.length > 0 ? ` (${ranges.length})` : ""}</summary>
+      <p className="lg-caption">
+        Hours of visits and games that would mislead, like a security scan or your own testing. Browsers run by a program and known scanners
+        are not counted at all.
+      </p>
+      {ranges.length > 0 && (
+        <Table
+          head={["From", "To", "Why", ""]}
+          rows={ranges.map((r) => [
+            r.id,
+            when(r.from),
+            when(r.to),
+            r.note || "–",
+            <button key="remove" type="button" className="lg-btn lg-btn--quiet" disabled={busy} onClick={() => remove(r.id)}>
+              Count again
+            </button>,
+          ])}
+        />
+      )}
+      <form className="lg-row" onSubmit={add}>
+        <input className="lg-input" type="datetime-local" aria-label="From" value={from} onChange={(e) => setFrom(e.target.value)} />
+        <input className="lg-input" type="datetime-local" aria-label="To" value={to} onChange={(e) => setTo(e.target.value)} />
+        <input className="lg-input" aria-label="Why" placeholder="Why, like Security scan" maxLength={100} value={note} onChange={(e) => setNote(e.target.value)} />
+        <button type="submit" className="lg-btn lg-btn--secondary" disabled={busy || !from || !to}>Leave out</button>
+      </form>
+      {error && <p className="lg-caption">That didn't work: check the times (To after From, at most 90 days).</p>}
+    </details>
+  );
+}
+
+function Visits({ play, onChange }) {
   const time = (iso) => new Date(iso).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: play.zone });
   const when = (iso) => `${new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: play.zone })} ${time(iso)}`;
   const hours = play.recentHours;
@@ -84,10 +156,11 @@ function Visits({ play }) {
       <p className="lg-caption">
         Everyone, with or without an account: the app opened in a browser tab, once per tab. Finnish time. Only counts are kept, nothing about who.
       </p>
+      <LeftOut play={play} onChange={onChange} />
       <h3 className="lg-heading">Per hour, last 48 hours</h3>
       <Bars
         label="Visits per hour"
-        items={hours.map((h) => ({ key: h.hour, value: h.visits, title: `${when(h.hour)}: ${h.visits} visits` }))}
+        items={hours.map((h) => ({ key: h.hour, value: h.visits, title: `${when(h.hour)}: ${h.leftOut ? "left out" : `${h.visits} visits`}` }))}
         first={when(hours[0].hour)}
         last={`${time(hours.at(-1).hour)} (${total} in all)`}
       />
@@ -219,11 +292,11 @@ function GiveUps({ play }) {
   );
 }
 
-export default function AdminPlayStats({ play }) {
+export default function AdminPlayStats({ play, onChange }) {
   if (!play) return null;
   return (
     <>
-      <Visits play={play} />
+      <Visits play={play} onChange={onChange} />
       <Popular play={play} />
       <Sessions play={play} />
       <GiveUps play={play} />

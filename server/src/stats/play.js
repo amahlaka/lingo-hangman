@@ -1,8 +1,9 @@
 // Play statistics for the admin Statistics page (docs/backend.md, "Play
 // statistics"), worked out when the page asks: the tables are small.
 //
-// Visits and games started are plain hourly counts over everyone. Play
-// sessions and unfinished rounds are from signed-in learners only.
+// Visits and games started are plain hourly counts over everyone, without
+// the hours an admin left out (a security scan, say). Play sessions and
+// unfinished rounds are from signed-in learners only.
 
 import { GIVE_UP_REASONS } from "../../../src/lib/playSession.js";
 
@@ -37,13 +38,47 @@ const median = (list) => {
 const share = (n, total) => (total ? Math.round((n / total) * 100) / 100 : 0);
 const isoHour = (ms) => new Date(ms).toISOString().slice(0, 13);
 
+// ---- Hours left out of the counts ----
+
+const HOUR_KEY = /^\d{4}-\d{2}-\d{2}T\d{2}$/;
+const validHour = (h) => typeof h === "string" && HOUR_KEY.test(h) && !Number.isNaN(Date.parse(`${h}:00:00Z`));
+const leftOutView = (r) => ({ id: r.id, from: `${r.from_hour}:00:00Z`, to: `${r.to_hour}:59:59Z`, note: r.note, createdAt: r.created_at });
+
+export function leftOutHours(db) {
+  return db.prepare("SELECT * FROM play_left_out ORDER BY from_hour DESC").all().map(leftOutView);
+}
+
+// { from, to, note }: ISO times; every hour from `from`'s to `to`'s is left
+// out. Returns the new range, or null when it doesn't make sense.
+export function addLeftOut(db, { from, to, note } = {}) {
+  const hour = (iso) => (typeof iso === "string" && iso.length <= 30 && !Number.isNaN(Date.parse(iso)) ? isoHour(Date.parse(iso)) : null);
+  const fromHour = hour(from);
+  const toHour = hour(to);
+  if (!validHour(fromHour) || !validHour(toHour) || toHour < fromHour) return null;
+  if (Date.parse(`${toHour}:00:00Z`) - Date.parse(`${fromHour}:00:00Z`) > PLAY_KEEP_DAYS * 86400_000) return null;
+  const text = typeof note === "string" ? note.trim().slice(0, 100) : "";
+  const { lastInsertRowid } = db.prepare("INSERT INTO play_left_out (from_hour, to_hour, note) VALUES (?, ?, ?)").run(fromHour, toHour, text);
+  return leftOutView(db.prepare("SELECT * FROM play_left_out WHERE id = ?").get(lastInsertRowid));
+}
+
+export function removeLeftOut(db, id) {
+  return Number(db.prepare("DELETE FROM play_left_out WHERE id = ?").run(id).changes) > 0;
+}
+
 export function playStats(db, now = Date.now()) {
   const since = new Date(now - PLAY_DAYS * 86400_000).toISOString();
   const dailySinceMs = now - PLAY_DAILY_DAYS * 86400_000;
   const dailySince = localHour(isoHour(dailySinceMs)).day;
 
   // ---- Hourly counts (everyone) ----
-  const counts = db.prepare("SELECT hour, metric, key, value FROM play_counts WHERE hour >= ?").all(isoHour(dailySinceMs));
+  const leftOut = leftOutHours(db);
+  const isLeftOut = (hour) => leftOut.some((r) => `${hour}:00:00Z` >= r.from && `${hour}:00:00Z` <= r.to);
+  const counts = db
+    .prepare(
+      `SELECT hour, metric, key, value FROM play_counts c WHERE hour >= ?
+       AND NOT EXISTS (SELECT 1 FROM play_left_out o WHERE c.hour BETWEEN o.from_hour AND o.to_hour)`
+    )
+    .all(isoHour(dailySinceMs));
   const recentFrom = isoHour(now - (RECENT_HOURS - 1) * 3600_000);
   const recent = new Map();
   for (let i = RECENT_HOURS - 1; i >= 0; i--) recent.set(isoHour(now - i * 3600_000), 0);
@@ -123,7 +158,9 @@ export function playStats(db, now = Date.now()) {
   return {
     zone: PLAY_ZONE,
     days: PLAY_DAYS,
-    recentHours: [...recent].map(([hour, visits]) => ({ hour: `${hour}:00:00Z`, visits })),
+    // Hour ranges whose visits and games are not in the numbers below.
+    leftOut,
+    recentHours: [...recent].map(([hour, visits]) => ({ hour: `${hour}:00:00Z`, visits, ...(isLeftOut(hour) ? { leftOut: true } : {}) })),
     // Visits by hour of the day (Finnish time), added up over PLAY_DAYS.
     hourOfDay,
     daily: [...days.values()].sort((a, b) => a.day.localeCompare(b.day)),
@@ -161,6 +198,7 @@ export function playStats(db, now = Date.now()) {
 export function prunePlay(db, now = Date.now()) {
   const before = new Date(now - PLAY_KEEP_DAYS * 86400_000).toISOString();
   db.prepare("DELETE FROM play_counts WHERE hour < ?").run(before.slice(0, 13));
+  db.prepare("DELETE FROM play_left_out WHERE to_hour < ?").run(before.slice(0, 13));
   db.prepare("DELETE FROM play_sessions WHERE started_at < ?").run(before);
   db.prepare("DELETE FROM give_ups WHERE at < ?").run(before);
 }

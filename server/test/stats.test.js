@@ -120,3 +120,17 @@ test("how learners go wrong: kinds per game and wrong answers several learners g
   assert.deepEqual(mistakes.recent.map((m) => [m.word, m.given, m.kind]), [["I like tea", "tea I like", "word_order"], ["oatmeal", "oltmil", "spelling"]]);
   await t.close();
 });
+
+test("a learner's admin view lists every mistake and every day played", async () => {
+  const t = setup();
+  const DAY = 24 * HOUR;
+  await learner(t, "a@example.com", Array.from({ length: 40 }, (_, i) => typed(`word${i}`, [`wrd${i}`], (40 - i) * DAY)));
+  t.cookie = null;
+  await t.signIn("boss@example.com");
+  const id = t.db.prepare("SELECT id FROM users WHERE email = 'a@example.com'").get().id;
+  const view = (await t.call("GET", `/api/admin/users/${id}`)).json();
+  assert.equal(view.mistakes.recent.length, 40);
+  assert.equal(view.mistakes.recent[0].word, "word39");
+  assert.equal(view.progress.days.length, 40);
+  await t.close();
+});

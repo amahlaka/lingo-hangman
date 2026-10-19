@@ -4,6 +4,7 @@ import { UserPlus } from "lucide-react";
 import { useSettings } from "./SettingsContext";
 import { useProgress } from "./ProgressContext";
 import { api, backendAvailable } from "../lib/backend";
+import { claimHomeOffer } from "../lib/homeOffers";
 
 // Home: suggests an account once, to a learner without one who has played on
 // a few days. Accounts stay optional (docs/backend.md): no answer is needed,
@@ -41,8 +42,9 @@ export default function AccountOffer() {
     if (!eligible || view) return undefined;
     let live = true;
     (async () => {
-      // Only when accounts can be reached and this browser isn't signed in.
-      const show = (await backendAvailable()) && (await api("/me")).status === 401;
+      // Only when accounts can be reached and this browser isn't signed in,
+      // and no other Home offer has the day (src/lib/homeOffers.js).
+      const show = (await backendAvailable()) && (await api("/me")).status === 401 && claimHomeOffer("account");
       if (!live) return;
       if (show) markShown();
       setView(show ? "show" : "hide");

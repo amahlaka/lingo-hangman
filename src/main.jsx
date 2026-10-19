@@ -11,6 +11,7 @@ import { loadSync } from './lib/sync';
 import { makeWordClip, refreshOnDemandSpeech } from './lib/tts';
 import { refreshReminders } from './lib/push';
 import { loadDifficulty } from './lib/difficulty';
+import { startInstallWatch } from './lib/install';
 
 // Games read words synchronously, so switch to the newest published word bank
 // first. If that is slow or offline, the copy built into the app is used.
@@ -23,6 +24,9 @@ loadPublishedContent().finally(() => {
 })
 
 registerSW();
+
+// Keep the browser's install offer for the menu and the Home hint.
+startInstallWatch();
 
 // Recorded voice clips; the browser's own voice is used until they load.
 loadSpeechClips();

@@ -10,6 +10,7 @@ import Shop from "./app/Shop";
 import Account from "./app/Account";
 import Leaderboard from "./app/Leaderboard";
 import Privacy from "./app/Privacy";
+import Install from "./app/Install";
 import Suggest from "./app/Suggest";
 import AdminReports from "./admin/AdminReports";
 import ContentAdmin from "./admin/ContentAdmin";
@@ -32,6 +33,7 @@ export function AppRoutes() {
       <Route path="/account" element={<Account />} />
       <Route path="/leaderboard" element={<Leaderboard />} />
       <Route path="/privacy" element={<Privacy />} />
+      <Route path="/install" element={<Install />} />
       <Route path="/suggest" element={<Suggest />} />
       <Route path="/hear" element={<HearSentence />} />
       {/* Word bank editor; not linked from the app, see the lingo-wordbase README. */}

@@ -26,7 +26,8 @@ jobs:
       - name: Start it as on the server, with no network
         run: |
           docker run -d --name whistle --network none --read-only --tmpfs /tmp --cap-drop ALL \
-            --security-opt no-new-privileges:true --cpus 1 --memory 384m -e WHISTLE_TOKEN=ci-token lingo-whistle:ci
+            --security-opt no-new-privileges:true --cpus 1 --memory 384m -e WHISTLE_TOKEN=ci-token \
+            -v "$PWD/whistle/test:/test:ro" lingo-whistle:ci
           for i in $(seq 1 30); do
             state=$(docker inspect -f '{{.State.Health.Status}}' whistle)
             [ "$state" = healthy ] && break
@@ -35,32 +36,7 @@ jobs:
           docker logs whistle
           [ "$state" = healthy ]
       - name: Transcribe the test clips
+        # --network none: the check runs inside the container.
         run: |
-          # --network none: reach the container through docker exec instead.
-          docker cp whistle/test whistle:/tmp/test
-          docker exec whistle python - <<'PY'
-          import json, time, urllib.request, uuid
-          def post(name, token="ci-token"):
-              data = open(f"/tmp/test/{name}", "rb").read()
-              b = uuid.uuid4().hex
-              body = (f"--{b}\r\nContent-Disposition: form-data; name=\"model\"\r\n\r\nwhistle\r\n"
-                      f"--{b}\r\nContent-Disposition: form-data; name=\"file\"; filename=\"clip.wav\"\r\n"
-                      "Content-Type: audio/wav\r\n\r\n").encode() + data + f"\r\n--{b}--\r\n".encode()
-              req = urllib.request.Request("http://127.0.0.1:8000/v1/audio/transcriptions", body,
-                                           {"Content-Type": f"multipart/form-data; boundary={b}",
-                                            "Authorization": f"Bearer {token}"})
-              t = time.perf_counter()
-              out = json.load(urllib.request.urlopen(req, timeout=30))
-              return out, time.perf_counter() - t
-          try:
-              post("water.wav", token="wrong")
-              raise SystemExit("a wrong token was accepted")
-          except urllib.error.HTTPError as e:
-              assert e.code == 401, e.code
-          for _ in range(4):
-              for name, want in (("water.wav", "water"), ("where-is-the-bathroom.wav", "bathroom")):
-                  out, took = post(name)
-                  print(f"{name}: {out['text']!r} in {took:.2f} s (model {out['ms']} ms)")
-                  assert want in out["text"].lower(), out
-          PY
+          docker exec whistle python /test/check.py /test ci-token
           docker stats --no-stream whistle

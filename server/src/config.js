@@ -89,6 +89,18 @@ export function loadConfig(env = process.env) {
     pronounceQueueMax: Number(env.PRONOUNCE_QUEUE_MAX || 6),
     pronounceTimeoutMs: Number(env.PRONOUNCE_TIMEOUT_MS || 20000),
 
+    // Server speech-to-text for Say it (verified learners): the Whistle
+    // service (whistle/, http://lingo-whistle:8000) or another service that
+    // answers OpenAI-style /v1/audio/transcriptions, such as Talkies with
+    // STT_MODEL=canary-180m-flash. Without STT_URL the option is hidden.
+    sttUrl: env.STT_URL || null,
+    sttToken: env.STT_TOKEN || null,
+    sttModel: env.STT_MODEL || "whistle",
+    // Clips a verified learner can send in a day.
+    sttDailyLimit: Number(env.STT_DAILY_LIMIT || 400),
+    sttQueueMax: Number(env.STT_QUEUE_MAX || 8),
+    sttTimeoutMs: Number(env.STT_TIMEOUT_MS || 15000),
+
     // Reminders by web push. The VAPID key pair is made once on the server
     // (npx web-push generate-vapid-keys) and kept in its .env; without it
     // reminders are off and the app hides them.

@@ -5,6 +5,8 @@ import { fill } from "../../i18n";
 import { getItem } from "../../lib/words";
 import { sounds } from "../../lib/sounds";
 import { isBlockingError, isOnDeviceFailure, listenOnce } from "../../lib/speechRecognition";
+import { recordClip } from "../../lib/micRecorder";
+import { transcribeClip } from "../../lib/serverSpeech";
 import { RATE_SLOW, speak, stopSpeaking } from "../../lib/speech";
 import ListenMore from "../practice/ListenMore";
 import { MAX_SAY_TRIES, checkSaid } from "./sayLogic";
@@ -13,9 +15,13 @@ import { wordStanding } from "../../lib/adaptive";
 import { wordKey } from "../../lib/progress";
 import { useQuestionControls } from "../practice/questionControls";
 
+// Lingo's recogniser gets at most this much of one try (the API takes 10 s).
+const SERVER_MAX_MS = 8000;
+
 // What the recogniser heard, with the target's words marked as heard or not.
 function HeardLine({ result, done, p }) {
   if (result.nothing) return <p className="pg-hint" role="status">{p.sayNothing}</p>;
+  if (result.serverFailed) return <p className="pg-hint" role="status">{p.sayServerFailed}</p>;
   const someHeard = result.words.some((w) => w.ok);
   const hint = result.matched || done
     ? null
@@ -47,13 +53,14 @@ function HeardLine({ result, done, p }) {
   );
 }
 
-// One word to say. In "mic" mode the browser listens and checks it; in "self"
-// mode (no speech recognition, or no microphone) the learner checks themselves.
+// One word to say. In "mic" mode the browser listens and checks it (or, with
+// privacy "server", Lingo's own recogniser does); in "self" mode (no speech
+// recognition, or no microphone) the learner checks themselves.
 export default function SayQuestion({
-  word, learningLang, nativeLang, done, onDone, p, mode, selfNote, privacy, prepareOnDevice, onBlocked, onOnDeviceFailed,
+  word, learningLang, nativeLang, done, onDone, p, mode, selfNote, privacy, prepareOnDevice, onBlocked, onOnDeviceFailed, onServerFailed,
 }) {
   const [misses, setMisses] = useState(0);
-  const [state, setState] = useState("idle"); // idle | preparing | listening
+  const [state, setState] = useState("idle"); // idle | preparing | listening | checking
   const [result, setResult] = useState(null);
   // The Finnish reading shows from the start, except for words the learner
   // already says well; those keep it one free tap away.
@@ -99,6 +106,50 @@ export default function SayQuestion({
     reportExtra: () => ({ heard: heardNow.current, recognition: mode === "self" ? "none" : privacy }),
   });
 
+  const check = (alternatives) => {
+    const checked = checkSaid(text, alternatives);
+    setResult(checked);
+    heardNow.current = [...heardNow.current, checked.heard].slice(-MAX_SAY_TRIES);
+    if (checked.matched) {
+      finish(true, misses);
+      return;
+    }
+    const next = misses + 1;
+    setMisses(next);
+    if (next >= MAX_SAY_TRIES) finish(false, next);
+    else sounds.miss();
+  };
+
+  // Lingo's recogniser: record the clip here, then the server says what it heard.
+  const listenOnServer = async () => {
+    setResult(null);
+    setState("listening");
+    const rec = recordClip({ maxMs: SERVER_MAX_MS, pauseMs: text.trim().includes(" ") ? 1200 : 900 });
+    const s = { stop: rec.stop, abort: rec.cancel };
+    session.current = s;
+    const clip = await rec.done;
+    if (!alive.current || session.current !== s) return;
+    if (!clip.wav) {
+      session.current = null;
+      setState("idle");
+      if (clip.error && clip.error !== "no-speech") onBlocked(clip.error);
+      else setResult({ nothing: true });
+      return;
+    }
+    setState("checking");
+    const out = await transcribeClip(clip.wav);
+    if (!alive.current || session.current !== s) return;
+    session.current = null;
+    setState("idle");
+    if (out.error) {
+      onServerFailed?.(out.error);
+      setResult({ serverFailed: true });
+      return;
+    }
+    if (!out.text) setResult({ nothing: true });
+    else check([out.text]);
+  };
+
   const listen = async () => {
     if (state === "listening") {
       if (session.current) session.current.stop();
@@ -106,6 +157,7 @@ export default function SayQuestion({
     }
     if (done || state !== "idle") return;
     stopSpeaking();
+    if (privacy === "server") return listenOnServer();
     let onDevice = privacy === "local";
     if (privacy === "downloadable") {
       setState("preparing");
@@ -134,17 +186,7 @@ export default function SayQuestion({
       else setResult({ nothing: true });
       return;
     }
-    const checked = checkSaid(text, alternatives);
-    setResult(checked);
-    heardNow.current = [...heardNow.current, checked.heard].slice(-MAX_SAY_TRIES);
-    if (checked.matched) {
-      finish(true, misses);
-      return;
-    }
-    const next = misses + 1;
-    setMisses(next);
-    if (next >= MAX_SAY_TRIES) finish(false, next);
-    else sounds.miss();
+    check(alternatives);
   };
 
   // The word bank's IPA, always shown, and its reading in the learner's own
@@ -188,14 +230,14 @@ export default function SayQuestion({
               type="button"
               className={`sy-mic${listening ? " sy-mic--on" : ""}`}
               onClick={listen}
-              disabled={done || state === "preparing"}
+              disabled={done || state === "preparing" || state === "checking"}
               aria-pressed={listening}
             >
               <span className="sy-mic__circle" aria-hidden="true">
                 <Mic size={36} strokeWidth={2} />
               </span>
               <span className="sy-mic__label">
-                {listening ? p.sayListening : state === "preparing" ? p.sayPreparing : misses > 0 && !done ? p.sayAgain : p.sayTap}
+                {listening ? p.sayListening : state === "preparing" ? p.sayPreparing : state === "checking" ? p.sayChecking : misses > 0 && !done ? p.sayAgain : p.sayTap}
               </span>
             </button>
           </div>
@@ -205,7 +247,7 @@ export default function SayQuestion({
               <TriesMeter left={left} total={MAX_SAY_TRIES} label={left === 1 ? p.sayTryLeft : fill(p.sayTriesLeft, { n: left })} />
             </div>
           )}
-          <p className="lg-caption sy-privacy">{privacy === "local" ? p.sayPrivacyLocal : p.sayPrivacyOnline}</p>
+          <p className="lg-caption sy-privacy">{privacy === "server" ? p.sayPrivacyServer : privacy === "local" ? p.sayPrivacyLocal : p.sayPrivacyOnline}</p>
         </>
       ) : (
         <>

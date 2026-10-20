@@ -14,6 +14,7 @@ import adminRoutes from "./routes/admin.js";
 import syncRoutes from "./routes/sync.js";
 import ttsRoutes from "./routes/tts.js";
 import pronounceRoutes from "./routes/pronounce.js";
+import transcribeRoutes from "./routes/transcribe.js";
 import pushRoutes from "./routes/push.js";
 import statsRoutes from "./routes/stats.js";
 import leaderboardRoutes from "./routes/leaderboard.js";
@@ -27,8 +28,9 @@ const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
 
 // `tts` ({ fetchImpl, cache, wordClips }) replaces the TTS service and its cache in tests;
 // `push` is the function that sends one push message (push/sender.js);
-// `pronounce` ({ fetchImpl }) replaces the Talkies service in tests.
-export function buildApp({ db, config, logger = true, limiter = createRateLimiter(), tts = {}, push = null, pronounce = {} }) {
+// `pronounce` ({ fetchImpl }) replaces the Talkies service in tests, and
+// `transcribe` ({ fetchImpl }) the speech-to-text service.
+export function buildApp({ db, config, logger = true, limiter = createRateLimiter(), tts = {}, push = null, pronounce = {}, transcribe = {} }) {
   const app = Fastify({
     logger: logger && {
       level: config.logLevel,
@@ -95,6 +97,7 @@ export function buildApp({ db, config, logger = true, limiter = createRateLimite
   app.register(syncRoutes, { db, limiter });
   app.register(ttsRoutes, { db, config, limiter, ...tts, wordClips });
   app.register(pronounceRoutes, { db, config, limiter, ...pronounce });
+  app.register(transcribeRoutes, { db, config, limiter, ...transcribe });
   app.register(pushRoutes, { db, config, limiter, send: push });
   app.register(statsRoutes, { db });
   app.register(leaderboardRoutes, { db, limiter });

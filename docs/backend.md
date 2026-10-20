@@ -267,6 +267,38 @@ or *Run workflow* with force) sees them missing and makes only them, as
 one needs a new name. `index.json`'s `"revisions"` tells the app which file to
 play. Needs the same `CONTENT_DIR` and `CLIP_DIR` as saved clips.
 
+## Server speech-to-text
+
+Verified learners can have *Say it* listen with Lingo's own recogniser instead
+of the browser's: Practice settings shows "Use Lingo's own recogniser" to them
+(`src/lib/serverSpeech.js`, a choice kept on that device only). Say it then
+records the clip itself (`src/lib/micRecorder.js`) and sends it to
+`POST /api/transcribe` (body: `audio/wav`), which answers `{ text, left }`; the
+game checks the words as it does the browser's. It also works in browsers
+with no speech recognition (Firefox).
+
+- **The service.** The API forwards the clip to `STT_URL` as an OpenAI-style
+  `POST /v1/audio/transcriptions` (`model` = `STT_MODEL`, default `whistle`,
+  `language` = `en`) with `STT_TOKEN` as its bearer token. Normally that is
+  the Whistle service in `whistle/` (Cactus Compute's 16.9 MB Whistle model,
+  CPU only, about 100 MB of memory), a container of its own so it never takes
+  Talkies away from Say it right. Talkies answers the same request, so
+  `STT_URL=http://talkies:8000` with `STT_MODEL=canary-180m-flash` works too,
+  but Talkies keeps one model loaded and would swap with `zipa-ipa`.
+  Without `STT_URL` the setting stays hidden.
+- **Who.** Verified learners and admins only, like Say it right
+  (`403 not_verified`). `GET /api/transcribe/status` says
+  `{ available, allowed, limit, left }`.
+- **Limits.** 16 kHz, 16-bit mono WAV of 0.25-10 seconds (Say it stops at 8).
+  `STT_DAILY_LIMIT` (400) clips a learner a day, 20 a minute, one at a time
+  per learner, at most `STT_QUEUE_MAX` (8) waiting. When the service fails or
+  a limit is reached, Say it uses the browser's recogniser for the rest of the
+  round (or the "I said it" self check where there is none); nothing is
+  counted for a failed clip.
+- **Privacy.** Clips and the words heard are passed on and dropped: never
+  written to disk, logged or kept, by the API or by the Whistle service. Only
+  the count per learner and day is kept, in memory.
+
 ## Reminders
 
 A signed-in learner can get one short reminder a day by web push, on days they

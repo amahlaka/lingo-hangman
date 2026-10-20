@@ -24,6 +24,7 @@ describe('Your turn', () => {
     jest.useFakeTimers();
     const { storage } = renderApp('/talk?set=at-the-cafe');
     expect(screen.getByText('You are Anna, talking with Server.')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'At the café' })).toBeInTheDocument();
     expect(screen.getByText('Hi, what can I get you?')).toBeInTheDocument();
     fireEvent.click(within(group('Replies to choose from')).getByRole('button', { name: 'Could I have a latte, please?' }));
     expect(screen.queryByRole('group', { name: 'Replies to choose from' })).not.toBeInTheDocument();
@@ -32,7 +33,7 @@ describe('Your turn', () => {
 
     const replies = within(group('Replies to choose from')).getAllByRole('button');
     fireEvent.click(replies.find((b) => b.textContent !== 'Yes, a cheese sandwich, please.'));
-    expect(screen.getByText(/^Not quite: that (comes later in this|belongs to a different) conversation\. Try another reply\.$/)).toBeInTheDocument();
+    expect(screen.getByText(/^Not quite: that (comes later in this conversation\.|belongs to a different situation\. Check where you are and) try another reply\.$/i)).toBeInTheDocument();
     fireEvent.click(within(group('Replies to choose from')).getByRole('button', { name: 'Yes, a cheese sandwich, please.' }));
     act(() => jest.advanceTimersByTime(REPLY_DELAY));
     fireEvent.click(within(group('Replies to choose from')).getByRole('button', { name: 'For here, thanks.' }));

@@ -85,6 +85,8 @@ export function buildTalk(text, allTexts = [], random = Math.random) {
     setId: text.id,
     title: text.title?.en || text.id,
     titleFi: text.title?.fi || "",
+    // Where the learner is and what they want, in English and Finnish.
+    scene: text.scene || null,
     you,
     partner,
     lines,

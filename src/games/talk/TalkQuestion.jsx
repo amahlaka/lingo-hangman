@@ -43,7 +43,7 @@ function Bubble({ line, who, state, open, onTap, onFinnish, i }) {
 // Each of the learner's lines is recorded on its own (onItem); the question is
 // done when the conversation ends.
 export default function TalkQuestion({ question, onItem, onDone }) {
-  const { t } = useSettings();
+  const { t, lang } = useSettings();
   const k = t.talk;
   const { lines } = question;
   // Lines shown so far, and the result of each of the learner's lines.
@@ -58,6 +58,11 @@ export default function TalkQuestion({ question, onItem, onDone }) {
   const endRef = useRef(null);
 
   const turn = shown < lines.length && lines[shown].mine ? lines[shown] : null;
+  // The situation in the UI language: without it the replies from other
+  // conversations can look just as right.
+  const inFinnish = lang === "fi";
+  const title = (inFinnish && question.titleFi) || question.title;
+  const scene = question.scene && ((inFinnish && question.scene.fi) || question.scene.en);
   // A role ("Waiter") in the UI language; people's names stay as they are.
   const roleName = (name) => k.roles?.[name] || name;
 
@@ -152,14 +157,13 @@ export default function TalkQuestion({ question, onItem, onDone }) {
 
   return (
     <div className="lg-stack pg-question tk-question">
-      <div className="tk-scene">
-        <span className="lg-caption">
-          {question.title}
-          {question.titleFi && <span lang="fi"> · {question.titleFi}</span>}
-        </span>
+      <section className="tk-scene" aria-labelledby={`tk-scene-${question.id}`}>
+        <span className="tk-scene__label">{k.situation}</span>
+        <h2 className="tk-scene__title" id={`tk-scene-${question.id}`}>{title}</h2>
+        {scene && <p className="tk-scene__text">{scene}</p>}
         <p className="tk-role">{fill(k.youAre, { name: roleName(question.you), partner: roleName(question.partner) })}</p>
         <p className="lg-caption">{k.tapLines}</p>
-      </div>
+      </section>
       <ol className="tk-chat" aria-live="polite">
         {lines.slice(0, shown).map((line, i) => (
           <Bubble key={i} i={0} line={line} who={roleName(line.speaker)} state={results[i]} open={open.has(i)} onTap={() => hear(i)} onFinnish={() => toggleFinnish(i)} />
@@ -172,7 +176,10 @@ export default function TalkQuestion({ question, onItem, onDone }) {
       </ol>
       {turn && !typing && (
         <>
-          <p className="lg-caption tk-prompt">{shown === 0 ? k.youStart : k.yourTurn}</p>
+          <p className="lg-caption tk-prompt">
+            {shown > 0 && <span className="tk-prompt__scene">{title} · </span>}
+            {shown === 0 ? k.youStart : k.yourTurn}
+          </p>
           <div className="pg-choices tk-choices" role="group" aria-label={k.replies}>
             {turn.options.map((option) => {
               const miss = missed.includes(option);

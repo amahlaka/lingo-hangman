@@ -44,6 +44,12 @@ describe('Your turn', () => {
     });
   });
 
+  it('carries the dialogue\'s scene, or none', () => {
+    const scene = { en: 'You are in a café.', fi: 'Olet kahvilassa.' };
+    expect(buildTalk({ ...cafe, scene }, [cafe]).scene).toEqual(scene);
+    expect(buildTalk(cafe, [cafe]).scene).toBeNull();
+  });
+
   it('builds options only on the learner\'s lines and finds the next turn', () => {
     const q = buildTalk(cafe, [cafe, way]);
     expect(q.you).toBe('Anna');
@@ -199,5 +205,11 @@ describe('Dialogue "you" in the word bank schema', () => {
   it('must name one of the speakers', () => {
     expect(validateItem({ ...way, title: { en: 'Way' } }, ctx).join()).not.toMatch(/you/);
     expect(validateItem({ ...way, you: 'Nobody', title: { en: 'Way' } }, ctx).join()).toMatch(/you must be the name/);
+  });
+  it('takes a scene in English and Finnish, on dialogues only', () => {
+    const scene = { en: 'You are on a street.', fi: 'Olet kadulla.' };
+    expect(validateItem({ ...way, scene }, ctx).join()).not.toMatch(/scene/);
+    expect(validateItem({ ...way, scene: { en: 'You are on a street.' } }, ctx).join()).toMatch(/scene needs "fi"/);
+    expect(validateItem({ ...way, kind: 'story', you: undefined, scene }, ctx).join()).toMatch(/scene is only for dialogues/);
   });
 });

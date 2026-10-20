@@ -331,6 +331,16 @@ function TextItem({ item, set }) {
           </select>
         </Field>
       )}
+      {item.kind === "dialogue" && (
+        <TextMap
+          label="Situation"
+          hint="Shown above the conversation in Your turn: where the learner is, who they talk to and what they want, so only one reply fits."
+          value={item.scene}
+          langs={EN_FI}
+          multiline
+          onChange={(scene) => set({ scene })}
+        />
+      )}
       <Rows
         label="Questions about the text (optional)"
         addLabel="Add question"

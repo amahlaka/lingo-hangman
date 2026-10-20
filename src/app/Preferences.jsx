@@ -4,6 +4,7 @@ import { useSettings } from "./SettingsContext";
 import { GameScreen, typeClass } from "../components/lingo";
 import { categoryGroups, categoryLabels } from "../lib/words";
 import { DIFFICULTIES, getPreferences, onPreferencesChange, resetPreferences, setPreferences } from "../lib/preferences";
+import { onServerSpeechChange, serverSpeechOn, setServerSpeech, transcribeStatus } from "../lib/serverSpeech";
 
 // Focus areas, difficulty and word-type settings for every game
 // (src/lib/preferences.js). All optional; games fall back to all words when
@@ -12,6 +13,17 @@ export default function Preferences() {
   const { t, lang } = useSettings();
   const [prefs, setPrefs] = useState(getPreferences);
   useEffect(() => onPreferencesChange(setPrefs), []);
+  // Lingo's own recogniser for Say it: shown to verified players only.
+  const [serverSpeech, setServerSpeechState] = useState(serverSpeechOn);
+  const [canServerSpeech, setCanServerSpeech] = useState(false);
+  useEffect(() => onServerSpeechChange(setServerSpeechState), []);
+  useEffect(() => {
+    let live = true;
+    transcribeStatus().then((s) => live && setCanServerSpeech(Boolean(s.available && s.allowed)));
+    return () => {
+      live = false;
+    };
+  }, []);
 
   const labels = categoryLabels(lang);
   const groups = categoryGroups(lang, t.focusOther);
@@ -120,6 +132,24 @@ export default function Preferences() {
             </div>
           )}
         </section>
+
+        {(canServerSpeech || serverSpeech) && (
+          <section className="lg-section">
+            <h2 className="lg-heading">{t.serverSpeechTitle}</h2>
+            <div className="lg-pref">
+              <button
+                type="button"
+                className={`lg-chip ${serverSpeech ? "lg-chip--on" : ""}`}
+                aria-pressed={serverSpeech}
+                onClick={() => setServerSpeech(!serverSpeech)}
+              >
+                <span className="lg-chip__mark" aria-hidden="true">{serverSpeech ? "✓" : ""}</span>
+                {t.serverSpeechLabel}
+              </button>
+              <p className="lg-caption">{t.serverSpeechHint}</p>
+            </div>
+          </section>
+        )}
 
         <section className="lg-section">
           <h2 className="lg-heading">{t.focusAreasLabel}</h2>

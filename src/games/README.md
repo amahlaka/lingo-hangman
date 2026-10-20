@@ -245,7 +245,11 @@ it only compares the text the browser returns. `sayLogic.js` does that
 comparison forgivingly (homophones, digits, contractions and extra words are
 fine, and a phrase of four or more words may miss one word in four). Where the
 browser can't listen (Firefox) or the microphone is blocked, the game falls back
-to "say it out loud, then tap I said it". Under the word it always shows the
+to "say it out loud, then tap I said it". Verified learners can turn on Lingo's
+own recogniser in Practice settings (`src/lib/serverSpeech.js`): the clip is
+recorded with `src/lib/micRecorder.js` and the API's Whistle service says what
+it heard (`privacy` "server" in `useSayMic`; see docs/backend.md, "Server
+speech-to-text"). Under the word it always shows the
 word bank item's `ipa`, and below it the item's `say` (the English read the
 Finnish way, "wooter"). For a word the learner already says well (`wordStanding`
 "known"), the reading stays behind a free "Show how to say it" button until

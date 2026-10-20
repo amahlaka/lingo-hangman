@@ -1,0 +1,42 @@
+# Checks the Whistle speech-to-text service (whistle/) on pull requests and
+# pushes that change it: the image builds, starts with the server's limits and
+# turns two recorded clips into the right words.
+
+name: Whistle checks
+
+on:
+  pull_request:
+    paths: ["whistle/**", ".github/workflows/whistle.yml"]
+  push:
+    branches: [master]
+    paths: ["whistle/**", ".github/workflows/whistle.yml"]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - name: Build the image
+        run: docker build -t lingo-whistle:ci whistle
+      - name: Start it as on the server, with no network
+        run: |
+          docker run -d --name whistle --network none --read-only --tmpfs /tmp --cap-drop ALL \
+            --security-opt no-new-privileges:true --cpus 1 --memory 384m -e WHISTLE_TOKEN=ci-token \
+            -v "$PWD/whistle/test:/test:ro" lingo-whistle:ci
+          for i in $(seq 1 30); do
+            state=$(docker inspect -f '{{.State.Health.Status}}' whistle)
+            [ "$state" = healthy ] && break
+            sleep 2
+          done
+          docker logs whistle
+          [ "$state" = healthy ]
+      - name: Transcribe the test clips
+        # --network none: the check runs inside the container.
+        run: |
+          docker exec whistle python /test/check.py /test ci-token
+          docker stats --no-stream whistle

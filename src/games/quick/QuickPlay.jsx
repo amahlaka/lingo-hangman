@@ -144,6 +144,7 @@ function QuickQuestion({ question, done, onDone, onItem, t, lang, mic }) {
         prepareOnDevice={mic.prepareOnDevice}
         onBlocked={mic.setSelfReason}
         onOnDeviceFailed={mic.onDeviceFailed}
+        onServerFailed={mic.serverFailed}
       />
     );
   } else if (game === "hangman") {

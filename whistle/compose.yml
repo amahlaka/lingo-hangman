@@ -1,0 +1,27 @@
+# Whistle for Say it, on the server next to the API: build and start it with
+# `docker compose up -d --build` in a checkout of this folder, beside a .env
+# holding WHISTLE_TOKEN (the API's STT_TOKEN). It has no published port: the
+# API reaches it as http://lingo-whistle:8000 on the proxy network.
+services:
+  lingo-whistle:
+    build: .
+    image: lingo-whistle:local
+    container_name: lingo-whistle
+    restart: unless-stopped
+    env_file: .env
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    cpus: 1
+    mem_limit: 384m
+    networks:
+      - proxy
+
+networks:
+  proxy:
+    external: true
+    name: ${PROXY_NETWORK:?PROXY_NETWORK must be set}

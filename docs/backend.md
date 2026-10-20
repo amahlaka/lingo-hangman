@@ -281,7 +281,8 @@ with no speech recognition (Firefox).
   `POST /v1/audio/transcriptions` (`model` = `STT_MODEL`, default `whistle`,
   `language` = `en`) with `STT_TOKEN` as its bearer token. Normally that is
   the Whistle service in `whistle/` (Cactus Compute's 16.9 MB Whistle model,
-  CPU only, about 100 MB of memory), a container of its own so it never takes
+  CPU only, about 50 MB of memory, a word in 0.1 s and a short sentence in
+  0.3-0.4 s on one CPU in CI), a container of its own so it never takes
   Talkies away from Say it right. Talkies answers the same request, so
   `STT_URL=http://talkies:8000` with `STT_MODEL=canary-180m-flash` works too,
   but Talkies keeps one model loaded and would swap with `zipa-ipa`.

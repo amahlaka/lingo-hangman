@@ -394,6 +394,8 @@ export function createWordClips({ contentDir, clipDir, maker = null, log = null 
     // Whether remakes are made on the TTS server, and (for tests) when the
     // ones asked for so far are done.
     makesNow: Boolean(maker),
+    // The remade clips not back yet: [{ key, text, words }], in order.
+    pending: () => [...making].map((key) => ({ key, text: known?.texts.get(key)?.text ?? null, words: Boolean(known?.texts.get(key)?.words) })),
     idle: () => made,
   };
 }

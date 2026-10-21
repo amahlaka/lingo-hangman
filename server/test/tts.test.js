@@ -401,3 +401,45 @@ test("a remake the TTS server can't make is left to the Content publish workflow
   await t.close();
   await base.done();
 });
+
+test("the Speech server page shows the service, the queue, recent requests and counts, never a learner's text", async () => {
+  const base = await wordBase();
+  const fake = fakeTts();
+  const fetchImpl = async (url, opts = {}) => {
+    if (url.endsWith("/health")) return { ok: true, status: 200, json: async () => ({ status: "ok" }) };
+    if (url.endsWith("/voices")) return { ok: true, status: 200, json: async () => ({ voices: ["af_nova", "am_liam"] }) };
+    return fake.fetchImpl(url, opts);
+  };
+  const t = setup({ ...TTS, ...base.env }, { tts: { fetchImpl, cache: fake.cache } });
+  await t.signIn();
+  assert.equal((await t.call("POST", "/api/tts", { text: "My secret sentence" })).statusCode, 200);
+  assert.equal((await t.call("POST", "/api/tts/clip", { text: "kitchen" })).statusCode, 200);
+  assert.equal((await t.call("GET", "/api/admin/tts")).statusCode, 403);
+
+  await t.signIn("boss@example.com");
+  const page = (await t.call("GET", "/api/admin/tts")).json();
+  assert.equal(page.status.reachable, true);
+  assert.equal(page.status.voices, 2);
+  assert.deepEqual(page.queue.jobs, []);
+  assert.deepEqual(page.queue.recent.map((r) => [r.kind, r.label, r.ok]), [["clip", "kitchen", true], ["speech", null, true]]);
+  assert.ok(!JSON.stringify(page).includes("secret"));
+  const today = new Date().toISOString().slice(0, 10);
+  assert.deepEqual(page.daily.map((d) => [d.day, d.kind, d.ok, d.failed]), [[today, "clip", 1, 0], [today, "speech", 1, 0]]);
+  assert.deepEqual(page.usage, [{ day: today, learners: 1, clips: 1 }]);
+  assert.equal(page.settings.remakesOnServer, true);
+  await t.close();
+  await base.done();
+});
+
+test("the Speech server page says when the service doesn't answer or isn't set", async () => {
+  const down = setup(TTS, { tts: { fetchImpl: async () => ({ ok: false, status: 502, json: async () => ({}) }) } });
+  await down.signIn("boss@example.com");
+  const status = (await down.call("GET", "/api/admin/tts")).json().status;
+  assert.equal(status.reachable, false);
+  assert.equal(status.error, "answered 502");
+  await down.close();
+  const off = setup({});
+  await off.signIn("boss@example.com");
+  assert.deepEqual((await off.call("GET", "/api/admin/tts")).json().status, { configured: false });
+  await off.close();
+});

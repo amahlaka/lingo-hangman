@@ -518,7 +518,7 @@ export default function AdminClips() {
     <GameScreen title="Recordings">
       <main className="lg-board lg-page">
         <p className="lg-body-lg">
-          Every recorded clip the games play. Clips with open <Link to="/admin/reports">reports</Link> come first. Open one to hear it, trim it, fade its ends, add silence before or after it, or change its volume, and save that as the clip the app plays. Earlier versions stay and can be put back.
+          Every recorded clip the games play. Clips with open <Link to="/admin/reports">reports</Link> come first. Open one to hear it, trim it, fade its ends, add silence before or after it, or change its volume, and save that as the clip the app plays. Earlier versions stay and can be put back. Clips being made show under <Link to="/admin/tts">speech server</Link>.
         </p>
         {gate ? (
           <section className="lg-section">

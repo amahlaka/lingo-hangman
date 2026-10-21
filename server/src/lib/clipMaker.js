@@ -11,38 +11,24 @@ import { CLIP_SPEED } from "../../../src/lib/speechClips.js";
 // A word-by-word clip of a long sentence takes a while on two CPUs.
 const MIN_TIMEOUT_MS = 120_000;
 
-export function createClipMaker({ config, fetchImpl = globalThis.fetch }) {
-  let queue = Promise.resolve();
-
-  // { text, speaker, words?, ipa? } -> { audio: Buffer, framed: boolean }.
-  // One at a time: the service makes one clip at a time anyway.
+export function createClipMaker({ config, service }) {
+  // { text, speaker, words?, ipa? } -> { audio: Buffer, framed: boolean },
+  // through the shared queue to the service (lib/ttsService.js).
   function make({ text, speaker, words = false, ipa }) {
-    const run = queue.then(async () => {
-      const ctrl = new AbortController();
-      const timer = setTimeout(() => ctrl.abort(), Math.max(config.ttsTimeoutMs, MIN_TIMEOUT_MS));
-      try {
-        const res = await fetchImpl(`${config.ttsUrl.replace(/\/$/, "")}/tts`, {
-          method: "POST",
-          headers: { "content-type": "application/json", ...(config.ttsApiKey ? { "x-api-key": config.ttsApiKey } : {}) },
-          body: JSON.stringify({
-            text,
-            voice: speaker,
-            speed: CLIP_SPEED,
-            format: "mp3",
-            frame: true,
-            ...(words ? { words: true } : {}),
-            ...(ipa ? { dict_ipa: ipa } : {}),
-          }),
-          signal: ctrl.signal,
-        });
-        if (!res.ok) throw new Error(`tts service answered ${res.status}`);
-        return { audio: Buffer.from(await res.arrayBuffer()), framed: res.headers?.get?.("x-kokoro-framed") === "1" };
-      } finally {
-        clearTimeout(timer);
-      }
+    return service.speak({
+      kind: "remake",
+      label: text,
+      timeoutMs: Math.max(config.ttsTimeoutMs, MIN_TIMEOUT_MS),
+      body: {
+        text,
+        voice: speaker,
+        speed: CLIP_SPEED,
+        format: "mp3",
+        frame: true,
+        ...(words ? { words: true } : {}),
+        ...(ipa ? { dict_ipa: ipa } : {}),
+      },
     });
-    queue = run.catch(() => {});
-    return run;
   }
 
   return { make };

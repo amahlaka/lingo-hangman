@@ -180,6 +180,19 @@ automatic gap that is a small grammar word (is/are, a/the, in/at …) the other
 options come from the same word group (`getWordGroups`), so adding a group or
 words to one in the word bank widens it.
 
+### Continuing a round
+
+A back swipe, a reload or a closed tab doesn't lose a round. `PracticeSession`
+saves it on the device after every answer (`src/lib/resume.js`, under the
+page's address) and, when that address opens again, asks "Continue your
+game?" before a new round; Home shows the latest unfinished game with a
+Continue button. It continues at the question that was on screen, so the
+questions must be plain data (no functions or React elements); a round that
+isn't is just not saved. Pass `offerSaved={false}` for a round the learner just
+asked for (a new topic choice). A game with its own round, like Hangman, Word
+rush and Daily word free play, uses `useResume()` and `ResumeOffer` from
+`src/components/lingo` the same way.
+
 ## Gap games
 
 Grammar check and Mixed-up words (`src/games/gap/`) are one game over two kinds

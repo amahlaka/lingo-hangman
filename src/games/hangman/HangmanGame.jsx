@@ -8,7 +8,10 @@ import { ACHIEVEMENTS, badgeText } from "../../lib/progress";
 import { sounds } from "../../lib/sounds";
 import { canSpeak, speakSaved } from "../../lib/speech";
 import { getAlphabet, guessPromptText, loadWordSet, meaningLabel, shuffle, wordInfo } from "../../lib/words";
-import { DailyProgress, ExtraTryOffer, Feedback, GameScreen, ScorePill, TriesMeter, WordRecap, WordTiles, useConfetti, useExtraTry } from "../../components/lingo";
+import {
+  DailyProgress, ExtraTryOffer, Feedback, GameScreen, ResumeOffer, ScorePill, TriesMeter, WordRecap, WordTiles, resumeDetail, useConfetti,
+  useExtraTry, useResume,
+} from "../../components/lingo";
 import HangmanDrawing from "./HangmanDrawing";
 import HangmanKeyboard from "./HangmanKeyboard";
 import HintButtons, { HINT_COSTS } from "./HintButtons";
@@ -19,8 +22,15 @@ import { useRounds } from "../../lib/rounds";
 
 export const MAX_MISSES = 6;
 
+// A saved game (src/lib/resume.js) that can still be played.
+const resumable = (d) =>
+  Array.isArray(d?.set?.pairs) && d.set.pairs.length > 0 && Array.isArray(d.queue) && d.queue.length > 0 &&
+  d.queue.every((i) => Number.isInteger(i) && i >= 0 && i < d.set.pairs.length) && Array.isArray(d.guesses);
+
 // One game of hangman over a word set from the URL (`/play?words=...`, the
 // shareable link format) or, without `words`, 5 random everyday words.
+// The game is saved on the device as it goes, so after a back swipe or a
+// reload it can be continued from the word on screen, guesses and all.
 export default function HangmanGame() {
   const [params] = useSearchParams();
   const { t, lang } = useSettings();
@@ -34,7 +44,16 @@ export default function HangmanGame() {
   useEffect(() => resetWordStreak(), [search, draw, resetWordStreak]);
   // A shared link plays its own words; otherwise `?rounds=` sets how many.
   const rounds = useRounds(undefined);
-  const wordSet = useMemo(() => loadWordSet(new URLSearchParams(search), { count: rounds }), [search, draw, rounds]);
+  const newSet = useMemo(() => loadWordSet(new URLSearchParams(search), { count: rounds }), [search, draw, rounds]);
+  const resume = useResume(resumable);
+  // Opened from Home's "Continue" card: carry on without asking.
+  const start = resume.auto ? resume.saved.data : null;
+  const [asking, setAsking] = useState(Boolean(resume.saved && !resume.auto));
+  // The words of a continued game, in place of a new set.
+  const [savedSet, setSavedSet] = useState(start ? start.set : null);
+  // A continued game's state, put in place when its words are (see below).
+  const restoring = useRef(start);
+  const wordSet = savedSet || newSet;
   const { pairs: words, learningLang, nativeLang, swap: swapMode, fromLink } = wordSet;
 
   // Words still to solve, by index into `words`. A lost word moves to the end.
@@ -67,6 +86,27 @@ export default function HangmanGame() {
   const extraTry = useExtraTry();
 
   useEffect(() => {
+    const d = restoring.current;
+    restoring.current = null;
+    if (d) {
+      setQueue(d.queue);
+      setRoundNumber(d.roundNumber);
+      setTotalRounds(d.totalRounds);
+      setGuesses(d.guesses);
+      setSwap(Boolean(d.swap));
+      setPoints(d.points || 0);
+      setFreeHints(d.freeHints ?? FREE_HINTS);
+      setRemoved(d.removed || []);
+      setHighlighted(d.highlighted || []);
+      setFiftyUsed(Boolean(d.fiftyUsed));
+      setHeard(Boolean(d.heard));
+      setBonus(d.bonus || 0);
+      setResult(null);
+      setBanner(null);
+      setGaveUp(false);
+      setOffer(false);
+      return;
+    }
     const all = words.map((_, i) => i);
     setQueue(all);
     setRoundNumber(1);
@@ -106,6 +146,30 @@ export default function HangmanGame() {
   const isLost = gaveUp || (misses.length >= maxMisses && !offer);
   const roundOver = isWon || isLost;
   const lastGuess = guesses[guesses.length - 1];
+
+  // Keep the game on the device. A finished word counts as done, so the game
+  // continues at the next one (a lost word comes back later, as after Next).
+  useEffect(() => {
+    if (asking || words.length === 0 || offer) return;
+    const [head, ...rest] = queue;
+    const after = roundOver
+      ? {
+          queue: isLost ? [...rest, head] : rest,
+          roundNumber: roundNumber + (rest.length > 0 || isLost ? 1 : 0),
+          totalRounds: totalRounds + (isLost ? 1 : 0),
+          guesses: [], swap: swapMode && Math.random() < 0.5, removed: [], highlighted: [], fiftyUsed: false, heard: false, bonus: 0,
+        }
+      : { queue, roundNumber, totalRounds, guesses, swap, removed, highlighted, fiftyUsed, heard, bonus };
+    const untouched = after.roundNumber === 1 && after.guesses.length === 0 && points === 0 && freeHints === FREE_HINTS;
+    if (allDone || after.queue.length === 0 || untouched) {
+      resume.clear();
+      return;
+    }
+    resume.save(
+      { gameId: "hangman", n: Math.min(after.roundNumber, after.totalRounds), total: after.totalRounds },
+      { set: wordSet, ...after, points, freeHints },
+    );
+  }, [asking, wordSet, queue, roundNumber, totalRounds, guesses, swap, points, freeHints, removed, highlighted, fiftyUsed, heard, bonus, roundOver, offer]);
 
   // What "Report a problem" is about: the word on screen.
   const reportSubject = useMemo(
@@ -222,6 +286,7 @@ export default function HangmanGame() {
 
   const handleRestart = () => {
     if (!fromLink) {
+      setSavedSet(null);
       setDraw((d) => d + 1);
       return;
     }
@@ -302,6 +367,25 @@ export default function HangmanGame() {
   const score = (
     <ScorePill label={t.pointsLabel} value={points} plus={plus?.n} plusKey={plus?.key} />
   );
+
+  if (asking) {
+    const d = resume.saved.data;
+    return (
+      <ResumeOffer
+        title={t.hangmanName}
+        {...resumeDetail(t, { n: Math.min(d.roundNumber, d.totalRounds), total: d.totalRounds, points: d.points })}
+        onContinue={() => {
+          restoring.current = d;
+          setSavedSet(d.set);
+          setAsking(false);
+        }}
+        onFresh={() => {
+          resume.clear();
+          setAsking(false);
+        }}
+      />
+    );
+  }
 
   if (words.length === 0) {
     return (

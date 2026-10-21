@@ -20,3 +20,13 @@ if (typeof window !== 'undefined' && !window.matchMedia) {
 if (typeof window !== 'undefined') {
   window.scrollBy = function scrollBy() {};
 }
+
+// Unfinished rounds (src/lib/resume.js) would otherwise be offered to the next
+// test that opens the same game.
+beforeEach(() => {
+  try {
+    window.localStorage.removeItem('lingo.resume.v1');
+  } catch {
+    // no storage in this environment
+  }
+});

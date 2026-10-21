@@ -3,8 +3,8 @@ import { Link, useSearchParams } from "react-router-dom";
 import { useSettings } from "../../app/SettingsContext";
 import { useProgress } from "../../app/ProgressContext";
 import { useRoundFinished } from "../../app/PlayTracking";
-import { fill } from "../../i18n";
-import { DailyProgress, Feedback, GameScreen, ScorePill, WordRecap, useConfetti } from "../../components/lingo";
+import i18n, { fill } from "../../i18n";
+import { DailyProgress, Feedback, GameScreen, ResumeOffer, ScorePill, WordRecap, useConfetti, useResume } from "../../components/lingo";
 import { sounds } from "../../lib/sounds";
 import { practicePool } from "../practice/practiceLogic";
 import {
@@ -13,10 +13,15 @@ import {
 
 const TICK_MS = 100;
 
+// A saved rush (src/lib/resume.js) that can still be played.
+const resumable = (d) =>
+  Array.isArray(d?.questions) && Number.isInteger(d.index) && d.index < d.questions.length && d.left > 0;
+
 // Word rush: a Finnish word, four English options, as many as you can in a
 // minute. Right answers in a row raise the multiplier and add bonus time; a
 // miss shows the answer for a moment and resets the run. Every answer is
-// recorded like in the other games.
+// recorded like in the other games. A rush left halfway (a back swipe, a
+// reload) is saved with the time it had left and can be continued.
 export default function RushGame() {
   const [params] = useSearchParams();
   const { t } = useSettings();
@@ -48,6 +53,8 @@ export default function RushGame() {
   const [newBest, setNewBest] = useState(false);
   const shownAt = useRef(0);
   const pause = useRef(null);
+  const resume = useResume(resumable);
+  const [asking, setAsking] = useState(Boolean(resume.saved && !resume.auto));
 
   const left = Math.max(0, endsAt - now);
   const question = questions[index];
@@ -92,6 +99,56 @@ export default function RushGame() {
     shownAt.current = at;
     setPhase("playing");
   };
+
+  const continueSaved = () => {
+    const d = resume.saved.data;
+    const at = Date.now();
+    resetWordStreak();
+    setQuestions(d.questions);
+    setIndex(d.index);
+    setScore(d.score || 0);
+    setPlus(null);
+    setCombo(d.combo || 0);
+    setBestCombo(d.bestCombo || 0);
+    setResults(d.results || []);
+    setMissed(null);
+    setBonus(null);
+    setNewBest(false);
+    setNow(at);
+    setEndsAt(at + d.left);
+    shownAt.current = at;
+    setAsking(false);
+    setPhase("playing");
+  };
+  // Opened from Home's "Continue" card: carry on straight away.
+  useEffect(() => {
+    if (resume.auto) continueSaved();
+  }, []);
+
+  // Keep a rush that is under way on the device, with the time it has left:
+  // after each answer, and when the page is hidden or left.
+  const saveNow = useRef(null);
+  saveNow.current = () => {
+    if (phase === "done") resume.clear();
+    if (phase !== "playing") return;
+    const ms = endsAt - Date.now();
+    // A word that was missed is done; continuing starts at the next one.
+    const at = missed ? index + 1 : index;
+    if (ms < 1000 || at >= questions.length) resume.clear();
+    else resume.save({ gameId: "rush", n: results.length, left: Math.ceil(ms / 1000) }, { questions, index: at, score, combo, bestCombo, results, left: ms });
+  };
+  useEffect(() => saveNow.current(), [phase, index, results.length]);
+  useEffect(() => {
+    const hide = () => saveNow.current();
+    const onVisibility = () => document.visibilityState === "hidden" && hide();
+    window.addEventListener("pagehide", hide);
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      window.removeEventListener("pagehide", hide);
+      document.removeEventListener("visibilitychange", onVisibility);
+      hide();
+    };
+  }, []);
 
   const record = (solved, wrong) => {
     const at = Date.now();
@@ -164,6 +221,23 @@ export default function RushGame() {
           <Feedback variant="info" title={t.practice.notEnoughWords} />
         </main>
       </GameScreen>
+    );
+  }
+
+  if (phase === "ready" && asking) {
+    const d = resume.saved.data;
+    const values = { n: d.results?.length || 0, s: Math.ceil(d.left / 1000) };
+    return (
+      <ResumeOffer
+        title={k.name}
+        detail={fill(t.resume.rushDetail, values)}
+        detailFi={fill(i18n.fi.resume.rushDetail, values)}
+        onContinue={continueSaved}
+        onFresh={() => {
+          resume.clear();
+          setAsking(false);
+        }}
+      />
     );
   }
 

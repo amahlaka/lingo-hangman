@@ -1002,3 +1002,7 @@ textarea.lg-input { padding: var(--space-2) var(--space-3); resize: vertical; }
 .lg-roundmenu__hint { margin: 0; font-size: 13px; line-height: 18px; color: var(--ink-muted); }
 @keyframes lg-roundmenu-in { from { opacity: 0; transform: translateY(-4px) scale(.98); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .lg-roundmenu { animation: none; } }
+
+/* Continue an unfinished round (src/components/lingo/ResumeOffer.jsx, src/app/ResumeCard.jsx) */
+.rs-offer__icon { display: inline-flex; align-items: center; justify-content: center; width: 64px; height: 64px; border-radius: var(--radius-pill); background: var(--lake-soft); color: var(--lake); }
+.rs-offer__dots { justify-content: center; }

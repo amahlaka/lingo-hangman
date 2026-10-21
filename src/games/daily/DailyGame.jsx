@@ -4,8 +4,8 @@ import { Delete, Volume2 } from "lucide-react";
 import { useSettings } from "../../app/SettingsContext";
 import { useProgress } from "../../app/ProgressContext";
 import { useRoundFinished } from "../../app/PlayTracking";
-import { fill } from "../../i18n";
-import { DailyProgress, Feedback, GameScreen, keepInView, useConfetti } from "../../components/lingo";
+import i18n, { fill } from "../../i18n";
+import { DailyProgress, Feedback, GameScreen, ResumeOffer, keepInView, useConfetti, useResume } from "../../components/lingo";
 import { addDays, dayKey } from "../../lib/progress";
 import { sounds } from "../../lib/sounds";
 import { canSpeak, speak } from "../../lib/speech";
@@ -57,7 +57,8 @@ export function DailyFreeGame() {
 // letters are in the right place and which are in the word. The game is
 // recorded once, when it ends, and the record and streak are kept on the device.
 // With `free`, it is the free play version: a random word from the same words,
-// as many as the learner likes, without the day's record or streak.
+// as many as the learner likes, without the day's record or streak. A free
+// play word left halfway is saved on the device and can be continued.
 export default function DailyGame({ free = false }) {
   const { t } = useSettings();
   const k = t.daily;
@@ -65,8 +66,10 @@ export default function DailyGame({ free = false }) {
   const { celebrate, confetti } = useConfetti();
   const today = dayKey();
   const candidates = useMemo(() => dailyCandidates(getItems({ type: "word" })), []);
+  const resume = useResume((d) => free && typeof d?.word?.word === "string" && Array.isArray(d.guesses));
+  const [asking, setAsking] = useState(Boolean(resume.saved && !resume.auto));
   const [state, setState] = useState(() =>
-    free ? newFreeRound(candidates, today) : dailyFor(loadDaily(), today, candidates),
+    free ? (resume.auto ? resume.saved.data : newFreeRound(candidates, today)) : dailyFor(loadDaily(), today, candidates),
   );
   const [typed, setTyped] = useState("");
   const [shake, setShake] = useState(false);
@@ -83,7 +86,10 @@ export default function DailyGame({ free = false }) {
 
   useEffect(() => {
     if (!free) saveDaily(state);
-  }, [state]);
+    else if (asking) return;
+    else if (over || state.recorded || state.guesses.length === 0) resume.clear();
+    else resume.save({ gameId: "daily", n: state.guesses.length, total: MAX_GUESSES }, { ...state, recorded: false });
+  }, [state, asking]);
 
   // Record the day's game once, when it ends.
   useEffect(() => {
@@ -178,6 +184,26 @@ export default function DailyGame({ free = false }) {
       setCopied(false);
     }
   };
+
+  if (asking) {
+    const d = resume.saved.data;
+    return (
+      <ResumeOffer
+        title={k.freeName}
+        detail={fill(t.resume.dailyDetail, { n: d.guesses.length, total: MAX_GUESSES })}
+        detailFi={fill(i18n.fi.resume.dailyDetail, { n: d.guesses.length, total: MAX_GUESSES })}
+        onContinue={() => {
+          setState(d);
+          startedAt.current = Date.now();
+          setAsking(false);
+        }}
+        onFresh={() => {
+          resume.clear();
+          setAsking(false);
+        }}
+      />
+    );
+  }
 
   if (!word) {
     return (

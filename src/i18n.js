@@ -199,6 +199,18 @@ const i18n = {
     addWordPlaceholder: "Add a new word pair",
     removeAllWordsDesc: "Are you sure you want to remove all words? This action cannot be undone.",
     removeWordDesc: "Are you sure you want to remove this word? This action cannot be undone.",
+    // Continuing an unfinished round (src/lib/resume.js)
+    resume: {
+      title: "Continue your game?",
+      detail: "You were on {n} of {total}.",
+      detailPoints: "You were on {n} of {total}, with {points} points.",
+      continue: "Continue",
+      fresh: "Start a new round",
+      homeTitle: "Continue where you left off",
+      homeNo: "No thanks",
+      rushDetail: "{n} answered, {s} seconds left.",
+      dailyDetail: "{n} of {total} guesses used.",
+    },
     practice: {
       meaningName: "Pick the meaning",
       meaningIntro: "Choose the English word for this Finnish word.",
@@ -1181,6 +1193,17 @@ const i18n = {
     addWordPlaceholder: "Lisää uusi sanapari",
     removeAllWordsDesc: "Haluatko varmasti poistaa kaikki sanat? Tätä toimintoa ei voi peruuttaa.",
     removeWordDesc: "Haluatko varmasti poistaa tämän sanan? Tätä toimintoa ei voi peruuttaa.",
+    resume: {
+      title: "Jatketaanko peliä?",
+      detail: "Olit kohdassa {n}/{total}.",
+      detailPoints: "Olit kohdassa {n}/{total}, ja sinulla oli {points} pistettä.",
+      continue: "Jatka",
+      fresh: "Aloita uusi kierros",
+      homeTitle: "Jatka siitä, mihin jäit",
+      homeNo: "Ei kiitos",
+      rushDetail: "{n} vastattu, {s} sekuntia jäljellä.",
+      dailyDetail: "{n}/{total} arvausta käytetty.",
+    },
     practice: {
       meaningName: "Valitse merkitys",
       meaningIntro: "Valitse englanninkielinen sana tälle suomen sanalle.",

@@ -181,6 +181,7 @@ function Practice({ setId }) {
   return (
     <PracticeSession
       key={round}
+      offerSaved={round === 0}
       introExtra={picker}
       gameId="sounds"
       title={s.name}

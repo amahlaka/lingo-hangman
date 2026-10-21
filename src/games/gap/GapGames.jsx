@@ -33,6 +33,7 @@ function GapGame({ gameId, topicType, title, intro, pickTopics = false }) {
   return (
     <PracticeSession
       key={round}
+      offerSaved={round === 0}
       gameId={gameId}
       title={title}
       intro={intro}

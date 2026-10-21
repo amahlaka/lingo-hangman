@@ -7,7 +7,7 @@ import { SENTENCE_RULES, typedExamples } from "../../lib/wordTypes";
 
 // One example sentence as coloured word chips, each labelled with what it is
 // in the sentence (subject, verb, object, or its word class).
-function TypedSentence({ example }) {
+export function TypedSentence({ example }) {
   return (
     <div className="pg-phrase pg-phrase--slots sr-example" lang="en">
       {example.words.map((word, i) => (

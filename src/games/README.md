@@ -73,6 +73,11 @@ README; `npm run content:pull` downloads it). Besides word pairs it has:
   notices, instructions, descriptions) as `sentences` in English and Finnish,
   dialogue lines with a `speaker`, plus optional comprehension `questions`.
   Meant for reading and listening games.
+- `getLessonChapters()` / `getLessons()`: the textbook lessons shown at
+  `/lessons` (src/app/Lessons.jsx). A lesson's `practice` links name games by
+  their registry id, optionally with a `set`; `lessonsFor(gameId, set)` finds
+  the lessons that link to a game's lesson or topic, for a "Read the lesson"
+  link back (Sounds of English has one).
 
 Items can also carry metadata for choosing what to practise: `level` (1-3),
 `features` (what they show about English: `th-sound`, `present-perfect`…),

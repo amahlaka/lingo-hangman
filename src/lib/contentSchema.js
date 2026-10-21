@@ -3,7 +3,7 @@
 // while editing) and `npm run content:check`. No imports, so Node runs it as is.
 // The lingo-wordbase README describes the format for people editing it.
 
-export const ITEM_TYPES = ["word", "gap", "rule", "confusable", "group", "sound", "text", "alike", "phone", "passage"];
+export const ITEM_TYPES = ["word", "gap", "rule", "confusable", "group", "sound", "text", "alike", "phone", "passage", "lesson"];
 
 // ---- Metadata, all optional (the lingo-wordbase AUTHORING.md explains each) ----
 
@@ -112,6 +112,29 @@ export function parseMarked(text) {
   const [, before, marked, after] = m;
   return { before, marked, after, plain: before + marked + after };
 }
+
+// Square brackets in lesson texts pick out letters or words, any number of
+// times: "[Koira] puree [miestä]". Every [ needs its ], with no nesting.
+export function balancedMarks(text) {
+  let open = false;
+  for (const ch of String(text)) {
+    if (ch === "[") {
+      if (open) return false;
+      open = true;
+    } else if (ch === "]") {
+      if (!open) return false;
+      open = false;
+    }
+  }
+  return !open;
+}
+
+// The blocks a textbook lesson ("lesson" item) is made of; AUTHORING.md in the
+// word base describes each. Most are pictures of a rule rather than text.
+export const LESSON_BLOCKS = ["text", "remember", "words", "letters", "choice", "compare", "stress", "sentence"];
+
+// A stress word splits its syllables with · and brackets the stressed one: "ho·[tel]".
+export const SYLLABLE_MARK = "·";
 
 // Marks the missing word in a fill-the-gap sentence.
 export const GAP = "___";
@@ -462,7 +485,107 @@ const CHECKS = {
     }
     checkTextMap(item.note, "note", problems, { required: false });
   },
+
+  // A textbook lesson: a short read on how English works, letters and their
+  // sounds, or a spelling memory rule, made of `blocks` (text and pictures
+  // of the rule) and linked to games that practise it.
+  lesson(item, problems, ctx) {
+    checkTextMap(item.title, "title", problems, { mustHave: ["en", "fi"] });
+    checkTextMap(item.summary, "summary", problems, { required: false });
+    if (!isText(item.chapter) || !ID_PATTERN.test(item.chapter)) problems.push("chapter is missing (the id of one of index.json lessonChapters)");
+    if (!Array.isArray(item.blocks) || !item.blocks.length) problems.push("blocks needs at least one block");
+    else item.blocks.forEach((block, i) => checkLessonBlock(block, `blocks[${i + 1}]`, problems));
+    if (item.practice !== undefined) {
+      if (!Array.isArray(item.practice)) problems.push("practice must be a list");
+      else {
+        item.practice.forEach((link, i) => {
+          const name = `practice[${i + 1}]`;
+          if (!isObject(link) || !isText(link.game) || !ID_PATTERN.test(link.game)) return problems.push(`${name} needs a game id, like "sounds"`);
+          if (link.set !== undefined && !(isText(link.set) && (!ctx.practiceSetIds || ctx.practiceSetIds.has(link.set)))) {
+            problems.push(`${name}: set "${link.set}" is not the id of a sound lesson, rule, mixed-up topic or text`);
+          }
+        });
+      }
+    }
+  },
 };
+
+// Words in a lesson block: plain ("cat") or with letters picked out ("ba[ck]").
+function checkMarkedWords(value, name, problems) {
+  if (!Array.isArray(value) || !value.length || !value.every(isText)) return problems.push(`${name} needs at least one word`);
+  for (const w of value) {
+    if (!balancedMarks(w)) problems.push(`${name}: "${w}" has an unpaired [ or ]`);
+  }
+}
+
+function checkLessonBlock(block, name, problems) {
+  if (!isObject(block) || !LESSON_BLOCKS.includes(block.type)) {
+    problems.push(`${name}.type must be one of ${LESSON_BLOCKS.join(", ")}`);
+    return;
+  }
+  switch (block.type) {
+    case "text":
+    case "remember":
+      checkTextMap(block.text, `${name}.text`, problems, { mustHave: ["en"] });
+      break;
+    case "words":
+      checkMarkedWords(block.words, `${name}.words`, problems);
+      checkTextMap(block.caption, `${name}.caption`, problems, { required: false });
+      break;
+    case "letters":
+      if (!Array.isArray(block.rows) || !block.rows.length) problems.push(`${name}.rows needs at least one row`);
+      else {
+        block.rows.forEach((row, i) => {
+          const r = `${name}.rows[${i + 1}]`;
+          if (!isObject(row) || !isText(row.letters)) return problems.push(`${r}.letters is missing`);
+          checkTextMap(row.sound, `${r}.sound`, problems, { mustHave: ["en"] });
+          checkMarkedWords(row.words, `${r}.words`, problems);
+        });
+      }
+      break;
+    case "choice":
+      checkTextMap(block.question, `${name}.question`, problems, { mustHave: ["en"] });
+      if (!Array.isArray(block.options) || block.options.length < 2 || block.options.length > 3) problems.push(`${name}.options needs two or three options`);
+      else {
+        block.options.forEach((opt, i) => {
+          const o = `${name}.options[${i + 1}]`;
+          if (!isObject(opt)) return problems.push(`${o} must be an object`);
+          checkTextMap(opt.answer, `${o}.answer`, problems, { mustHave: ["en"] });
+          // The spelling or sound it leads to ("ck"), or words to translate.
+          if (isObject(opt.result)) checkTextMap(opt.result, `${o}.result`, problems, { mustHave: ["en"] });
+          else if (!isText(opt.result)) problems.push(`${o}.result is missing (the spelling or sound it leads to)`);
+          checkMarkedWords(opt.words, `${o}.words`, problems);
+        });
+      }
+      break;
+    case "compare":
+      if (!Array.isArray(block.columns) || block.columns.length !== 2) problems.push(`${name}.columns needs exactly two columns`);
+      else {
+        block.columns.forEach((col, i) => {
+          const c = `${name}.columns[${i + 1}]`;
+          if (!isObject(col)) return problems.push(`${c} must be an object`);
+          checkTextMap(col.title, `${c}.title`, problems, { mustHave: ["en"] });
+          if (!["en", "fi"].includes(col.lang)) problems.push(`${c}.lang must be "en" or "fi" (the language of its lines)`);
+          checkMarkedWords(col.lines, `${c}.lines`, problems);
+        });
+      }
+      checkTextMap(block.caption, `${name}.caption`, problems, { required: false });
+      break;
+    case "stress":
+      checkMarkedWords(block.words, `${name}.words`, problems);
+      for (const w of Array.isArray(block.words) ? block.words.filter(isText) : []) {
+        if (!parseMarked(w)) problems.push(`${name}: "${w}" needs its stressed syllable in brackets, like "ho${SYLLABLE_MARK}[tel]"`);
+      }
+      break;
+    case "sentence": {
+      const { type, wordTypes, ...texts } = block;
+      checkTextMap(texts, name, problems, { mustHave: ["en"] });
+      if (wordTypes === undefined) problems.push(`${name}.wordTypes is missing (the sentence is shown word by word)`);
+      checkWordTypes(wordTypes, [texts.en], `${name}.wordTypes`, problems);
+      break;
+    }
+  }
+}
 
 function checkList(value, name, allowed, problems) {
   if (value === undefined) return;
@@ -516,6 +639,9 @@ export function validateItem(item, ctx = {}) {
   return problems;
 }
 
+// Item types a lesson's practice link may name as its `set`.
+export const PRACTICE_SET_TYPES = ["sound", "rule", "confusable", "text"];
+
 // Lookup sets validateItem needs, built from the whole content.
 export function contentContext({ languages = [], packs = [] }) {
   const items = packs.flatMap((p) => (Array.isArray(p?.items) ? p.items : []));
@@ -523,6 +649,9 @@ export function contentContext({ languages = [], packs = [] }) {
     languageCodes: new Set(languages.map((l) => l?.code).filter(isText)),
     topicIds: new Set(items.filter((i) => i?.type === "rule" || i?.type === "confusable").map((i) => i.id)),
     soundIds: new Set(items.filter((i) => i?.type === "sound").map((i) => i.id)),
+    // What a lesson's practice link can open: `?set=` of Sounds of English,
+    // Grammar check, Mixed-up words, Read and understand or Your turn.
+    practiceSetIds: new Set(items.filter((i) => PRACTICE_SET_TYPES.includes(i?.type)).map((i) => i.id)),
   };
 }
 
@@ -561,6 +690,24 @@ export function validateContent({ index, languages, packs }) {
           if (grouped.has(c)) where("index.json", `category "${c}" is in more than one group`);
           grouped.add(c);
         }
+      });
+    }
+  }
+
+  // Chapters of the textbook lessons, in reading order.
+  const chapterIds = new Set();
+  if (index?.lessonChapters !== undefined) {
+    if (!Array.isArray(index.lessonChapters)) where("index.json", "lessonChapters must be a list");
+    else {
+      index.lessonChapters.forEach((c, i) => {
+        const name = isText(c?.id) ? c.id : `chapter ${i + 1}`;
+        if (!isObject(c) || !isText(c.id) || !ID_PATTERN.test(c.id)) return where("index.json", `lessonChapters: ${name} needs a lower-case id`);
+        if (chapterIds.has(c.id)) where("index.json", `lessonChapters: ${c.id} is listed twice`);
+        chapterIds.add(c.id);
+        const p = [];
+        checkTextMap(c.title, `lessonChapters.${name}.title`, p, { mustHave: ["en", "fi"] });
+        checkTextMap(c.summary, `lessonChapters.${name}.summary`, p, { required: false });
+        p.forEach((m) => where("index.json", m));
       });
     }
   }
@@ -607,6 +754,9 @@ export function validateContent({ index, languages, packs }) {
     pack.items.forEach((item, i) => {
       const name = isText(item?.id) ? item.id : `item ${i + 1}`;
       validateItem(item, ctx).forEach((m) => where(file, `${name}: ${m}`));
+      if (item?.type === "lesson" && isText(item.chapter) && !chapterIds.has(item.chapter)) {
+        where(file, `${name}: chapter "${item.chapter}" is not in index.json lessonChapters`);
+      }
       if (isText(item?.id)) {
         if (seen.has(item.id)) where(file, `${item.id}: id is already used in packs/${seen.get(item.id)}.json`);
         else seen.set(item.id, pack.id);

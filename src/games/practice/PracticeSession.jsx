@@ -5,7 +5,7 @@ import { useProgress } from "../../app/ProgressContext";
 import { useRoundFinished } from "../../app/PlayTracking";
 import i18n, { fill } from "../../i18n";
 import { ACHIEVEMENTS, badgeText } from "../../lib/progress";
-import { DailyProgress, Feedback, GameScreen, ScorePill, WordRecap, keepInView, useConfetti } from "../../components/lingo";
+import { DailyProgress, Feedback, GameScreen, ResumeOffer, ScorePill, WordRecap, keepInView, resumeDetail, useConfetti, useResume } from "../../components/lingo";
 import { sounds } from "../../lib/sounds";
 import { FREE_HINTS, RULE_PEEK_COST, addResult, emptyTally } from "./practiceLogic";
 import { RuleContext } from "./RuleBox";
@@ -36,6 +36,9 @@ function useRulePlacement(current, trayRef) {
   }, [current]);
   return { mode, inlineRef };
 }
+
+// A saved round (src/lib/resume.js) that can still be played here.
+const resumable = (d) => Array.isArray(d?.questions) && d.questions.length > 0 && Number.isInteger(d.index) && d.index < d.questions.length;
 
 // The end-of-round headline, by how much of the round was right.
 export function cheerKey({ correct, answered }) {
@@ -94,10 +97,17 @@ function bannerFor(events, { t, lang, dailyGoal, answer }) {
 //                          word or line counts
 //   endNote(results)       optional element under the end screen numbers; each
 //                          result carries the `question` it answered
+//   offerSaved             false to start fresh even when a round was saved here
+//                          (a new round the learner just asked for)
+//
+// The round is saved on the device as it goes (src/lib/resume.js), so after a
+// back swipe or a reload the page offers to continue it from the question
+// that was on screen. Questions are saved as they are, so they must be plain
+// data; a round that isn't is simply not saved.
 export default function PracticeSession({
   gameId, title, intro, introExtra = null, learningLang, nativeLang, buildQuestions, renderQuestion, empty,
   endTitleKey = "endTitle", recapTitleKey = "recapTitle", meaningInFeedback = true, keys, endExtra = null,
-  endNote = null, countQuestions = false,
+  endNote = null, countQuestions = false, offerSaved = true,
 }) {
   const { t, lang } = useSettings();
   const { recordWord, resetWordStreak, dailyGoal } = useProgress();
@@ -111,12 +121,16 @@ export default function PracticeSession({
     ...keys,
   };
 
-  const [questions, setQuestions] = useState(buildQuestions);
-  const [index, setIndex] = useState(0);
-  const [results, setResults] = useState([]);
-  const [marks, setMarks] = useState([]);
-  const [tally, setTally] = useState(emptyTally);
-  const [freeHints, setFreeHints] = useState(FREE_HINTS);
+  const resume = useResume((d) => offerSaved && resumable(d));
+  // Opened from Home's "Continue" card: carry on without asking.
+  const start = resume.auto ? resume.saved.data : null;
+  const [asking, setAsking] = useState(Boolean(resume.saved && !resume.auto));
+  const [questions, setQuestions] = useState(start ? start.questions : buildQuestions);
+  const [index, setIndex] = useState(start ? start.index : 0);
+  const [results, setResults] = useState(start ? start.results : []);
+  const [marks, setMarks] = useState(start ? start.marks : []);
+  const [tally, setTally] = useState(start ? start.tally : emptyTally);
+  const [freeHints, setFreeHints] = useState(start ? start.freeHints : FREE_HINTS);
   const [current, setCurrent] = useState(null);
   const [plus, setPlus] = useState(null);
   const [roundKey, setRoundKey] = useState(0);
@@ -141,6 +155,20 @@ export default function PracticeSession({
 
   const finished = questions.length > 0 && index >= questions.length;
   useRoundFinished(finished);
+
+  // Keep the round on the device. An answered question counts as done, so
+  // continuing starts at the next one; a board half played starts again from
+  // where it was before it.
+  useEffect(() => {
+    if (asking || !questions.length || board.current.items.length) return;
+    const at = current ? index + 1 : index;
+    const untouched = at === 0 && tally.xp === 0 && freeHints === FREE_HINTS;
+    if (finished || at >= questions.length || untouched) {
+      resume.clear();
+      return;
+    }
+    resume.save({ gameId, n: at + 1, total: questions.length }, { questions, index: at, results, marks, tally, freeHints });
+  }, [asking, questions, index, results, marks, tally, freeHints, current, finished]);
 
   // What "Report a problem" is about: the question on screen and, once
   // answered, how it went.
@@ -309,6 +337,18 @@ export default function PracticeSession({
     setRoundKey((k) => k + 1);
   };
 
+  const continueSaved = () => {
+    const d = resume.saved.data;
+    setQuestions(d.questions);
+    setIndex(d.index);
+    setResults(d.results || []);
+    setMarks(d.marks || []);
+    setTally(d.tally || emptyTally());
+    setFreeHints(d.freeHints ?? FREE_HINTS);
+    setRoundKey((k) => k + 1);
+    setAsking(false);
+  };
+
   // Help before answering (seeing the rule, word-type hints) uses one of the
   // round's free hints, then costs some of this round's points. `pay(cost)`
   // returns false when there aren't enough.
@@ -335,6 +375,28 @@ export default function PracticeSession({
 
   const score = <ScorePill label={t.pointsLabel} value={tally.xp} plus={plus?.n} plusKey={plus?.key} />;
   const menuActions = [{ label: t.restart, onClick: restart }];
+
+  if (asking) {
+    const d = resume.saved.data;
+    return (
+      <ResumeOffer
+        title={title}
+        {...resumeDetail(t, { n: d.index + 1, total: d.questions.length, points: d.tally?.xp })}
+        onContinue={continueSaved}
+        onFresh={() => {
+          resume.clear();
+          setAsking(false);
+        }}
+      >
+        <div className="pg-dots rs-offer__dots" aria-hidden="true">
+          {d.questions.map((_, i) => {
+            const state = d.marks?.[i] || (i === d.index ? "now" : "");
+            return <span key={i} className={`pg-dots__dot${state ? ` pg-dots__dot--${state}` : ""}`} />;
+          })}
+        </div>
+      </ResumeOffer>
+    );
+  }
 
   if (!questions.length) {
     return (

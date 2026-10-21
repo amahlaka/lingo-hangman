@@ -13,6 +13,7 @@ import { RemindersOffer } from "./Reminders";
 import AccountOffer from "./AccountOffer";
 import { InstallOffer } from "./Install";
 import MyPathCard from "./MyPath";
+import ResumeCard from "./ResumeCard";
 
 // Show answer statistics once there are enough answers to say something.
 const MIN_ANSWERS_FOR_STATS = 10;
@@ -137,6 +138,7 @@ export default function Home() {
 
         <DailyProgress />
         <Feedback variant={nudge.variant} icon={nudge.icon} title={nudge.title} />
+        <ResumeCard />
         <RemindersOffer />
         <AccountOffer />
         <InstallOffer />

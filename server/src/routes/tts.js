@@ -44,39 +44,19 @@ export function ttsStatus(db, config, session, now = Date.now()) {
   };
 }
 
-export default async function ttsRoutes(app, { db, config, limiter, fetchImpl = globalThis.fetch, cache, wordClips }) {
+export default async function ttsRoutes(app, { db, config, limiter, service, cache, wordClips }) {
   const store = cache || createTtsCache({ dir: config.ttsCacheDir, maxBytes: config.ttsCacheBytes });
   const clips =
     wordClips || (config.clipDir && config.contentDir ? createWordClips({ contentDir: config.contentDir, clipDir: config.clipDir }) : null);
   const busyUsers = new Set();
   const making = new Map(); // hash -> Promise<Buffer>, so one text is made once
-  let queue = Promise.resolve();
-  let waiting = 0;
 
-  // The Kokoro service makes one clip at a time, so requests wait in turn.
-  function generate(text, speaker) {
-    waiting += 1;
-    const run = queue.then(async () => {
-      const ctrl = new AbortController();
-      const timer = setTimeout(() => ctrl.abort(), config.ttsTimeoutMs);
-      try {
-        const res = await fetchImpl(`${config.ttsUrl.replace(/\/$/, "")}/tts`, {
-          method: "POST",
-          headers: { "content-type": "application/json", ...(config.ttsApiKey ? { "x-api-key": config.ttsApiKey } : {}) },
-          body: JSON.stringify({ text, voice: speaker, speed: CLIP_SPEED, format: "mp3" }),
-          signal: ctrl.signal,
-        });
-        if (!res.ok) throw new Error(`tts service answered ${res.status}`);
-        return Buffer.from(await res.arrayBuffer());
-      } finally {
-        clearTimeout(timer);
-      }
-    });
-    queue = run.catch(() => {}).finally(() => {
-      waiting -= 1;
-    });
-    return run;
-  }
+  // Through the shared queue to the Kokoro service (lib/ttsService.js).
+  // `label` is shown on the admin Speech server page: word-base texts only.
+  const generate = (text, speaker, kind = "speech") =>
+    service
+      .speak({ kind, label: kind === "speech" ? null : text, body: { text, voice: speaker, speed: CLIP_SPEED, format: "mp3" } })
+      .then((r) => r.audio);
 
   // A word-base text without a recorded clip, for anyone (Hangman's Listen
   // hint): { text, voice } -> { folder, key }, after which the clip is at
@@ -108,8 +88,8 @@ export default async function ttsRoutes(app, { db, config, limiter, fetchImpl = 
     let job = savingClip.get(id);
     if (!job) {
       if (!limiter.allow(`tts-clip:${req.ip}`, CLIPS_PER_HOUR, HOUR)) return reply.code(429).send({ error: "tts_limit" });
-      if (waiting >= config.ttsQueueMax) return reply.code(503).send({ error: "tts_queue_full" });
-      job = generate(text, speaker).then((audio) => clips.save(folder, key, audio));
+      if (service.waiting() >= config.ttsQueueMax) return reply.code(503).send({ error: "tts_queue_full" });
+      job = generate(text, speaker, "clip").then((audio) => clips.save(folder, key, audio));
       savingClip.set(id, job);
       job.catch(() => {}).finally(() => savingClip.delete(id));
     }
@@ -162,7 +142,7 @@ export default async function ttsRoutes(app, { db, config, limiter, fetchImpl = 
       if (status.left <= 0) return reply.code(429).send({ error: "tts_limit", ...status });
       const userId = req.session.user_id;
       if (busyUsers.has(userId)) return reply.code(429).send({ error: "tts_busy" });
-      if (!making.has(hash) && waiting >= config.ttsQueueMax) return reply.code(503).send({ error: "tts_queue_full" });
+      if (!making.has(hash) && service.waiting() >= config.ttsQueueMax) return reply.code(503).send({ error: "tts_queue_full" });
 
       busyUsers.add(userId);
       try {

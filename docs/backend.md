@@ -202,6 +202,16 @@ app asks `POST /api/tts { text, voice }` for an MP3 in the same voice.
 - **When it is on.** The app turns it on at start on a device signed in to an
   account (`lingo.sync.v1` has a user), and after signing in; it asks
   `GET /api/tts/status`. Signed out, or with `TTS_URL` unset, nothing changes.
+- **One queue.** Every request to the service (on-demand speech, word-base
+  clips and an admin's "Make it again" in `/admin/clips`) goes through one
+  queue in `server/src/lib/ttsService.js`, one at a time. It keeps the last 50
+  requests in memory and counts per day and kind in `tts_jobs_daily`
+  (migration 015). A learner's own text is never kept as text there either.
+- **Speech server page.** `/admin/tts` (`GET /api/admin/tts`) shows whether
+  the service answers (`/health` and `/voices`, checked at most every 15 s),
+  the queue now and the clips waiting to be made again, the last requests with
+  how long they took and waited, and the last two weeks per day, with the
+  `tts_usage` learner counts. It reloads every 3 seconds while open.
 
 ## Pronunciation scoring
 

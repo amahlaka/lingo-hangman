@@ -209,10 +209,13 @@ test("making word-base clips needs the service and the folders; a failed one lea
   await base.done();
 });
 
-test("an admin has a bad clip made again: it leaves the list, the API won't save it, and the workflow's new one counts", async () => {
+test("without a TTS server, a remade clip leaves the list, the API won't save it, and the workflow's new one counts", async () => {
   const base = await wordBase();
   const fake = fakeTts();
+  // Learners' clips come from an API with the TTS service; the admin's
+  // remake from one without, so the workflow makes it.
   const t = setup({ ...TTS, ...base.env }, { tts: fake });
+  const admin = setup(base.env);
   const { clipKey, wordsKey } = await import("../../src/lib/speechClips.js");
   const sentence = "The kitchen is warm.";
   const key = clipKey(sentence, "en");
@@ -222,11 +225,11 @@ test("an admin has a bad clip made again: it leaves the list, the API won't save
   const readIndex = async () => JSON.parse(await base.fs.readFile(base.path.join(base.audio, "index.json"), "utf8"));
   assert.ok((await readIndex()).voices[NOVA].includes(key));
 
-  assert.equal((await t.call("POST", "/api/admin/clips/remake", { text: sentence })).statusCode, 401);
-  await t.signIn("boss@example.com");
-  const remade = await t.call("POST", "/api/admin/clips/remake", { text: ` ${sentence} ` });
+  assert.equal((await admin.call("POST", "/api/admin/clips/remake", { text: sentence })).statusCode, 401);
+  await admin.signIn("boss@example.com");
+  const remade = await admin.call("POST", "/api/admin/clips/remake", { text: ` ${sentence} ` });
   assert.equal(remade.statusCode, 200);
-  assert.deepEqual(remade.json(), { text: sentence, keys: [key, words] });
+  assert.deepEqual(remade.json(), { text: sentence, keys: [key, words], making: false });
   assert.deepEqual((await readIndex()).voices[NOVA], ["old"]);
   const remakes = JSON.parse(await base.fs.readFile(base.path.join(base.audio, "remake.json"), "utf8"));
   assert.deepEqual(remakes, { keys: { [key]: 1, [words]: 1 } });
@@ -242,21 +245,22 @@ test("an admin has a bad clip made again: it leaves the list, the API won't save
   assert.deepEqual((await t.call("POST", "/api/tts/clip", { text: sentence })).json(), { folder: NOVA, key, made: false });
 
   // A second remake takes the revision with it and counts up.
-  await t.call("POST", "/api/admin/clips/remake", { text: sentence });
+  await admin.call("POST", "/api/admin/clips/remake", { text: sentence });
   assert.deepEqual(await readIndex(), { voices: { [NOVA]: ["old"] }, revisions: { [NOVA]: {} } });
   const again = JSON.parse(await base.fs.readFile(base.path.join(base.audio, "remake.json"), "utf8"));
   assert.equal(again.keys[key], 2);
 
-  const other = await t.call("POST", "/api/admin/clips/remake", { text: "Something else entirely" });
+  const other = await admin.call("POST", "/api/admin/clips/remake", { text: "Something else entirely" });
   assert.equal(other.statusCode, 404);
-  assert.equal((await t.call("POST", "/api/admin/clips/remake", {})).statusCode, 400);
+  assert.equal((await admin.call("POST", "/api/admin/clips/remake", {})).statusCode, 400);
   await t.close();
+  await admin.close();
   await base.done();
 });
 
 test("the Recordings page lists every clip with its reports, saves an edit as a new revision and puts an older one back", async () => {
   const base = await wordBase();
-  const t = setup({ ...TTS, ...base.env }, { tts: fakeTts() });
+  const t = setup(base.env);
   const { clipKey, wordsKey } = await import("../../src/lib/speechClips.js");
   const NOVA = "kokoro-1.0-v5-af_nova";
   const LIAM = "kokoro-1.0-v5-am_liam";
@@ -320,6 +324,80 @@ test("the Recordings page lists every clip with its reports, saves an edit as a 
   assert.equal(after.edits.at(-1).restored, true);
   assert.equal((await use(1)).json().revision, 1);
   assert.deepEqual((await readJson("index.json")).revisions, { [NOVA]: { [word]: 1 } });
+  await t.close();
+  await base.done();
+});
+
+test("with a TTS server, a remade clip is made there at once, edges cut, and put back on the list", async () => {
+  const base = await wordBase();
+  // The word gets IPA in the word base.
+  await base.fs.writeFile(
+    base.path.join(base.path.dirname(base.audio), "packs", "basics.json"),
+    JSON.stringify({ id: "basics", items: [{ type: "word", text: { en: "kitchen", fi: "keittiö" }, ipa: { en: "/ˈkɪtʃ.ən/" }, examples: [{ en: "The kitchen is warm." }] }] })
+  );
+  const fake = fakeTts();
+  const t = setup({ ...TTS, ...base.env }, { tts: fake });
+  const { clipKey, wordsKey } = await import("../../src/lib/speechClips.js");
+  const NOVA = "kokoro-1.0-v5-af_nova";
+  const LIAM = "kokoro-1.0-v5-am_liam";
+  const word = clipKey("kitchen", "en");
+  const sentence = clipKey("The kitchen is warm.", "en");
+  const words = wordsKey("The kitchen is warm.", "en");
+  const readJson = async (name) => JSON.parse(await base.fs.readFile(base.path.join(base.audio, name), "utf8"));
+  await base.fs.mkdir(base.path.join(base.audio, NOVA));
+  await base.fs.writeFile(base.path.join(base.audio, NOVA, `${word}.mp3`), "old");
+  await base.fs.writeFile(base.path.join(base.audio, NOVA, `${word}-1.mp3`), "an edit");
+  await base.fs.writeFile(base.path.join(base.audio, "index.json"), JSON.stringify({ voices: { [NOVA]: [word, sentence], [LIAM]: [word] }, revisions: { [NOVA]: { [word]: 1 } } }));
+  await t.signIn("boss@example.com");
+
+  const res = await t.call("POST", "/api/admin/clips/remake", { text: "kitchen" });
+  assert.deepEqual(res.json(), { text: "kitchen", keys: [word], making: true });
+  // Off the list at once, then made in both voices.
+  assert.deepEqual((await t.call("GET", "/api/admin/clips")).json().clips.find((c) => c.key === word).voices[NOVA].state, "making");
+  const wordClips = t.app.wordClips;
+  await wordClips.idle();
+  const bodies = fake.calls.map((c) => c.body);
+  assert.deepEqual(bodies, [
+    { text: "kitchen", voice: "af_nova", speed: 0.8, format: "mp3", frame: true, dict_ipa: "/ˈkɪtʃ.ən/" },
+    { text: "kitchen", voice: "am_liam", speed: 0.8, format: "mp3", frame: true, dict_ipa: "/ˈkɪtʃ.ən/" },
+  ]);
+  // Revision 2: past the edit already on disk.
+  assert.equal(await base.fs.readFile(base.path.join(base.audio, NOVA, `${word}-2.mp3`), "utf8"), "mp3:kitchen");
+  assert.equal(await base.fs.readFile(base.path.join(base.audio, LIAM, `${word}-2.mp3`), "utf8"), "mp3:kitchen");
+  const index = await readJson("index.json");
+  assert.deepEqual(index.voices, { [NOVA]: [sentence, word], [LIAM]: [word] });
+  assert.deepEqual(index.revisions, { [NOVA]: { [word]: 2 }, [LIAM]: { [word]: 2 } });
+  assert.equal((await readJson("remake.json")).keys[word], 2);
+
+  // A sentence: its own clip and the word-by-word one.
+  fake.calls.length = 0;
+  await t.call("POST", "/api/admin/clips/remake", { text: "The kitchen is warm." });
+  await wordClips.idle();
+  assert.deepEqual(fake.calls.map((c) => [c.body.voice, Boolean(c.body.words), c.body.dict_ipa]), [
+    ["af_nova", false, undefined],
+    ["am_liam", false, undefined],
+    ["af_nova", true, undefined],
+    ["am_liam", true, undefined],
+  ]);
+  assert.deepEqual((await readJson("index.json")).revisions[LIAM], { [word]: 2, [sentence]: 1, [words]: 1 });
+  await t.close();
+  await base.done();
+});
+
+test("a remake the TTS server can't make is left to the Content publish workflow", async () => {
+  const base = await wordBase();
+  const t = setup({ ...TTS, ...base.env }, { tts: fakeTts({ fail: true }) });
+  const { clipKey } = await import("../../src/lib/speechClips.js");
+  const NOVA = "kokoro-1.0-v5-af_nova";
+  const word = clipKey("kitchen", "en");
+  await base.fs.writeFile(base.path.join(base.audio, "index.json"), JSON.stringify({ voices: { [NOVA]: [word] } }));
+  await t.signIn("boss@example.com");
+  assert.equal((await t.call("POST", "/api/admin/clips/remake", { text: "kitchen" })).json().making, true);
+  await t.app.wordClips.idle();
+  const index = JSON.parse(await base.fs.readFile(base.path.join(base.audio, "index.json"), "utf8"));
+  assert.deepEqual(index.voices[NOVA], []);
+  const clip = (await t.call("GET", "/api/admin/clips")).json().clips.find((c) => c.key === word);
+  assert.equal(clip.voices[NOVA].state, "remaking");
   await t.close();
   await base.done();
 });

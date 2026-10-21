@@ -22,7 +22,9 @@ const FILTERS = [
   ["missing", "Not made"],
 ];
 const PAGE = 60;
-const STATE_LABELS = { remaking: "Being made again", missing: "Not made yet" };
+const STATE_LABELS = { making: "Being made on the TTS server", remaking: "Waiting for Content publish", missing: "Not made yet" };
+// How often the list reloads while a clip is being made on the TTS server.
+const MAKING_POLL_MS = 5000;
 const SAVE_ERRORS = {
   not_live: "This clip isn't on the live list any more (it may be being made again). Reload the page.",
   bad_audio: "The edited file wasn't accepted.",
@@ -340,7 +342,7 @@ function ClipEditor({ clip, voice, onChanged, onDirty }) {
   const askRemake = async () => {
     setRemake({ busy: true });
     const res = await api("/admin/clips/remake", { method: "POST", body: { text: clip.text } });
-    setRemake(res.ok ? { done: true } : { error: true });
+    setRemake(res.ok ? { done: true, making: res.data.making } : { error: true });
     if (res.ok) onChanged();
   };
 
@@ -415,9 +417,13 @@ function ClipEditor({ clip, voice, onChanged, onDirty }) {
       )}
       <details className="rc-remake">
         <summary className="lg-caption">Have the voice make it again</summary>
-        <p className="lg-caption">Both voices&apos; clips of “{clip.text}” (and its word-by-word clip) leave the live site, and the next Content publish makes new ones. Until then the app reads it another way.</p>
+        <p className="lg-caption">Both voices&apos; clips of “{clip.text}” (and its word-by-word clip) leave the live site and the voice makes new ones: on the TTS server within a minute or two, or else at the next Content publish. Until then the app reads it another way.</p>
         <button type="button" className="lg-btn lg-btn--secondary" disabled={remake?.busy || remake?.done} onClick={askRemake}>Make it again</button>
-        {remake?.done && <p className="lg-caption">Taken off the live site; the next Content publish (or a run with force) makes it again.</p>}
+        {remake?.done && (
+          <p className="lg-caption">
+            {remake.making ? "Being made on the TTS server; this page updates when it's done." : "Taken off the live site; the next Content publish (or a run with force) makes it again."}
+          </p>
+        )}
         {remake?.error && <p className="lg-caption rc-error">Couldn&apos;t ask for it.</p>}
       </details>
     </div>
@@ -473,6 +479,14 @@ export default function AdminClips() {
   useEffect(() => {
     load();
   }, [load]);
+
+  // A clip being made on the TTS server: reload until it's back.
+  const makingAny = Boolean(data?.clips.some((c) => Object.values(c.voices).some((v) => v.state === "making")));
+  useEffect(() => {
+    if (!makingAny) return undefined;
+    const timer = setInterval(load, MAKING_POLL_MS);
+    return () => clearInterval(timer);
+  }, [makingAny, load]);
 
   const voice = data?.voices.find((v) => v.id === voiceId) || data?.voices[0];
   const reportedCount = data ? data.clips.filter((c) => c.reports?.length).length : 0;

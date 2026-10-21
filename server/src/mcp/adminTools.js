@@ -122,7 +122,7 @@ export const tools = [
     name: "remake_clip",
     title: "Remake a recorded voice clip",
     description:
-      'For a bad_audio report whose recorded clip is wrong (a doubled or missing sound, a wrong word): takes the clip of this word-base text (both voices, and its word-by-word clip) off the live site, and the next Content publish run of the app repository makes it again. Until then the app reads the text another way. Only for audio problems, not for wrong text in the word base. text is the exact text the game says (in a sounds report, the word\'s "speak").',
+      'For a bad_audio report whose recorded clip is wrong (a doubled or missing sound, a wrong word): takes the clip of this word-base text (both voices, and its word-by-word clip) off the live site and has it made again: on the TTS server within a minute or two, or else by the next Content publish run of the app repository. Until then the app reads the text another way. Only for audio problems, not for wrong text in the word base. text is the exact text the game says (in a sounds report, the word\'s "speak").',
     inputSchema: {
       type: "object",
       properties: { text: { type: "string", minLength: 1, maxLength: 200, description: "The spoken text, as in the word base." } },
@@ -135,7 +135,10 @@ export const tools = [
       const keys = await wordClips.remake(normalizeSpeech(text));
       if (!keys) return { error: "That text isn't in the word base, so it has no recorded clip." };
       log?.info({ tokenId: token.id, keys }, "mcp: clip remake");
-      return { text, keys, next: "Made again by the next Content publish run (or run it with force)." };
+      const next = wordClips.makesNow
+        ? "Being made again on the TTS server now; live again in a minute or two."
+        : "Made again by the next Content publish run (or run it with force).";
+      return { text, keys, next };
     },
   },
   {

@@ -271,6 +271,18 @@ or *Run workflow* with force) sees them missing and makes only them, as
 one needs a new name. `index.json`'s `"revisions"` tells the app which file to
 play. Needs the same `CONTENT_DIR` and `CLIP_DIR` as saved clips.
 
+With the TTS service set (`TTS_URL`), a remake doesn't wait for the workflow:
+the API asks the Kokoro service (github.com/amahlaka/kokoro-tts) for the new
+clips straight away, in the background (`server/src/lib/clipMaker.js`), with
+`frame: true` (the service cuts off the stray sounds at the edges, as the
+workflow does), `dict_ipa` for a single word the word base gives IPA for, and
+`words: true` for the word-by-word clip. It saves them as
+`<key>-<revision>.mp3` in both voices and puts the keys back on the live list;
+the Recordings page shows "Being made on the TTS server" meanwhile. A clip the
+service couldn't make stays off the list for the next Content publish. The
+service needs a version with those options; an older one says the text
+plainly (logged as "didn't cut the edges").
+
 ### Editing clips (Recordings)
 
 `/admin/clips` lists every clip the word base needs, in both voices

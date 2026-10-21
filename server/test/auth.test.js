@@ -143,6 +143,8 @@ test("another device can be signed out", async () => {
   const t = setup();
   await t.signIn();
   const first = t.cookie;
+  // The second device has no cookie yet.
+  t.cookie = null;
   await t.signIn();
   const me = (await t.call("GET", "/api/me")).json();
   assert.equal(me.sessions.length, 2);

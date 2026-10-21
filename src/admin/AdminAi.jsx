@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { GameScreen } from "../components/lingo";
 import { api, backendAvailable } from "../lib/backend";
-import { GATES } from "./AdminReports";
+import { GATES, GateSignIn } from "./AdminReports";
 
 // /admin/ai: AI tools that use the API's MCP endpoint (server/src/routes/mcp.js)
 // to read statistics, reports, suggestions and learners' progress, and mark
@@ -74,7 +74,7 @@ export default function AdminAi() {
         {gate ? (
           <section className="lg-section">
             <p>{GATES[gate]}</p>
-            {gate !== "unavailable" && gate !== "not_admin" && <Link className="lg-btn lg-btn--primary" to="/account">Sign in</Link>}
+            <GateSignIn gate={gate} />
           </section>
         ) : (
           <>

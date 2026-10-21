@@ -86,7 +86,11 @@ Accounts are optional and the app never asks for one. The Account page
   confirming with their email. The privacy page (`/privacy`) says what is kept.
 - **Admins** are the accounts whose email is in `ADMIN_EMAILS` (also an
   account made before its email was added). Admin routes also need a sign-in
-  from the last day.
+  from the last day. When it is older, the admin page's "Sign in again" button
+  opens `/account?next=<page>&again=1`, which asks for a passkey or code even
+  though the device is signed in, then goes back to the page. Signing in again
+  to the same account renews the current session's sign-in time instead of
+  starting a second session.
 
 ## Reports and suggestions
 

@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { GameScreen } from "../components/lingo";
 import { api, backendAvailable } from "../lib/backend";
 import { GAMES } from "../games/registry";
-import { GATES } from "./AdminReports";
+import { GATES, GateSignIn } from "./AdminReports";
 import { kindRows, mistakeLabel } from "./mistakeLabels";
 import AdminPlayStats from "./AdminPlayStats";
 import PronunciationStats from "./PronunciationStats";
@@ -156,7 +156,7 @@ export default function AdminStats() {
         {gate ? (
           <section className="lg-section">
             <p>{GATES[gate]}</p>
-            {gate !== "unavailable" && gate !== "not_admin" && <Link className="lg-btn lg-btn--primary" to="/account">Sign in</Link>}
+            <GateSignIn gate={gate} />
           </section>
         ) : !data ? (
           <p className="lg-caption">Loading…</p>

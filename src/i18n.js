@@ -760,6 +760,8 @@ const i18n = {
       adminStats: "Statistics",
       adminAi: "AI tools",
       oauthContinue: "Continue connecting the AI tool",
+      adminContinue: "Back to the admin page",
+      signInAgain: "Sign in again to continue. Admin pages and connecting AI tools need a sign-in from the last day.",
       privacy: "Privacy",
       unavailable: "Accounts can't be reached right now. Your progress is still saved on this device.",
       errors: {
@@ -1753,6 +1755,8 @@ const i18n = {
       adminStats: "Tilastot",
       adminAi: "Tekoälytyökalut",
       oauthContinue: "Jatka tekoälytyökalun yhdistämistä",
+      adminContinue: "Takaisin ylläpitosivulle",
+      signInAgain: "Kirjaudu uudelleen jatkaaksesi. Ylläpitosivut ja tekoälytyökalujen yhdistäminen vaativat kirjautumisen viimeisen vuorokauden ajalta.",
       privacy: "Tietosuoja",
       unavailable: "Tileihin ei juuri nyt saada yhteyttä. Edistymisesi on yhä tallessa tällä laitteella.",
       errors: {

@@ -3,7 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { GameScreen } from "../components/lingo";
 import { api, backendAvailable } from "../lib/backend";
 import { GAMES } from "../games/registry";
-import { GATES } from "./AdminReports";
+import { GATES, GateSignIn } from "./AdminReports";
 import { kindRows, mistakeLabel } from "./mistakeLabels";
 import PronunciationStats from "./PronunciationStats";
 
@@ -83,7 +83,7 @@ export default function AdminLearner() {
         {gate ? (
           <section className="lg-section">
             <p>{gate === "not_found" ? "No such account." : GATES[gate]}</p>
-            {GATES[gate] && gate !== "unavailable" && gate !== "not_admin" && <Link className="lg-btn lg-btn--primary" to="/account">Sign in</Link>}
+            <GateSignIn gate={gate} />
           </section>
         ) : !data ? (
           <p className="lg-caption">Loading…</p>

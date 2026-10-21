@@ -7,7 +7,7 @@ import {
 } from "@simplewebauthn/server";
 import { randomToken, safeEqual, sha256, sixDigitCode } from "../lib/crypto.js";
 import { enqueueMail } from "../mail/queue.js";
-import { COOKIE, cookieOptions, createSession } from "../sessions.js";
+import { COOKIE, cookieOptions, createSession, findSession } from "../sessions.js";
 
 const CODE_MS = 10 * 60_000;
 const CODE_TRIES = 5;
@@ -36,7 +36,15 @@ export function findOrCreateUser(db, config, email, lang) {
   return { user: db.prepare("SELECT * FROM users WHERE email = ?").get(email), created: true };
 }
 
+// Signing in again on a device already signed in to the same account (the
+// admin pages ask for that daily) renews this session's sign-in time instead
+// of starting a second one, so the device list and reminders stay as they are.
 function startSession(db, config, req, reply, userId, method) {
+  const current = findSession(db, req.cookies[COOKIE]);
+  if (current && current.user_id === userId) {
+    db.prepare("UPDATE sessions SET auth_method = ?, auth_at = ? WHERE id_hash = ?").run(method, Date.now(), current.id_hash);
+    return;
+  }
   const secret = createSession(db, { userId, method, userAgent: req.headers["user-agent"] });
   reply.setCookie(COOKIE, secret, cookieOptions(config));
 }

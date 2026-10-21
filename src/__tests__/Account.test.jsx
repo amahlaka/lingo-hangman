@@ -114,6 +114,33 @@ test("deleting the account needs the email typed", async () => {
   expect(await screen.findByText("Your account was deleted.")).toBeInTheDocument();
 });
 
+test("an admin page's old sign-in: sign in again on Account, then back to the page", async () => {
+  let fresh = false;
+  const admin = { ...me, user: { ...me.user, email: "boss@example.com", role: "admin" } };
+  const calls = mockApi({
+    "GET /health": health,
+    "GET /me": { status: 200, body: admin },
+    "GET /me/feedback": { status: 200, body: { reports: [], suggestions: [] } },
+    "GET /admin/users": () => (fresh ? { status: 200, body: { users: [], limits: { basic: 10, extended: 200 } } } : { status: 401, body: { error: "sign_in_again" } }),
+    "POST /auth/code": { status: 202, body: { sent: true } },
+    "POST /auth/verify": () => {
+      fresh = true;
+      return { status: 200, body: { created: false, passkeys: 1 } };
+    },
+  });
+  renderApp("/admin/users");
+  fireEvent.click(await screen.findByRole("link", { name: "Sign in again" }));
+  expect(await screen.findByText(/Sign in again to continue/)).toBeInTheDocument();
+  // The account's email is already filled in.
+  expect(screen.getByLabelText("Email")).toHaveValue("boss@example.com");
+  fireEvent.click(screen.getByRole("button", { name: "Send code" }));
+  fireEvent.change(await screen.findByLabelText("Code"), { target: { value: "123456" } });
+  fireEvent.click(screen.getByRole("button", { name: "Sign in" }));
+  await waitFor(() => expect(calls.filter((c) => c.path === "/admin/users").length).toBe(2));
+  expect(await screen.findByText(/Verified learners get 200/)).toBeInTheDocument();
+  expect(screen.queryByRole("link", { name: "Sign in again" })).not.toBeInTheDocument();
+});
+
 test("without a backend the page says so", async () => {
   mockApi({});
   renderApp("/account");

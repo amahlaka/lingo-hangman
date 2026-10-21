@@ -174,7 +174,7 @@ export default async function oauthRoutes(app, { db, config, limiter }) {
       remember();
       return page(reply, {
         title: "Sign in again",
-        body: `<p>Connecting an AI tool needs a sign-in from the last day. On the Account page, sign out and sign in again; you'll come back here.</p><div class="row"><a class="btn" href="${esc(signIn)}">Account</a></div>`,
+        body: `<p>Connecting an AI tool needs a sign-in from the last day. Sign in again; you'll come back here.</p><div class="row"><a class="btn" href="${esc(`${signIn}&again=1`)}">Sign in again</a></div>`,
       });
     }
 

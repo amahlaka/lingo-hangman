@@ -278,8 +278,8 @@ play. Needs the same `CONTENT_DIR` and `CLIP_DIR` as saved clips.
 an open report's question said (its answer, the question's English, a sound
 lesson's word: `src/lib/reportSpeech.js`) come first and are marked; a report
 doesn't say which voice it heard, so it marks the text in both. Opening a clip
-loads its MP3, draws the waveform, and lets an admin trim it, fade its ends and
-change its volume in the browser. Saving encodes the result there (lamejs,
+loads its MP3, draws the waveform, and lets an admin trim it, fade its ends,
+add silence before or after it and change its volume in the browser. Saving encodes the result there (lamejs,
 loaded only then; mono, 24 kHz, 48 kbit/s like the workflow's clips) and sends
 it to `POST /api/admin/clips/edit { folder, key, audio, changes }`. The API
 writes it as that voice's `<key>-<revision>.mp3`, points `index.json`'s

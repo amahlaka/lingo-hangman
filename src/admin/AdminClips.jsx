@@ -9,7 +9,7 @@ import { applyEdit, decodeClip, encodeMp3, gainToDb, normalizeGain, peakOf, peak
 // /admin/clips: every recorded clip (server/src/lib/wordClips.js list()), in
 // both voices. Clips that open problem reports point at come first and are
 // marked. Opening one shows its waveform: play it, trim it, fade its ends,
-// make it louder or quieter, and save that as a new version, which the app
+// add silence before or after it, make it louder or quieter, and save that as a new version, which the app
 // plays from then on. Older versions stay and can be put back. English only,
 // like the other admin pages.
 
@@ -41,6 +41,7 @@ export function versionLabel(revision, edits = []) {
   const did = [];
   if (made.start || made.end) did.push("trimmed");
   if (made.fadeIn || made.fadeOut) did.push("faded");
+  if (made.padStart || made.padEnd) did.push("silence added");
   if (made.gain) did.push(`${made.gain > 0 ? "+" : ""}${made.gain} dB`);
   return `Version ${revision}, edited ${when(made.at)}${did.length ? ` (${did.join(", ")})` : ""}`;
 }
@@ -233,7 +234,7 @@ function ClipEditor({ clip, voice, onChanged, onDirty }) {
       if (!res.ok) throw new Error(String(res.status));
       const decoded = await decodeClip(await res.arrayBuffer());
       setSource({ ...decoded, revision });
-      setEditState({ start: 0, end: decoded.samples.length / decoded.rate, fadeIn: 0, fadeOut: 0, gain: 0 });
+      setEditState({ start: 0, end: decoded.samples.length / decoded.rate, fadeIn: 0, fadeOut: 0, gain: 0, padStart: 0, padEnd: 0 });
     } catch {
       setSource({ error: true, revision });
     }
@@ -263,7 +264,7 @@ function ClipEditor({ clip, voice, onChanged, onDirty }) {
 
   const duration = source?.samples ? source.samples.length / source.rate : 0;
   const dirty = Boolean(
-    edit && duration && (ms(edit.start) !== 0 || ms(edit.end) !== ms(duration) || edit.fadeIn || edit.fadeOut || edit.gain)
+    edit && duration && (ms(edit.start) !== 0 || ms(edit.end) !== ms(duration) || edit.fadeIn || edit.fadeOut || edit.gain || edit.padStart || edit.padEnd)
   );
   useEffect(() => {
     onDirty(dirty);
@@ -277,7 +278,9 @@ function ClipEditor({ clip, voice, onChanged, onDirty }) {
     const begin = original ? from ?? 0 : Math.max(edit.start, from ?? edit.start);
     const samples = original
       ? source.samples.subarray(Math.round(begin * source.rate))
-      : applyEdit(source.samples, source.rate, { ...edit, start: begin, fadeIn: begin > edit.start ? 0 : edit.fadeIn });
+      : applyEdit(source.samples, source.rate, { ...edit, start: begin, ...(begin > edit.start ? { fadeIn: 0, padStart: 0 } : {}) });
+    // Added silence at the start plays before the clip's own timeline moves.
+    const lead = original || begin > edit.start ? 0 : edit.padStart || 0;
     if (!samples.length) return;
     const buffer = ctx.createBuffer(1, samples.length, source.rate);
     buffer.copyToChannel(samples, 0);
@@ -293,7 +296,7 @@ function ClipEditor({ clip, voice, onChanged, onDirty }) {
     node.start();
     const tick = () => {
       if (playing.current !== p) return;
-      setPlayhead(begin + (ctx.currentTime - startedAt));
+      setPlayhead(Math.min(original ? duration : edit.end, begin + Math.max(0, ctx.currentTime - startedAt - lead)));
       requestAnimationFrame(tick);
     };
     requestAnimationFrame(tick);
@@ -314,6 +317,8 @@ function ClipEditor({ clip, voice, onChanged, onDirty }) {
         ...(edit.fadeIn ? { fadeIn: edit.fadeIn } : {}),
         ...(edit.fadeOut ? { fadeOut: edit.fadeOut } : {}),
         ...(edit.gain ? { gain: edit.gain } : {}),
+        ...(edit.padStart ? { padStart: edit.padStart } : {}),
+        ...(edit.padEnd ? { padEnd: edit.padEnd } : {}),
       };
       const res = await api("/admin/clips/edit", { method: "POST", body: { folder: voice.folder, key: clip.key, audio: toBase64(mp3), changes } });
       if (!res.ok) return setSaving({ error: SAVE_ERRORS[res.data?.error] || "Couldn't save it." });
@@ -352,7 +357,7 @@ function ClipEditor({ clip, voice, onChanged, onDirty }) {
         <>
           <Waveform samples={source.samples} rate={source.rate} edit={edit} onEdit={change} playhead={playhead} />
           <p className="lg-caption">
-            {shown === current && live ? "Live version" : versionLabel(shown, v.edits)} · {duration.toFixed(2)} s · kept {(edit.end - edit.start).toFixed(2)} s · loudest {gainToDb(editedPeak).toFixed(1)} dBFS
+            {shown === current && live ? "Live version" : versionLabel(shown, v.edits)} · {duration.toFixed(2)} s · edited {(edit.end - edit.start + (edit.padStart || 0) + (edit.padEnd || 0)).toFixed(2)} s · loudest {gainToDb(editedPeak).toFixed(1)} dBFS
           </p>
           <div className="lg-row">
             <button type="button" className="lg-btn lg-btn--primary" onClick={() => (playing.current ? stop() : play(false))}>{playhead != null ? "Stop" : "Play edit"}</button>
@@ -363,6 +368,8 @@ function ClipEditor({ clip, voice, onChanged, onDirty }) {
             <NumberField label="End" unit="ms" value={ms(edit.end)} min={ms(edit.start) + 10} max={ms(duration)} onChange={(n) => change({ end: n / 1000 })} />
             <NumberField label="Fade in" unit="ms" value={ms(edit.fadeIn)} min={0} max={500} step={5} onChange={(n) => change({ fadeIn: n / 1000 })} />
             <NumberField label="Fade out" unit="ms" value={ms(edit.fadeOut)} min={0} max={500} step={5} onChange={(n) => change({ fadeOut: n / 1000 })} />
+            <NumberField label="Silence before" unit="ms" value={ms(edit.padStart)} min={0} max={2000} step={50} onChange={(n) => change({ padStart: n / 1000 })} />
+            <NumberField label="Silence after" unit="ms" value={ms(edit.padEnd)} min={0} max={2000} step={50} onChange={(n) => change({ padEnd: n / 1000 })} />
             <NumberField label="Volume" unit="dB" value={edit.gain} min={-20} max={20} step={0.5} onChange={(n) => change({ gain: n })} />
           </div>
           <div className="lg-row">
@@ -374,7 +381,7 @@ function ClipEditor({ clip, voice, onChanged, onDirty }) {
             >
               Make loud (−1 dB peak)
             </button>
-            <button type="button" className="lg-btn lg-btn--quiet" disabled={!dirty} onClick={() => setEditState({ start: 0, end: duration, fadeIn: 0, fadeOut: 0, gain: 0 })}>Undo changes</button>
+            <button type="button" className="lg-btn lg-btn--quiet" disabled={!dirty} onClick={() => setEditState({ start: 0, end: duration, fadeIn: 0, fadeOut: 0, gain: 0, padStart: 0, padEnd: 0 })}>Undo changes</button>
           </div>
           {live && (
             <div className="lg-row">
@@ -497,7 +504,7 @@ export default function AdminClips() {
     <GameScreen title="Recordings">
       <main className="lg-board lg-page">
         <p className="lg-body-lg">
-          Every recorded clip the games play. Clips with open <Link to="/admin/reports">reports</Link> come first. Open one to hear it, trim it, fade its ends or change its volume, and save that as the clip the app plays. Earlier versions stay and can be put back.
+          Every recorded clip the games play. Clips with open <Link to="/admin/reports">reports</Link> come first. Open one to hear it, trim it, fade its ends, add silence before or after it, or change its volume, and save that as the clip the app plays. Earlier versions stay and can be put back.
         </p>
         {gate ? (
           <section className="lg-section">

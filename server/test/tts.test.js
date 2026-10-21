@@ -292,7 +292,7 @@ test("the Recordings page lists every clip with its reports, saves an edit as a 
   assert.equal((await edit({ folder: LIAM })).statusCode, 409);
   assert.equal((await edit({ key: "zzzz" })).statusCode, 404);
 
-  const saved = await edit({ changes: { start: 0.0421, end: 0.8, gain: 6, evil: "x" } });
+  const saved = await edit({ changes: { start: 0.0421, end: 0.8, gain: 6, padEnd: 0.25, evil: "x" } });
   assert.equal(saved.statusCode, 200);
   assert.deepEqual(saved.json(), { folder: NOVA, key: word, revision: 1 });
   assert.ok((await base.fs.readFile(base.path.join(base.audio, NOVA, `${word}-1.mp3`))).equals(Buffer.from(mp3, "base64")));
@@ -300,7 +300,7 @@ test("the Recordings page lists every clip with its reports, saves an edit as a 
   assert.deepEqual((await readJson("index.json")).revisions, { [NOVA]: { [word]: 1 } });
   assert.deepEqual((await readJson("remake.json")).keys, { [word]: 1 });
   const log = (await readJson("edits.json"))[NOVA][word];
-  assert.deepEqual({ ...log[0], at: "" }, { revision: 1, from: 0, at: "", start: 0.042, end: 0.8, gain: 6 });
+  assert.deepEqual({ ...log[0], at: "" }, { revision: 1, from: 0, at: "", start: 0.042, end: 0.8, gain: 6, padEnd: 0.25 });
 
   // A later remake never takes the edit's number.
   await t.call("POST", "/api/admin/clips/remake", { text: "kitchen" });

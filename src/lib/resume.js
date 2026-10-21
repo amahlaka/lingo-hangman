@@ -51,12 +51,19 @@ export function pack(value) {
 
 // The other way: inside a node every object is a reference, so plain values
 // (a field that happens to be called $ref included) come back as they were.
+// Keys that would reach an object's prototype are never copied back.
+const UNSAFE_KEYS = new Set(["__proto__", "constructor", "prototype"]);
+
 export function unpack({ root, nodes }) {
   const made = nodes.map((n) => (Array.isArray(n) ? [] : {}));
   const get = (x) => (x !== null && typeof x === "object" ? made[x.$ref] : x);
   nodes.forEach((n, i) => {
     if (Array.isArray(n)) n.forEach((x) => made[i].push(get(x)));
-    else Object.entries(n).forEach(([k, x]) => (made[i][k] = get(x)));
+    else {
+      Object.entries(n)
+        .filter(([k]) => !UNSAFE_KEYS.has(k))
+        .forEach(([k, x]) => Object.defineProperty(made[i], k, { value: get(x), enumerable: true, writable: true, configurable: true }));
+    }
   });
   return get(root);
 }

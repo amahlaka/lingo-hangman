@@ -30,6 +30,13 @@ describe('saving a round', () => {
     expect(back.questions[0].list).toEqual([1, null, 'x']);
   });
 
+  it('never writes to a prototype from saved data', () => {
+    const back = unpack(JSON.parse('{"root":{"$ref":0},"nodes":[{"__proto__":{"$ref":1},"a":1},{"polluted":true}]}'));
+    expect(back.a).toBe(1);
+    expect(back.polluted).toBeUndefined();
+    expect({}.polluted).toBeUndefined();
+  });
+
   it('refuses what is not plain data', () => {
     expect(() => pack({ f: () => 1 })).toThrow();
     expect(() => pack({ when: new Date() })).toThrow();

@@ -1067,7 +1067,7 @@ const i18n = {
     newStreak: "Uusi putki, päivä 1. Paras putkesi on {best} päivää.",
     hangmanName: "Hirsipuu",
     guessPrompt: "Arvaa {inLanguage}:",
-    inLanguage: { en: "englanniksi", fi: "suomeksi", sv: "ruotsiksi", de: "saksaksi", fr: "ranskaksi", es: "espanjaksi" },
+    inLanguage: { en: "englanniksi", fi: "suomeksi" },
     triesLeft: "{n} yritystä jäljellä",
     oneTryLeft: "1 yritys jäljellä",
     correctTitle: "Oikein, ”{word}”.",

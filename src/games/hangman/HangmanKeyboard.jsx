@@ -1,12 +1,10 @@
 import React from "react";
 import englishLayout from "./keyboardLayouts/english";
 import finnishLayout from "./keyboardLayouts/finnish";
-import swedishLayout from "./keyboardLayouts/swedish";
 
 function getKeyboardRows(alphabet, lang) {
   if (lang === "en" || lang === "en-GB") return englishLayout;
   if (lang === "fi") return finnishLayout;
-  if (lang === "sv") return swedishLayout;
   const rows = [];
   for (let i = 0; i < alphabet.length; i += 10) rows.push(alphabet.slice(i, i + 10));
   return rows;

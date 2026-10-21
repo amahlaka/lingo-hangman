@@ -103,6 +103,16 @@ describe("clip edits", () => {
     expect(Math.max(...applyEdit(samples, rate, { gain: 20 }))).toBe(1);
   });
 
+  it("adds silence before and after", () => {
+    const out = applyEdit(samples, rate, { start: 0.2, end: 0.7, padStart: 0.1, padEnd: 0.25 });
+    expect(out.length).toBe(850);
+    expect(out[99]).toBe(0);
+    expect(out[100]).toBe(0.5);
+    expect(out[599]).toBe(0.5);
+    expect(out[600]).toBe(0);
+    expect(versionLabel(4, [{ revision: 4, at: "2026-10-21T10:00:00Z", padStart: 0.2 }])).toMatch(/\(silence added\)$/);
+  });
+
   it("finds where the sound is, the gain to a peak and the waveform", () => {
     expect(soundBounds(samples, rate, { pad: 0.01 })).toEqual({ start: 0.19, end: 0.71 });
     expect(soundBounds(new Float32Array(100), rate)).toEqual({ start: 0, end: 0.1 });

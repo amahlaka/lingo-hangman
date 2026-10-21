@@ -56,14 +56,15 @@ const REMAKE_ERRORS = {
 };
 
 // "Remake the clip": for bad audio, the recorded clip of the text leaves the
-// live site and the next Content publish makes it again.
+// live site and is made again: on the TTS server straight away when the API
+// has one, else by the next Content publish.
 function RemakeClip({ initial }) {
   const [text, setText] = useState(initial);
   const [state, setState] = useState(null);
   const remake = async () => {
     setState({ busy: true });
     const res = await api("/admin/clips/remake", { method: "POST", body: { text } });
-    setState(res.ok ? { done: res.data.keys.length } : { error: REMAKE_ERRORS[res.data?.error] || "Couldn't remake it." });
+    setState(res.ok ? { done: res.data.keys.length, making: res.data.making } : { error: REMAKE_ERRORS[res.data?.error] || "Couldn't remake it." });
   };
   return (
     <div className="fb-remake">
@@ -73,7 +74,13 @@ function RemakeClip({ initial }) {
       <button type="button" className="lg-btn lg-btn--secondary" disabled={!text.trim() || state?.busy || state?.done} onClick={remake}>
         Remake the clip
       </button>
-      {state?.done && <p className="lg-caption">Taken off the live site. The next Content publish (or a run with force) makes it again; until then the app reads it another way.</p>}
+      {state?.done && (
+        <p className="lg-caption">
+          {state.making
+            ? "Being made again on the TTS server; it's back on the live site in a minute or two."
+            : "Taken off the live site. The next Content publish (or a run with force) makes it again; until then the app reads it another way."}
+        </p>
+      )}
       {state?.error && <p className="lg-caption">{state.error}</p>}
     </div>
   );

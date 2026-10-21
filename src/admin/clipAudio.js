@@ -73,12 +73,15 @@ export function soundBounds(samples, rate, { threshold = -40, pad = 0.03 } = {})
 }
 
 // The edited samples: the part from `start` to `end` (seconds), faded in and
-// out over `fadeIn` / `fadeOut` seconds, louder or quieter by `gain` dB, and
-// kept within full scale.
-export function applyEdit(samples, rate, { start = 0, end = samples.length / rate, fadeIn = 0, fadeOut = 0, gain = 0 } = {}) {
+// out over `fadeIn` / `fadeOut` seconds, louder or quieter by `gain` dB, kept
+// within full scale, with `padStart` / `padEnd` seconds of silence added
+// before and after.
+export function applyEdit(samples, rate, { start = 0, end = samples.length / rate, fadeIn = 0, fadeOut = 0, gain = 0, padStart = 0, padEnd = 0 } = {}) {
   const from = Math.max(0, Math.min(samples.length, Math.round(start * rate)));
   const to = Math.max(from, Math.min(samples.length, Math.round(end * rate)));
   const out = samples.slice(from, to);
+  const before = Math.max(0, Math.round(padStart * rate));
+  const after = Math.max(0, Math.round(padEnd * rate));
   const g = dbToGain(gain);
   const inLen = Math.min(out.length, Math.round(fadeIn * rate));
   const outLen = Math.min(out.length, Math.round(fadeOut * rate));
@@ -89,7 +92,10 @@ export function applyEdit(samples, rate, { start = 0, end = samples.length / rat
     if (fromEnd < outLen) v *= fromEnd / outLen;
     out[i] = v > 1 ? 1 : v < -1 ? -1 : v;
   }
-  return out;
+  if (!before && !after) return out;
+  const padded = new Float32Array(before + out.length + after);
+  padded.set(out, before);
+  return padded;
 }
 
 export function toInt16(samples) {

@@ -1,7 +1,7 @@
 // Which textbook lessons this device has opened, so the lesson list can tick
 // them off and Home can offer the next one. Kept only on this device.
 
-const KEY = "lingoLessonsRead";
+const STORAGE_ITEM = "lingoLessonsRead";
 
 function storage() {
   try {
@@ -13,7 +13,7 @@ function storage() {
 
 export function readLessons() {
   try {
-    const list = JSON.parse(storage()?.getItem(KEY) || "[]");
+    const list = JSON.parse(storage()?.getItem(STORAGE_ITEM) || "[]");
     return new Set(Array.isArray(list) ? list.filter((id) => typeof id === "string") : []);
   } catch {
     return new Set();
@@ -25,7 +25,7 @@ export function markLessonRead(id) {
   if (read.has(id)) return read;
   read.add(id);
   try {
-    storage()?.setItem(KEY, JSON.stringify([...read]));
+    storage()?.setItem(STORAGE_ITEM, JSON.stringify([...read]));
   } catch {
     // private mode: remembered for this visit only
   }

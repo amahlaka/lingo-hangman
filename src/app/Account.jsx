@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { refreshOnDemandSpeech } from "../lib/tts";
 import { setOnDemandSpeech } from "../lib/speech";
-import { Link } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { KeyRound, Mail } from "lucide-react";
 import { useSettings } from "./SettingsContext";
 import { useProgress } from "./ProgressContext";
@@ -31,11 +31,11 @@ function ErrorLine({ text }) {
 }
 
 // Signed out: passkey first, then the emailed code (also how accounts are made).
-function SignIn({ t, lang, onSignedIn, onAction }) {
+function SignIn({ t, lang, onSignedIn, onAction, knownEmail = "" }) {
   const a = t.account;
   const supported = passkeysSupported();
   const [step, setStep] = useState(supported ? "start" : "email");
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(knownEmail);
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
@@ -355,17 +355,28 @@ function SignedIn({ t, lang, me, reload, onSignedOut }) {
   );
 }
 
-// After signing in for an AI connector's approval page (/api/oauth/authorize,
-// server/src/routes/oauth.js), go back there. The server remembers which page;
-// the link only says "oauth", so it can't send anyone elsewhere.
-export function oauthReturn(search) {
-  return new URLSearchParams(search).get("next") === "oauth" ? "/api/oauth/continue" : null;
+// Where to go after signing in (?next=). "oauth": back to an AI connector's
+// approval page (/api/oauth/authorize, server/src/routes/oauth.js); the server
+// remembers which page. An /admin path: the admin page that asked for a
+// sign-in. Anything else is ignored, so the link can't send anyone elsewhere.
+export function signInReturn(search) {
+  const next = new URLSearchParams(search).get("next");
+  if (next === "oauth") return "/api/oauth/continue";
+  return next && /^\/admin(\/[\w-]+)*$/.test(next) ? next : null;
 }
+
+// ?again=1: sign in once more although this device is signed in. Admin pages
+// and connecting AI tools need a sign-in from the last day.
+const askedAgain = (search) => new URLSearchParams(search).get("again") === "1";
 
 export default function Account() {
   const { t, lang } = useSettings();
   const { sync } = useProgress();
+  const navigate = useNavigate();
   const a = t.account;
+  const { search } = useLocation();
+  const back = signInReturn(search);
+  const [again, setAgain] = useState(() => askedAgain(search));
   // loading | unavailable | signedOut | offerPasskey | signedIn
   const [view, setView] = useState("loading");
   const [me, setMe] = useState(null);
@@ -394,10 +405,11 @@ export default function Account() {
     await load();
     sync.connect();
     refreshOnDemandSpeech();
-    const back = oauthReturn(window.location.search);
-    if (back) window.location.assign(back);
+    setAgain(false);
+    if (!back) return;
+    if (back.startsWith("/api/")) window.location.assign(back);
+    else navigate(back, { replace: true });
   };
-  const back = oauthReturn(typeof window === "undefined" ? "" : window.location.search);
   const signedOut = (message) => {
     // The progress stays on this device; it just isn't sent any more.
     sync.disconnect();
@@ -425,10 +437,19 @@ export default function Account() {
             }}
           />
         )}
-        {view === "signedIn" && back && (
+        {view === "signedIn" && again && me && (
+          <>
+            <Feedback variant="info" icon="i" title={a.signInAgain} />
+            <SignIn t={t} lang={lang} onSignedIn={signedIn} onAction={() => setNotice(null)} knownEmail={me.user.email} />
+          </>
+        )}
+        {view === "signedIn" && !again && back?.startsWith("/api/") && (
           <p className="lg-row"><a className="lg-btn lg-btn--primary" href={back}>{a.oauthContinue}</a></p>
         )}
-        {view === "signedIn" && me && <SignedIn t={t} lang={lang} me={me} reload={load} onSignedOut={signedOut} />}
+        {view === "signedIn" && !again && back?.startsWith("/admin") && (
+          <p className="lg-row"><Link className="lg-btn lg-btn--primary" to={back}>{a.adminContinue}</Link></p>
+        )}
+        {view === "signedIn" && !again && me && <SignedIn t={t} lang={lang} me={me} reload={load} onSignedOut={signedOut} />}
         <p className="lg-caption"><Link to="/privacy">{a.privacy}</Link></p>
       </main>
     </GameScreen>

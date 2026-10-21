@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { GameScreen } from "../components/lingo";
 import { api, backendAvailable } from "../lib/backend";
 
@@ -14,8 +14,21 @@ export const GATES = {
   unavailable: "The backend can't be reached.",
   signed_out: "Sign in with an admin account first.",
   not_admin: "This account isn't an admin. Add its email to ADMIN_EMAILS on the server.",
-  sign_in_again: "For the queue, sign in again (admin pages need a sign-in from the last day).",
+  sign_in_again: "Sign in again: admin pages need a sign-in from the last day.",
 };
+
+// The gate's button: the Account page signs in (again, when the sign-in is
+// over a day old) and comes back to this page.
+export function GateSignIn({ gate }) {
+  const { pathname } = useLocation();
+  if (!GATES[gate] || gate === "unavailable" || gate === "not_admin") return null;
+  const again = gate === "sign_in_again";
+  return (
+    <Link className="lg-btn lg-btn--primary" to={`/account?next=${encodeURIComponent(pathname)}${again ? "&again=1" : ""}`}>
+      {again ? "Sign in again" : "Sign in"}
+    </Link>
+  );
+}
 
 const when = (iso) => new Date(iso).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 
@@ -187,7 +200,7 @@ export default function AdminReports() {
         {gate ? (
           <section className="lg-section">
             <p>{GATES[gate]}</p>
-            {gate !== "unavailable" && gate !== "not_admin" && <Link className="lg-btn lg-btn--primary" to="/account">Sign in</Link>}
+            <GateSignIn gate={gate} />
           </section>
         ) : (
           <>

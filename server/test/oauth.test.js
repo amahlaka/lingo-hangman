@@ -208,3 +208,15 @@ test("registration stops while too many registrations wait for approval", async 
   assert.equal((await register(t)).statusCode, 201);
   await t.close();
 });
+
+test("an old sign-in links to signing in again, which comes back here", async () => {
+  const t = setup();
+  const client = (await register(t)).json();
+  await t.signIn("boss@example.com");
+  t.db.prepare("UPDATE sessions SET auth_at = ?").run(Date.now() - 25 * 3600_000);
+  const stale = await t.call("GET", authorizeUrl(client.client_id));
+  assert.match(stale.body, /href="\/account\?next=oauth&amp;again=1"/);
+  await t.signIn("boss@example.com");
+  assert.equal((await approve(t, client.client_id)).statusCode, 303);
+  await t.close();
+});

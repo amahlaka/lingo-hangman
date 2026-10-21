@@ -1,5 +1,3 @@
-import fs from 'node:fs';
-import path from 'node:path';
 import { fireEvent, screen } from '@testing-library/react';
 import { renderApp } from '../test-utils';
 import bundled from '../lib/bundledContent';
@@ -115,7 +113,8 @@ describe('Lessons pages', () => {
     expect(screen.getByRole('button', { name: 'hotel' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'The dog bites.' })).toBeInTheDocument();
     const sounds = GAMES.find((g) => g.id === 'sounds');
-    expect(screen.getByRole('link', { name: new RegExp(sounds.name) })).toHaveAttribute('href', `/sounds?set=${soundId}`);
+    const soundsLink = screen.getAllByRole('link').find((a) => a.textContent.startsWith(sounds.name));
+    expect(soundsLink).toHaveAttribute('href', `/sounds?set=${soundId}`);
     expect(screen.getByRole('link', { name: 'Type it' })).toHaveAttribute('href', '/type-it');
     expect(JSON.parse(localStorage.getItem('lingoLessonsRead'))).toEqual(['test-lesson-ck']);
     expect(screen.getByRole('link', { name: 'Next: Test second lesson' })).toHaveAttribute('href', '/lessons/test-lesson-two');

@@ -32,6 +32,25 @@ describe("word sets", () => {
     expect(filterCommonWords({ learningLang: "en-GB" }).some((w) => w.learning === "colour")).toBe(true);
     expect(pickCommonWords({ count: 3 })).toHaveLength(3);
   });
+
+  it("leaves out words `keep` rejects before taking the count", () => {
+    const all = filterCommonWords();
+    const picked = pickCommonWords({ count: all.length, keep: (p) => p.learning !== "color" });
+    expect(picked).toHaveLength(all.length - 1);
+    expect(picked.some((p) => p.learning === "color")).toBe(false);
+  });
+});
+
+describe("Hangman words", () => {
+  const { givesAnswerAway, isHangmanWord } = require("../games/hangman/hangmanWords");
+
+  it("skips words whose meaning is spelled the same", () => {
+    expect(givesAnswerAway({ learning: "sauna", native: "sauna" })).toBe(true);
+    expect(givesAnswerAway({ learning: "Wi-Fi", native: "wifi" })).toBe(true);
+    expect(givesAnswerAway({ learning: "banana", native: "banaani" })).toBe(false);
+    expect(isHangmanWord({ learning: "karaoke", native: "karaoke" })).toBe(false);
+    expect(isHangmanWord({ learning: "kitchen", native: "keittiö" })).toBe(true);
+  });
 });
 
 describe("texts", () => {

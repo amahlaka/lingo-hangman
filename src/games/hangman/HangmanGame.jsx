@@ -14,6 +14,7 @@ import {
 } from "../../components/lingo";
 import HangmanDrawing from "./HangmanDrawing";
 import HangmanKeyboard from "./HangmanKeyboard";
+import { givesAnswerAway } from "./hangmanWords";
 import HintButtons, { HINT_COSTS } from "./HintButtons";
 import { FREE_HINTS } from "../practice/practiceLogic";
 import { ReportButton, useReportSubject } from "../../app/FeedbackContext";
@@ -44,7 +45,7 @@ export default function HangmanGame() {
   useEffect(() => resetWordStreak(), [search, draw, resetWordStreak]);
   // A shared link plays its own words; otherwise `?rounds=` sets how many.
   const rounds = useRounds(undefined);
-  const newSet = useMemo(() => loadWordSet(new URLSearchParams(search), { count: rounds }), [search, draw, rounds]);
+  const newSet = useMemo(() => loadWordSet(new URLSearchParams(search), { count: rounds, keep: (pair) => !givesAnswerAway(pair) }), [search, draw, rounds]);
   const resume = useResume(resumable);
   // Opened from Home's "Continue" card: carry on without asking.
   const start = resume.auto ? resume.saved.data : null;

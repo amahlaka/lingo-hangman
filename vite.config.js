@@ -57,6 +57,9 @@ export default defineConfig({
         navigateFallbackDenylist: [/^\/api\//],
         // Shows reminders sent by the backend (public/push-sw.js).
         importScripts: ['push-sw.js'],
+        // The MP3 encoder is for the admin Recordings page only; learners
+        // never download it.
+        globIgnores: ['**/lamejs-*.js'],
       },
       // The app's manifest is public/manifest.json (linked from index.html),
       // so the plugin must not write a second one.

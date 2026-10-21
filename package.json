@@ -15,6 +15,7 @@
     "pretest": "node scripts/pull-content.mjs --if-missing"
   },
   "dependencies": {
+    "@breezystack/lamejs": "^1.2.7",
     "@headlessui/react": "^2.2.4",
     "@simplewebauthn/browser": "^14.0.0",
     "@tailwindcss/vite": "^4.1.9",

@@ -253,3 +253,73 @@ test("an admin has a bad clip made again: it leaves the list, the API won't save
   await t.close();
   await base.done();
 });
+
+test("the Recordings page lists every clip with its reports, saves an edit as a new revision and puts an older one back", async () => {
+  const base = await wordBase();
+  const t = setup({ ...TTS, ...base.env }, { tts: fakeTts() });
+  const { clipKey, wordsKey } = await import("../../src/lib/speechClips.js");
+  const NOVA = "kokoro-1.0-v5-af_nova";
+  const LIAM = "kokoro-1.0-v5-am_liam";
+  const word = clipKey("kitchen", "en");
+  const sentence = clipKey("The kitchen is warm.", "en");
+  const words = wordsKey("The kitchen is warm.", "en");
+  const readJson = async (name) => JSON.parse(await base.fs.readFile(base.path.join(base.audio, name), "utf8"));
+  await base.fs.mkdir(base.path.join(base.audio, NOVA));
+  await base.fs.writeFile(base.path.join(base.audio, NOVA, `${word}.mp3`), "old");
+  await base.fs.writeFile(base.path.join(base.audio, "index.json"), JSON.stringify({ voices: { [NOVA]: [word] } }));
+
+  assert.equal((await t.call("GET", "/api/admin/clips")).statusCode, 401);
+  // A learner reports the word's audio.
+  await t.signIn("learner@example.com");
+  const report = { clientId: "c1-report-0001", game: "hangman", itemRef: "kitchen", reason: "bad_audio", comment: "Too quiet", context: { question: { id: "kitchen", learning: "kitchen" }, answer: "kitchen" } };
+  assert.equal((await t.call("POST", "/api/reports", report)).statusCode, 201);
+  await t.signIn("boss@example.com");
+
+  const listed = (await t.call("GET", "/api/admin/clips")).json();
+  assert.deepEqual(listed.voices.map((v) => v.folder), [NOVA, LIAM]);
+  const byKey = new Map(listed.clips.map((c) => [c.key, c]));
+  assert.deepEqual([...byKey.keys()].sort(), [word, sentence, words].sort());
+  assert.deepEqual(byKey.get(word).voices, { [NOVA]: { state: "live", versions: [0] }, [LIAM]: { state: "missing" } });
+  assert.equal(byKey.get(words).words, true);
+  assert.deepEqual(byKey.get(word).reports.map((r) => [r.reason, r.comment]), [["bad_audio", "Too quiet"]]);
+  assert.equal(byKey.get(sentence).reports, undefined);
+
+  // Only an MP3, of a live clip, in a known voice.
+  const mp3 = Buffer.from([0xff, 0xf3, 0x64, 0xc4, 1, 2, 3, 4]).toString("base64");
+  const edit = (body) => t.call("POST", "/api/admin/clips/edit", { folder: NOVA, key: word, audio: mp3, ...body });
+  assert.equal((await edit({ audio: Buffer.from("<html>").toString("base64") })).statusCode, 400);
+  assert.equal((await edit({ folder: "../x" })).json().error, "bad_voice");
+  assert.equal((await edit({ folder: LIAM })).statusCode, 409);
+  assert.equal((await edit({ key: "zzzz" })).statusCode, 404);
+
+  const saved = await edit({ changes: { start: 0.0421, end: 0.8, gain: 6, evil: "x" } });
+  assert.equal(saved.statusCode, 200);
+  assert.deepEqual(saved.json(), { folder: NOVA, key: word, revision: 1 });
+  assert.ok((await base.fs.readFile(base.path.join(base.audio, NOVA, `${word}-1.mp3`))).equals(Buffer.from(mp3, "base64")));
+  assert.equal(await base.fs.readFile(base.path.join(base.audio, NOVA, `${word}.mp3`), "utf8"), "old");
+  assert.deepEqual((await readJson("index.json")).revisions, { [NOVA]: { [word]: 1 } });
+  assert.deepEqual((await readJson("remake.json")).keys, { [word]: 1 });
+  const log = (await readJson("edits.json"))[NOVA][word];
+  assert.deepEqual({ ...log[0], at: "" }, { revision: 1, from: 0, at: "", start: 0.042, end: 0.8, gain: 6 });
+
+  // A later remake never takes the edit's number.
+  await t.call("POST", "/api/admin/clips/remake", { text: "kitchen" });
+  assert.equal((await readJson("remake.json")).keys[word], 2);
+  await base.fs.writeFile(base.path.join(base.audio, "index.json"), JSON.stringify({ voices: { [NOVA]: [word] }, revisions: { [NOVA]: { [word]: 1 } } }));
+  // A second edit counts on from both.
+  assert.equal((await edit({})).json().revision, 3);
+
+  // Back to the first version, or to any that is on disk.
+  const use = (revision) => t.call("POST", "/api/admin/clips/use", { folder: NOVA, key: word, revision });
+  assert.equal((await use(2)).statusCode, 404);
+  assert.equal((await use(0)).statusCode, 200);
+  assert.deepEqual((await readJson("index.json")).revisions, { [NOVA]: {} });
+  const after = (await t.call("GET", "/api/admin/clips")).json().clips.find((c) => c.key === word).voices[NOVA];
+  assert.deepEqual(after.versions, [0, 1, 3]);
+  assert.equal(after.revision, undefined);
+  assert.equal(after.edits.at(-1).restored, true);
+  assert.equal((await use(1)).json().revision, 1);
+  assert.deepEqual((await readJson("index.json")).revisions, { [NOVA]: { [word]: 1 } });
+  await t.close();
+  await base.done();
+});

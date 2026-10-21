@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { GameScreen } from "../components/lingo";
 import { api, backendAvailable } from "../lib/backend";
+import { spokenTextOf } from "../lib/reportSpeech";
 
 // /admin/reports: the queue of problem reports and content suggestions from
 // learners (server/src/routes/admin.js). Needs an admin account (ADMIN_EMAILS
@@ -46,14 +47,8 @@ export function suggestionLink(s) {
   return `/admin?${q}`;
 }
 
-// The text a report's question said aloud: a sound lesson's word, else the answer.
-export function spokenTextOf(context) {
-  const q = context?.question;
-  const word = q?.word;
-  if (word && typeof word === "object") return word.speak || String(word.text || "").replace(/[[\]]/g, "");
-  if (typeof context?.answer === "string") return context.answer;
-  return q?.learning || q?.target?.learning || q?.text || "";
-}
+// Kept here too for the pages and tests that import it from this file.
+export { spokenTextOf };
 
 const REMAKE_ERRORS = {
   not_word_base: "That text isn't in the word base, so it has no recorded clip.",
@@ -107,6 +102,7 @@ function ReportGroup({ group, status, onStatus, busy }) {
         </div>
       ))}
       {badAudio && status === "open" && <RemakeClip initial={spokenTextOf(badAudio.context)} />}
+      {badAudio && status === "open" && <Link className="lg-btn lg-btn--quiet" to={`/admin/clips?q=${encodeURIComponent(spokenTextOf(badAudio.context))}`}>Edit the clip in Recordings</Link>}
       <div className="lg-row">
         <Link className="lg-btn lg-btn--secondary" to={editorLink(group.itemRef)}>Open in editor</Link>
         {status === "open" ? (
@@ -195,7 +191,7 @@ export default function AdminReports() {
     <GameScreen title="Reports">
       <main className="lg-board lg-page">
         <p className="lg-body-lg">
-          Problems and suggestions learners sent. Fix content in the <Link to="/admin">word bank editor</Link>, then mark it fixed here; the learner sees it under Account. Speech limits are under <Link to="/admin/users">users</Link>, numbers under <Link to="/admin/stats">statistics</Link>.
+          Problems and suggestions learners sent. Fix content in the <Link to="/admin">word bank editor</Link>, then mark it fixed here; the learner sees it under Account. Speech limits are under <Link to="/admin/users">users</Link>, numbers under <Link to="/admin/stats">statistics</Link>, recorded clips under <Link to="/admin/clips">recordings</Link>.
         </p>
         {gate ? (
           <section className="lg-section">

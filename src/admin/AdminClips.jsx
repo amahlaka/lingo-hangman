@@ -341,7 +341,7 @@ function ClipEditor({ clip, voice, onChanged, onDirty }) {
 
   const askRemake = async () => {
     setRemake({ busy: true });
-    const res = await api("/admin/clips/remake", { method: "POST", body: { text: clip.text } });
+    const res = await api("/admin/clips/remake", { method: "POST", body: { text: clip.text, folder: voice.folder } });
     setRemake(res.ok ? { done: true, making: res.data.making } : { error: true });
     if (res.ok) onChanged();
   };
@@ -417,7 +417,7 @@ function ClipEditor({ clip, voice, onChanged, onDirty }) {
       )}
       <details className="rc-remake">
         <summary className="lg-caption">Have the voice make it again</summary>
-        <p className="lg-caption">Both voices&apos; clips of “{clip.text}” (and its word-by-word clip) leave the live site and the voice makes new ones: on the TTS server within a minute or two, or else at the next Content publish. Until then the app reads it another way.</p>
+        <p className="lg-caption">This voice&apos;s clip of “{clip.text}” (and its word-by-word clip) leaves the live site and the voice makes a new one: on the TTS server within a minute or two, or else at the next Content publish. Until then the app reads it another way. The other voice&apos;s clip stays as it is.</p>
         <button type="button" className="lg-btn lg-btn--secondary" disabled={remake?.busy || remake?.done} onClick={askRemake}>Make it again</button>
         {remake?.done && (
           <p className="lg-caption">

@@ -66,14 +66,18 @@ export default async function adminRoutes(app, { db, config, wordClips, ttsServi
     return { changed: setStatus(db, "reports", ids, status) };
   });
 
-  // A bad recorded clip: { text } -> { keys, making }. The clip leaves the
+  // A bad recorded clip: { text, folder? } -> { keys, making }. The clip (in
+  // the voice `folder` names, else both) leaves the
   // live list now and is made again on the TTS server in the background
   // (making: true), or else by the next Content publish (lib/wordClips.js).
   app.post("/api/admin/clips/remake", async (req, reply) => {
     if (!wordClips) return reply.code(503).send({ error: "clips_unavailable" });
     const text = ttsText(req.body?.text);
     if (!text) return reply.code(400).send({ error: "bad_request" });
-    const keys = await wordClips.remake(text);
+    const folder = req.body?.folder;
+    if (folder != null && typeof folder !== "string") return reply.code(400).send({ error: "bad_request" });
+    const keys = await wordClips.remake(text, "en", folder ?? null);
+    if (keys?.error) return reply.code(400).send({ error: keys.error });
     if (!keys) return reply.code(404).send({ error: "not_word_base" });
     req.log.info({ keys }, "clip remake");
     return { text, keys, making: wordClips.makesNow };

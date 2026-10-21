@@ -102,8 +102,10 @@ export function filterCommonWords({
 }
 
 // `count` random pairs from the built-in list.
-export function pickCommonWords({ count = 5, ...filters } = {}) {
-  return shuffle(filterCommonWords(filters)).slice(0, count);
+// `keep` (optional) drops pairs a game can't use before the count is taken.
+export function pickCommonWords({ count = 5, keep, ...filters } = {}) {
+  const pairs = filterCommonWords(filters);
+  return shuffle(keep ? pairs.filter(keep) : pairs).slice(0, count);
 }
 
 function toBase64Unicode(str) {
@@ -144,14 +146,15 @@ export function buildWordsQuery({
 
 // Read the word set a game was opened with.
 // `params` is a URLSearchParams (e.g. from react-router's useSearchParams).
-// Without a `words` param it picks `count` random built-in words.
-export function loadWordSet(params, { count = 5 } = {}) {
+// Without a `words` param it picks `count` random built-in words that pass
+// `keep` (optional).
+export function loadWordSet(params, { count = 5, keep } = {}) {
   const learningLang = params.get("learningLang") || DEFAULT_LEARNING_LANG;
   const nativeLang = params.get("nativeLang") || DEFAULT_NATIVE_LANG;
   const encoded = params.get("words");
   // A link that can't be read plays random word bank words instead.
   const linked = encoded ? decodeWords(encoded) : null;
-  const pairs = linked?.length ? linked : pickCommonWords({ count, learningLang, nativeLang, preferences: true });
+  const pairs = linked?.length ? linked : pickCommonWords({ count, keep, learningLang, nativeLang, preferences: true });
   return {
     pairs: shuffle(pairs),
     learningLang,

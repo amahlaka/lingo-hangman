@@ -11,6 +11,7 @@ import { getAlphabet, guessPromptText, loadWordSet, meaningLabel, shuffle, wordI
 import { DailyProgress, ExtraTryOffer, Feedback, GameScreen, ScorePill, TriesMeter, WordRecap, WordTiles, useConfetti, useExtraTry } from "../../components/lingo";
 import HangmanDrawing from "./HangmanDrawing";
 import HangmanKeyboard from "./HangmanKeyboard";
+import { givesAnswerAway } from "./hangmanWords";
 import HintButtons, { HINT_COSTS } from "./HintButtons";
 import { FREE_HINTS } from "../practice/practiceLogic";
 import { ReportButton, useReportSubject } from "../../app/FeedbackContext";
@@ -34,7 +35,7 @@ export default function HangmanGame() {
   useEffect(() => resetWordStreak(), [search, draw, resetWordStreak]);
   // A shared link plays its own words; otherwise `?rounds=` sets how many.
   const rounds = useRounds(undefined);
-  const wordSet = useMemo(() => loadWordSet(new URLSearchParams(search), { count: rounds }), [search, draw, rounds]);
+  const wordSet = useMemo(() => loadWordSet(new URLSearchParams(search), { count: rounds, keep: (pair) => !givesAnswerAway(pair) }), [search, draw, rounds]);
   const { pairs: words, learningLang, nativeLang, swap: swapMode, fromLink } = wordSet;
 
   // Words still to solve, by index into `words`. A lost word moves to the end.

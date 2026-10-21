@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { GameScreen } from "../components/lingo";
 import { api, backendAvailable } from "../lib/backend";
-import { GATES } from "./AdminReports";
+import { GATES, GateSignIn } from "./AdminReports";
 
 // /admin/users: learner accounts, for granting the extended on-demand speech
 // limit and Say it right (server/src/routes/admin.js); each links to its own progress page. Learners who asked for more come first.
@@ -45,7 +45,7 @@ export default function AdminUsers() {
         {gate ? (
           <section className="lg-section">
             <p>{GATES[gate]}</p>
-            {gate !== "unavailable" && gate !== "not_admin" && <Link className="lg-btn lg-btn--primary" to="/account">Sign in</Link>}
+            <GateSignIn gate={gate} />
           </section>
         ) : (
           <>

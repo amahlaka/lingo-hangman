@@ -118,6 +118,16 @@ test("an account named in ADMIN_EMAILS later becomes admin, and admin needs a re
   const stale = await t.call("GET", "/api/admin/reports");
   assert.equal(stale.statusCode, 401);
   assert.equal(stale.json().error, "sign_in_again");
+  // Signing in again on the same device renews this session, not a second one.
+  const cookie = t.cookie;
+  await t.signIn("boss@example.com");
+  assert.equal(t.cookie, cookie);
+  assert.equal(t.db.prepare("SELECT COUNT(*) AS n FROM sessions").get().n, 1);
+  assert.equal((await t.call("GET", "/api/admin/reports")).statusCode, 200);
+  // Another account on this device gets its own session.
+  await t.signIn("other@example.com");
+  assert.notEqual(t.cookie, cookie);
+  assert.equal(t.db.prepare("SELECT COUNT(*) AS n FROM sessions").get().n, 2);
   await t.close();
 });
 

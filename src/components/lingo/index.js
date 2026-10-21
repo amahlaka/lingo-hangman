@@ -17,3 +17,4 @@ export { default as ExampleText, plainText } from "./ExampleText";
 export { TypeKey, TypeLabel, typeClass, useAutoTypeHelp, useLooseWordType, useTypePrefs } from "./WordTypes";
 export { keepInView } from "./keepInView";
 export { default as ExtraTryOffer, useExtraTry } from "./ExtraTryOffer";
+export { default as ResumeOffer, resumeDetail, useResume } from "./ResumeOffer";

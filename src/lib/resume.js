@@ -8,7 +8,7 @@
 // that is also the target, a result that holds its question), and games
 // compare them by identity, so pack() keeps shared objects shared.
 
-const KEY = "lingo.resume.v1";
+const STORAGE_ITEM = "lingo.resume.v1";
 // Raise when a saved round's shape changes, so older saves are dropped.
 export const RESUME_VERSION = 1;
 // Older rounds are dropped rather than offered.
@@ -70,7 +70,7 @@ export function unpack({ root, nodes }) {
 
 function readAll() {
   try {
-    const all = JSON.parse(localStorage.getItem(KEY) || "{}");
+    const all = JSON.parse(localStorage.getItem(STORAGE_ITEM) || "{}");
     return all && typeof all === "object" ? all : {};
   } catch {
     return {};
@@ -79,8 +79,8 @@ function readAll() {
 
 function writeAll(all) {
   try {
-    if (Object.keys(all).length) localStorage.setItem(KEY, JSON.stringify(all));
-    else localStorage.removeItem(KEY);
+    if (Object.keys(all).length) localStorage.setItem(STORAGE_ITEM, JSON.stringify(all));
+    else localStorage.removeItem(STORAGE_ITEM);
   } catch {
     // Storage full or blocked: the round just can't be continued later.
   }

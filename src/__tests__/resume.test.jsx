@@ -5,8 +5,8 @@ import { RESUME_MAX_AGE_MS, clearRound, latestRound, loadRound, pack, saveRound,
 import { buildSayRightRound } from '../games/say-right/sayRightLogic';
 import { practicePool } from '../games/practice/practiceLogic';
 
-const KEY = 'lingo.resume.v1';
-const saved = () => JSON.parse(localStorage.getItem(KEY) || '{}');
+const STORAGE_ITEM = 'lingo.resume.v1';
+const saved = () => JSON.parse(localStorage.getItem(STORAGE_ITEM) || '{}');
 
 const words = [
   { learning: 'dog', native: 'koira' },
@@ -110,7 +110,7 @@ describe('continuing a question game', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Skip this one' }));
       fireEvent.click(screen.getByRole('button', { name: i === 4 ? 'See results' : 'Next' }));
     }
-    expect(localStorage.getItem(KEY)).toBeNull();
+    expect(localStorage.getItem(STORAGE_ITEM)).toBeNull();
   });
 
   it('says it in Finnish in the Finnish interface', () => {
@@ -145,7 +145,7 @@ describe('Home', () => {
     renderApp('/', { storage });
     fireEvent.click(screen.getByRole('button', { name: 'No thanks' }));
     expect(screen.queryByText('Continue where you left off')).not.toBeInTheDocument();
-    expect(localStorage.getItem(KEY)).toBeNull();
+    expect(localStorage.getItem(STORAGE_ITEM)).toBeNull();
   });
 });
 

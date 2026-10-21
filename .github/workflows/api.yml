@@ -5,10 +5,10 @@ name: API checks
 
 on:
   pull_request:
-    paths: ["server/**", "deploy/api/**", ".github/workflows/api.yml", "src/lib/progress.js", "src/lib/cosmetics.js", "src/lib/syncEvents.js", "src/lib/accountSettings.js", "src/lib/speechClips.js", "src/lib/mistakes.js", "src/lib/pathFormat.js", "src/lib/playSession.js", "src/lib/insights.js", "src/lib/adaptive.js", "src/lib/path.js", "src/lib/gameList.js", "src/lib/pronunciationStats.js"]
+    paths: ["server/**", "deploy/api/**", ".github/workflows/api.yml", "src/lib/progress.js", "src/lib/cosmetics.js", "src/lib/syncEvents.js", "src/lib/accountSettings.js", "src/lib/speechClips.js", "src/lib/mistakes.js", "src/lib/pathFormat.js", "src/lib/playSession.js", "src/lib/insights.js", "src/lib/adaptive.js", "src/lib/path.js", "src/lib/gameList.js", "src/lib/pronunciationStats.js", "src/lib/reportSpeech.js"]
   push:
     branches: [master]
-    paths: ["server/**", "deploy/api/**", ".github/workflows/api.yml", "src/lib/progress.js", "src/lib/cosmetics.js", "src/lib/syncEvents.js", "src/lib/accountSettings.js", "src/lib/speechClips.js", "src/lib/mistakes.js", "src/lib/pathFormat.js", "src/lib/playSession.js", "src/lib/insights.js", "src/lib/adaptive.js", "src/lib/path.js", "src/lib/gameList.js", "src/lib/pronunciationStats.js"]
+    paths: ["server/**", "deploy/api/**", ".github/workflows/api.yml", "src/lib/progress.js", "src/lib/cosmetics.js", "src/lib/syncEvents.js", "src/lib/accountSettings.js", "src/lib/speechClips.js", "src/lib/mistakes.js", "src/lib/pathFormat.js", "src/lib/playSession.js", "src/lib/insights.js", "src/lib/adaptive.js", "src/lib/path.js", "src/lib/gameList.js", "src/lib/pronunciationStats.js", "src/lib/reportSpeech.js"]
 
 permissions:
   contents: read

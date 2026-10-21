@@ -271,6 +271,26 @@ or *Run workflow* with force) sees them missing and makes only them, as
 one needs a new name. `index.json`'s `"revisions"` tells the app which file to
 play. Needs the same `CONTENT_DIR` and `CLIP_DIR` as saved clips.
 
+### Editing clips (Recordings)
+
+`/admin/clips` lists every clip the word base needs, in both voices
+(`GET /api/admin/clips`): live, being made again, or not made yet. Clips that
+an open report's question said (its answer, the question's English, a sound
+lesson's word: `src/lib/reportSpeech.js`) come first and are marked; a report
+doesn't say which voice it heard, so it marks the text in both. Opening a clip
+loads its MP3, draws the waveform, and lets an admin trim it, fade its ends and
+change its volume in the browser. Saving encodes the result there (lamejs,
+loaded only then; mono, 24 kHz, 48 kbit/s like the workflow's clips) and sends
+it to `POST /api/admin/clips/edit { folder, key, audio, changes }`. The API
+writes it as that voice's `<key>-<revision>.mp3`, points `index.json`'s
+`"revisions"` at it, and takes the number from `remake.json` too, so a later
+remake never reuses it. Nothing is deleted: every version stays in the folder
+and `POST /api/admin/clips/use { folder, key, revision }` puts one back
+(0 is the first, `<key>.mp3`). `CLIP_DIR/edits.json` keeps what each edit did.
+The Content publish workflow keeps live revisions as they are. A clip encoded
+in the browser has no gapless header, so it starts with about 50 ms of extra
+silence; *Trim silence* removes it on a later edit.
+
 ## Server speech-to-text
 
 Verified learners can have *Say it* listen with Lingo's own recogniser instead

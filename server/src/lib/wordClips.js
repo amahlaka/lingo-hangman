@@ -15,37 +15,58 @@
 // needs a new name) and lists that in index.json's "revisions". Until then
 // the API won't save it either, so the slower but cleaner workflow clip is
 // the one that stays.
+//
+// The Recordings page (/admin/clips) lists every clip and saves an admin's
+// edit (trimmed, faded, louder) as a new revision of one voice's clip, the
+// same way: a new <key>-<revision>.mp3, named in index.json's "revisions".
+// Its number is taken from remake.json too, so a later remake never reuses
+// it. Every version stays on disk, so an older one can be put back; what was
+// done is kept in <clip dir>/edits.json.
 
 import fs from "node:fs/promises";
 import path from "node:path";
-import { CLIP_LANGS, clipKey, normalizeSpeech, spokenTexts, wordsKey } from "../../../src/lib/speechClips.js";
+import { CLIP_LANGS, VOICES, clipKey, normalizeSpeech, spokenTexts, wordByWordTexts, wordsKey } from "../../../src/lib/speechClips.js";
 
 const RELOAD_MS = 60_000;
+// A clip file: <key>.mp3 or <key>-<revision>.mp3 (keys are base 36).
+const CLIP_FILE = /^([0-9a-z]+)(?:-(\d+))?\.mp3$/;
+// History entries kept per clip in edits.json.
+const MAX_EDITS = 20;
 
 const readJson = async (file) => JSON.parse(await fs.readFile(file, "utf8"));
 
 export function createWordClips({ contentDir, clipDir }) {
-  let known = null; // { stamp, keys: Set } of the word base on disk
+  let known = null; // { stamp, keys: Set, texts: Map } of the word base on disk
   let checkedAt = 0;
   let writing = Promise.resolve(); // index.json updates, one at a time
 
-  // The keys of every text the word base says, reloaded when content/index.json
-  // changes (checked at most once a minute).
-  async function knownKeys(now = Date.now()) {
-    if (known && now - checkedAt < RELOAD_MS) return known.keys;
+  // The word base's spoken texts, reloaded when content/index.json changes
+  // (checked at most once a minute): `keys` of every text it says, and
+  // `texts`, key -> { text, words }, with the word-by-word clips too.
+  async function loadKnown(now = Date.now()) {
+    if (known && now - checkedAt < RELOAD_MS) return known;
     checkedAt = now;
     const stamp = (await fs.stat(path.join(contentDir, "index.json"))).mtimeMs;
-    if (known?.stamp === stamp) return known.keys;
+    if (known?.stamp === stamp) return known;
     const index = await readJson(path.join(contentDir, "index.json"));
     const content = {
       languages: await readJson(path.join(contentDir, "languages.json")),
       packs: await Promise.all((index.packs || []).map((id) => readJson(path.join(contentDir, "packs", `${id}.json`)))),
     };
     const keys = new Set();
-    for (const lang of CLIP_LANGS) for (const key of spokenTexts(content, lang).keys()) keys.add(key);
-    known = { stamp, keys };
-    return keys;
+    const texts = new Map();
+    for (const lang of CLIP_LANGS) {
+      for (const [key, text] of spokenTexts(content, lang)) {
+        keys.add(key);
+        texts.set(key, { text, words: false });
+      }
+      for (const [key, text] of wordByWordTexts(content, lang)) texts.set(key, { text, words: true });
+    }
+    known = { stamp, keys, texts };
+    return known;
   }
+
+  const knownKeys = async () => (await loadKnown()).keys;
 
   // The clip's key when `text` is in the word base, else null.
   async function keyFor(text, lang = "en") {
@@ -145,5 +166,137 @@ export function createWordClips({ contentDir, clipDir }) {
     return keys;
   }
 
-  return { keyFor, has, save, remake, remaking };
+  // --- The Recordings page ---
+
+  const voiceOf = (folder) => VOICES.find((v) => v.folder === folder) || null;
+
+  // key -> sorted revisions of the files in a voice folder (0 is <key>.mp3).
+  async function filesIn(folder) {
+    let names = [];
+    try {
+      names = await fs.readdir(path.join(clipDir, folder));
+    } catch (err) {
+      if (err.code !== "ENOENT") throw err;
+    }
+    const out = new Map();
+    for (const name of names) {
+      const m = CLIP_FILE.exec(name);
+      if (!m) continue;
+      if (!out.has(m[1])) out.set(m[1], []);
+      out.get(m[1]).push(Number(m[2]) || 0);
+    }
+    for (const list of out.values()) list.sort((a, b) => a - b);
+    return out;
+  }
+
+  async function readEdits() {
+    const edits = await readOr("edits.json", {});
+    return edits && typeof edits === "object" && !Array.isArray(edits) ? edits : {};
+  }
+
+  async function logEdit(folder, key, entry) {
+    const edits = await readEdits();
+    const forFolder = (edits[folder] && typeof edits[folder] === "object" ? edits[folder] : (edits[folder] = {}));
+    forFolder[key] = [...(Array.isArray(forFolder[key]) ? forFolder[key] : []), entry].slice(-MAX_EDITS);
+    await writeJson("edits.json", edits);
+  }
+
+  // The clip keys of report texts that the word base says (each text's own
+  // clip and its word-by-word one).
+  async function keysForTexts(texts, lang = "en") {
+    const known = (await loadKnown()).texts;
+    const out = new Set();
+    for (const text of texts) {
+      for (const key of [clipKey(text, lang), wordsKey(text, lang)]) if (known.has(key)) out.add(key);
+    }
+    return [...out];
+  }
+
+  // Every clip the word base needs, per voice: { voices, clips: [{ key, text,
+  // words, voices: { <folder>: { state, revision?, versions?, edits? } } }] }.
+  // state is live, remaking (an admin asked for it again) or missing (not
+  // made yet; the app reads it another way). revision is the live file's.
+  async function list() {
+    const { texts } = await loadKnown();
+    const manifest = await readManifest();
+    const remakes = (await readRemakes()).keys;
+    const edits = await readEdits();
+    const voices = [];
+    for (const v of VOICES) {
+      voices.push({
+        ...v,
+        live: new Set(Array.isArray(manifest.voices[v.folder]) ? manifest.voices[v.folder] : []),
+        revisions: manifest.revisions?.[v.folder] || {},
+        files: await filesIn(v.folder),
+      });
+    }
+    const clips = [];
+    for (const [key, { text, words }] of texts) {
+      const perVoice = {};
+      for (const v of voices) {
+        const live = v.live.has(key);
+        const entry = { state: live ? "live" : remakes[key] ? "remaking" : "missing" };
+        const revision = Number(v.revisions[key]) || 0;
+        if (live && revision) entry.revision = revision;
+        const versions = v.files.get(key);
+        if (versions?.length) entry.versions = versions;
+        const log = edits[v.folder]?.[key];
+        if (Array.isArray(log) && log.length) entry.edits = log;
+        perVoice[v.folder] = entry;
+      }
+      clips.push({ key, text, words, voices: perVoice });
+    }
+    return { voices: VOICES.map(({ id, folder, speaker }) => ({ id, folder, speaker })), clips };
+  }
+
+  // An admin's edit of one voice's live clip: `audio` (an MP3) becomes its
+  // new revision and the one the app plays. `changes` says what was done
+  // (trim, fades, gain), for the history. Resolves to { revision } or
+  // { error }.
+  async function saveEdit(folder, key, audio, changes = {}, now = new Date()) {
+    if (!voiceOf(folder)) return { error: "bad_voice" };
+    if (!(await loadKnown()).texts.has(key)) return { error: "not_word_base" };
+    return queued(async () => {
+      const manifest = await readManifest();
+      if (!(manifest.voices[folder] || []).includes(key)) return { error: "not_live" };
+      const list = await readRemakes();
+      const from = Number(manifest.revisions?.[folder]?.[key]) || 0;
+      const onDisk = (await filesIn(folder)).get(key) || [];
+      const revision = Math.max(Number(list.keys[key]) || 0, from, ...onDisk) + 1;
+      const file = path.join(clipDir, folder, `${key}-${revision}.mp3`);
+      const tmp = `${file}.${process.pid}.tmp`;
+      await fs.writeFile(tmp, audio, { mode: 0o644 });
+      await fs.rename(tmp, file);
+      list.keys[key] = revision;
+      await writeJson("remake.json", list);
+      manifest.revisions = manifest.revisions && typeof manifest.revisions === "object" ? manifest.revisions : {};
+      manifest.revisions[folder] = { ...(manifest.revisions[folder] || {}), [key]: revision };
+      await writeJson("index.json", manifest);
+      await logEdit(folder, key, { revision, from, at: now.toISOString(), ...changes });
+      return { revision };
+    });
+  }
+
+  // Puts an earlier version of a voice's live clip back (0 is the first one,
+  // <key>.mp3). Resolves to { revision } or { error }.
+  async function useVersion(folder, key, revision, now = new Date()) {
+    if (!voiceOf(folder)) return { error: "bad_voice" };
+    if (!(await loadKnown()).texts.has(key)) return { error: "not_word_base" };
+    return queued(async () => {
+      const manifest = await readManifest();
+      if (!(manifest.voices[folder] || []).includes(key)) return { error: "not_live" };
+      if (!((await filesIn(folder)).get(key) || []).includes(revision)) return { error: "no_such_version" };
+      const from = Number(manifest.revisions?.[folder]?.[key]) || 0;
+      manifest.revisions = manifest.revisions && typeof manifest.revisions === "object" ? manifest.revisions : {};
+      const forFolder = { ...(manifest.revisions[folder] || {}) };
+      if (revision) forFolder[key] = revision;
+      else delete forFolder[key];
+      manifest.revisions[folder] = forFolder;
+      await writeJson("index.json", manifest);
+      await logEdit(folder, key, { revision, from, at: now.toISOString(), restored: true });
+      return { revision };
+    });
+  }
+
+  return { keyFor, has, save, remake, remaking, list, keysForTexts, saveEdit, useVersion };
 }

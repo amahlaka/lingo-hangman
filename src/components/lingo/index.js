@@ -11,6 +11,7 @@ export { default as GameCard } from "./GameCard";
 export { default as RoundCard } from "./RoundCard";
 export { default as Achievements } from "./Achievements";
 export { default as SettingsMenu } from "./SettingsMenu";
+export { default as BottomNav } from "./BottomNav";
 export { Flame, Shield, GoalRing } from "./Icons";
 export { default as CategoryChips } from "./CategoryChips";
 export { default as ExampleText, plainText } from "./ExampleText";

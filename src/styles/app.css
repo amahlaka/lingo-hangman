@@ -111,6 +111,91 @@ a { color: var(--lake); }
   .lg-tray { margin: 0; border-radius: var(--radius-lg); margin-bottom: var(--space-4); }
 }
 
+/* Bottom navigation bar: Home and the other top-level screens. Sticky at
+   the end of .lg-screen, like the tray, so the page needs no extra padding. */
+.lg-bottom-nav {
+  position: sticky;
+  bottom: 0;
+  z-index: 20;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  align-items: end;
+  margin: 0 calc(-1 * var(--space-4));
+  padding: var(--space-1) var(--space-2) calc(var(--space-1) + env(safe-area-inset-bottom, 0));
+  background: var(--surface-raised);
+  border-top: 1px solid var(--line);
+  box-shadow: 0 -4px 12px #17252e0f;
+}
+.lg-bottom-nav__tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-height: 56px;
+  min-width: 0;
+  color: var(--ink-muted);
+  text-decoration: none;
+  border-radius: var(--radius-md);
+  -webkit-tap-highlight-color: transparent;
+}
+.lg-bottom-nav__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 30px;
+  border-radius: var(--radius-pill);
+  transition: background-color 160ms ease, transform 160ms ease;
+}
+.lg-bottom-nav__label {
+  max-width: 100%;
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.lg-bottom-nav__tab:hover { color: var(--ink); }
+.lg-bottom-nav__tab:focus-visible { outline: 3px solid var(--lingon); outline-offset: -3px; }
+.lg-bottom-nav__tab.is-active { color: var(--lake); }
+.lg-bottom-nav__tab.is-active .lg-bottom-nav__icon { background: var(--lake-soft); }
+.lg-bottom-nav__tab:active .lg-bottom-nav__icon { transform: scale(0.92); }
+
+/* Play: a raised lake circle in the middle, the one big action. */
+.lg-bottom-nav__tab--play { color: var(--lake); }
+.lg-bottom-nav__tab--play .lg-bottom-nav__icon {
+  width: 52px;
+  height: 52px;
+  margin-top: -22px;
+  color: var(--on-lake);
+  background: var(--lake);
+  border: 4px solid var(--surface-raised);
+  box-shadow: var(--shadow-raised);
+}
+.lg-bottom-nav__tab--play:hover .lg-bottom-nav__icon { background: var(--lake-strong); }
+.lg-bottom-nav__tab--play .lg-bottom-nav__icon svg { margin-left: 2px; fill: currentColor; }
+
+@media (min-width: 768px) {
+  .lg-bottom-nav {
+    margin: 0 0 var(--space-4);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+  }
+}
+/* Narrow phones: room for "Oppitunnit" without cutting it. */
+@media (max-width: 360px) {
+  .lg-bottom-nav { padding-left: var(--space-1); padding-right: var(--space-1); }
+  .lg-bottom-nav__label { font-size: 11px; letter-spacing: 0; }
+  .lg-bottom-nav__icon { width: 48px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .lg-bottom-nav__icon { transition: none; }
+  .lg-bottom-nav__tab:active .lg-bottom-nav__icon { transform: none; }
+}
+
 /* Settings menu */
 .lg-menu { position: relative; }
 .lg-menu__panel {

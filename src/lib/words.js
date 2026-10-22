@@ -242,6 +242,30 @@ export function getSoundLessons() {
   return getItems({ type: "sound" });
 }
 
+// Textbook lessons ("lesson" items) grouped by chapter, in the order of
+// index.json `lessonChapters` and then of the packs: [{ id, title, summary,
+// lessons: [{ id, chapter, title, summary, blocks, practice }] }]. Lessons of
+// an unknown chapter come last under `otherTitle`.
+export function getLessonChapters(otherTitle = { en: "More lessons", fi: "Lisää oppitunteja" }) {
+  const lessons = getItems({ type: "lesson" });
+  const chapters = (getContent().lessonChapters || []).map((c) => ({ ...c, lessons: lessons.filter((l) => l.chapter === c.id) }));
+  const known = new Set(chapters.map((c) => c.id));
+  const other = lessons.filter((l) => !known.has(l.chapter));
+  if (other.length) chapters.push({ id: "other", title: otherTitle, lessons: other });
+  return chapters.filter((c) => c.lessons.length);
+}
+
+// Every lesson in reading order.
+export function getLessons() {
+  return getLessonChapters().flatMap((c) => c.lessons);
+}
+
+// Lessons whose practice links send the learner to `game` with `set`, for a
+// "read the lesson" link from the game's side.
+export function lessonsFor(game, set) {
+  return getLessons().filter((l) => (l.practice || []).some((p) => p.game === game && p.set === set));
+}
+
 // Tips on saying single English sounds ("phone" items), for Say it right's
 // feedback: `{ id, symbols: ["θ"], title, tip, example, lesson }`.
 export function getPhoneTips() {

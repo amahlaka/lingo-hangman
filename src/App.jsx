@@ -21,6 +21,7 @@ import AdminAi from "./admin/AdminAi";
 import AdminClips from "./admin/AdminClips";
 import AdminTts from "./admin/AdminTts";
 import HearSentence from "./app/HearSentence";
+import Lessons from "./app/Lessons";
 import { TrackedGame } from "./app/PlayTracking";
 import { GAMES, PLAYABLE_GAME_IDS } from "./games/registry";
 
@@ -38,6 +39,9 @@ export function AppRoutes() {
       <Route path="/install" element={<Install />} />
       <Route path="/suggest" element={<Suggest />} />
       <Route path="/hear" element={<HearSentence />} />
+      {/* Textbook lessons: how English works, letters and sounds, spelling rules. */}
+      <Route path="/lessons" element={<Lessons />} />
+      <Route path="/lessons/:id" element={<Lessons />} />
       {/* Word bank editor; not linked from the app, see the lingo-wordbase README. */}
       <Route path="/admin" element={<ContentAdmin />} />
       <Route path="/admin/reports" element={<AdminReports />} />

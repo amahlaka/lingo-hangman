@@ -14,6 +14,7 @@ import AccountOffer from "./AccountOffer";
 import { InstallOffer } from "./Install";
 import MyPathCard from "./MyPath";
 import ResumeCard from "./ResumeCard";
+import { LessonsCard } from "./Lessons";
 
 // Show answer statistics once there are enough answers to say something.
 const MIN_ANSWERS_FOR_STATS = 10;
@@ -146,6 +147,8 @@ export default function Home() {
         <MyPathCard />
 
         <QuickPlayCard t={t} lang={lang} />
+
+        <LessonsCard />
 
         <section className="lg-section">
           <h2 className="lg-heading">{t.chooseGame}</h2>

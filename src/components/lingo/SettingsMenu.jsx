@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import {
+  BookOpen,
   ChartNoAxesColumn,
   CircleUser,
   Download,
@@ -91,6 +92,7 @@ export default function SettingsMenu({ actions = [] }) {
 
   const close = () => setOpen(false);
   const places = [
+    { to: "/lessons", label: t.lessons.title, Icon: BookOpen },
     { to: "/preferences", label: t.preferencesTitle, Icon: SlidersHorizontal },
     { to: "/profile", label: t.profile.title, Icon: ChartNoAxesColumn },
     { to: "/shop", label: t.shop.title, Icon: Gem },

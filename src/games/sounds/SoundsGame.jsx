@@ -5,7 +5,7 @@ import { useSettings } from "../../app/SettingsContext";
 import { useProgress } from "../../app/ProgressContext";
 import i18n, { fill } from "../../i18n";
 import { ExampleText, Feedback, GameScreen } from "../../components/lingo";
-import { DEFAULT_LEARNING_LANG, DEFAULT_NATIVE_LANG, getSoundLessons } from "../../lib/words";
+import { DEFAULT_LEARNING_LANG, DEFAULT_NATIVE_LANG, getSoundLessons, lessonsFor } from "../../lib/words";
 import { RATE_SLOW, canSpeak, speak } from "../../lib/speech";
 import PracticeSession from "../practice/PracticeSession";
 import TopicPicker, { useTopicChoice } from "../practice/TopicPicker";
@@ -88,6 +88,8 @@ function Lesson({ lesson }) {
   const words = lessonWords(lesson);
   const speech = canSpeak();
   const ex = lesson.explanation;
+  // The textbook lesson that explains this one, if any.
+  const [textbook] = lessonsFor("sounds", lesson.id);
   return (
     <GameScreen title={s.name}>
       <main className="lg-board lg-page snd-lesson-page">
@@ -105,6 +107,11 @@ function Lesson({ lesson }) {
             </>
           )}
         </section>
+        {textbook && (
+          <Link to={`/lessons/${textbook.id}`} className="lg-btn lg-btn--quiet snd-textbook">
+            {t.lessons.readLesson}: {lang === "fi" ? textbook.title.fi || textbook.title.en : textbook.title.en}
+          </Link>
+        )}
         <NoSpeechNote s={s} lang={lang} />
         <section className="lg-section">
           {speech && <h3 className="lg-caption">{s.wordsTitle}</h3>}

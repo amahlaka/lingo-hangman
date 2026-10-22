@@ -24,6 +24,8 @@ import mcpRoutes, { MCP_PATHS } from "./routes/mcp.js";
 import oauthRoutes from "./routes/oauth.js";
 import { createWordClips } from "./lib/wordClips.js";
 import { createClipMaker } from "./lib/clipMaker.js";
+import { createTtsService } from "./lib/ttsService.js";
+import { createTtsCache } from "./lib/ttsCache.js";
 
 const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
 
@@ -89,7 +91,10 @@ export function buildApp({ db, config, logger = true, limiter = createRateLimite
 
   // The recorded clips on disk, shared so their index is written by one queue.
   // With a TTS server, a clip an admin remakes is made there at once.
-  const maker = config.ttsUrl ? createClipMaker({ config, fetchImpl: tts.fetchImpl }) : null;
+  // Every request to the TTS service goes through one queue (lib/ttsService.js).
+  const ttsService = createTtsService({ config, db, fetchImpl: tts.fetchImpl });
+  const ttsCache = tts.cache || createTtsCache({ dir: config.ttsCacheDir, maxBytes: config.ttsCacheBytes });
+  const maker = config.ttsUrl ? createClipMaker({ config, service: ttsService }) : null;
   const wordClips =
     tts.wordClips ||
     (config.clipDir && config.contentDir ? createWordClips({ contentDir: config.contentDir, clipDir: config.clipDir, maker, log: app.log }) : null);
@@ -98,9 +103,9 @@ export function buildApp({ db, config, logger = true, limiter = createRateLimite
   app.register(authRoutes, { db, config, limiter });
   app.register(accountRoutes, { db, config });
   app.register(feedbackRoutes, { db, limiter });
-  app.register(adminRoutes, { db, config, wordClips });
+  app.register(adminRoutes, { db, config, wordClips, ttsService, ttsCache });
   app.register(syncRoutes, { db, limiter });
-  app.register(ttsRoutes, { db, config, limiter, ...tts, wordClips });
+  app.register(ttsRoutes, { db, config, limiter, service: ttsService, cache: ttsCache, wordClips });
   app.register(pronounceRoutes, { db, config, limiter, ...pronounce });
   app.register(transcribeRoutes, { db, config, limiter, ...transcribe });
   app.register(pushRoutes, { db, config, limiter, send: push });

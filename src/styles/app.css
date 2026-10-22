@@ -1031,6 +1031,35 @@ textarea.lg-input { padding: var(--space-2) var(--space-3); resize: vertical; }
 .rc-search { flex: 1 1 200px; }
 .rc-kind { flex: 0 1 180px; }
 
+/* /admin/tts (src/admin/AdminTts.jsx) */
+.tt-status { display: flex; flex-direction: column; gap: var(--space-1); padding: var(--space-3) var(--space-4); border-radius: var(--radius-lg); background: var(--surface-raised); box-shadow: inset 4px 0 0 var(--border); }
+.tt-status--ok { box-shadow: inset 4px 0 0 var(--pine); }
+.tt-status--ok strong { color: var(--pine); }
+.tt-status--down { box-shadow: inset 4px 0 0 var(--lingon); }
+.tt-status--down strong { color: var(--lingon); }
+.tt-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: var(--space-2); }
+.tt-tile { display: flex; flex-direction: column; gap: 2px; padding: var(--space-3) var(--space-4); border-radius: var(--radius-lg); background: var(--surface-raised); }
+.tt-tile__value { font: 700 24px/30px var(--font-display); color: var(--ink); font-variant-numeric: tabular-nums; }
+.tt-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-2); }
+.tt-job { display: grid; gap: 2px; padding: var(--space-2) var(--space-3); border-radius: var(--radius-md); background: var(--surface-raised); }
+.tt-job--running { box-shadow: inset 4px 0 0 var(--lake); }
+.tt-job__state { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-muted); }
+.tt-job--running .tt-job__state { color: var(--lake); }
+.tt-job__what { overflow-wrap: anywhere; }
+.tt-table-wrap { overflow-x: auto; border-radius: var(--radius-lg); background: var(--surface-raised); }
+.tt-table { width: 100%; border-collapse: collapse; font-size: 14px; line-height: 20px; }
+.tt-table th, .tt-table td { padding: var(--space-2) var(--space-3); text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
+.tt-table th { font-size: 12px; color: var(--ink-muted); font-weight: 700; }
+.tt-table tr:last-child td { border-bottom: 0; }
+.tt-table .tt-what { white-space: normal; min-width: 180px; overflow-wrap: anywhere; }
+.tt-num { text-align: right !important; font-variant-numeric: tabular-nums; }
+.tt-days td:nth-child(2) { width: 50%; min-width: 140px; }
+.tt-bar { display: inline-block; width: calc(100% - 3em); height: 10px; vertical-align: middle; border-radius: 0 4px 4px 0; background: var(--surface-sunken); overflow: hidden; }
+.tt-bar__fill { display: block; height: 100%; border-radius: 0 4px 4px 0; background: var(--lake); }
+.tt-bar__value { display: inline-block; width: 2.5em; margin-left: 0.5em; text-align: right; font-variant-numeric: tabular-nums; }
+.tt-remakes { display: grid; gap: var(--space-1); padding: var(--space-2) var(--space-3); border-radius: var(--radius-md); background: var(--surface-raised); }
+.tt-remakes__list { margin: 0; padding-left: var(--space-4); overflow-wrap: anywhere; }
+
 /* ---- Lessons (textbook) ---- */
 .ls-card { border-color: var(--pine); background: var(--pine-soft); }
 .ls-card__icon { background: var(--pine); color: var(--on-pine); }

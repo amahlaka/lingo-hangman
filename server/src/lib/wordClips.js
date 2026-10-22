@@ -67,7 +67,8 @@ function wordIpa(content, keys) {
 
 export function createWordClips({ contentDir, clipDir, maker = null, log = null }) {
   let known = null; // { stamp, keys: Set, texts: Map, ipa: Map } of the word base on disk
-  const making = new Set(); // keys being made on the TTS server now
+  // "<folder>/<key>" -> the revision being made on the TTS server now
+  const making = new Map();
   let made = Promise.resolve(); // the last remake on the TTS server
   let checkedAt = 0;
   let writing = Promise.resolve(); // index.json updates, one at a time
@@ -177,11 +178,14 @@ export function createWordClips({ contentDir, clipDir, maker = null, log = null 
     return !(Array.isArray(keys) && keys.includes(key));
   }
 
-  // Takes a word-base text's clips (both voices, and its word-by-word clip)
-  // off the live list so they are made again: on the TTS server now when
-  // there is one, else by the next Content publish. Resolves to the keys, or
-  // null when the text isn't in the word base.
-  async function remake(text, lang = "en") {
+  // Takes a word-base text's clips (and its word-by-word clip) off the live
+  // list so they are made again: on the TTS server now when there is one,
+  // else by the next Content publish. Only the voice in `folder` when given,
+  // else both. Resolves to the keys, null when the text isn't in the word
+  // base, or { error: "bad_voice" }.
+  async function remake(text, lang = "en", folder = null) {
+    if (folder != null && !voiceOf(folder)) return { error: "bad_voice" };
+    const voices = folder ? [voiceOf(folder)] : VOICES;
     const key = await keyFor(text, lang);
     if (!key) return null;
     const keys = [key];
@@ -196,30 +200,34 @@ export function createWordClips({ contentDir, clipDir, maker = null, log = null 
       }
       await writeJson("remake.json", list);
       const manifest = await readManifest();
-      for (const [folder, live] of Object.entries(manifest.voices)) {
-        if (Array.isArray(live)) manifest.voices[folder] = live.filter((k) => !keys.includes(k));
-        if (manifest.revisions?.[folder]) for (const k of keys) delete manifest.revisions[folder][k];
+      for (const { folder: f } of voices) {
+        const live = manifest.voices[f];
+        if (Array.isArray(live)) manifest.voices[f] = live.filter((k) => !keys.includes(k));
+        if (manifest.revisions?.[f]) for (const k of keys) delete manifest.revisions[f][k];
       }
       await writeJson("index.json", manifest);
       return Object.fromEntries(keys.map((k) => [k, list.keys[k]]));
     });
     if (maker) {
-      for (const k of keys) making.add(k);
-      made = made.then(() => makeAgain(revisions, lang)).catch(() => {});
+      for (const k of keys) for (const v of voices) making.set(`${v.folder}/${k}`, revisions[k]);
+      made = made.then(() => makeAgain(revisions, voices)).catch(() => {});
     }
     return keys;
   }
 
-  // The remade clips, made on the TTS server in every voice and put back on
-  // the live list as <key>-<revision>.mp3. One that fails stays off the list
-  // for the Content publish workflow.
-  async function makeAgain(revisions, lang) {
+  // The remade clips, made on the TTS server in each of `voices` and put
+  // back on that voice's live list as <key>-<revision>.mp3. One that fails
+  // stays off the list for the Content publish workflow; the other voice's
+  // still goes back.
+  async function makeAgain(revisions, voices) {
     const { texts, ipa } = await loadKnown();
     for (const [key, revision] of Object.entries(revisions)) {
       const entry = texts.get(key);
-      try {
-        if (!entry) continue;
-        for (const voice of VOICES) {
+      for (const voice of voices) {
+        const id = `${voice.folder}/${key}`;
+        try {
+          // Asked for again meanwhile: that newer remake makes it.
+          if (!entry || making.get(id) !== revision) continue;
           const { audio, framed } = await maker.make({ text: entry.text, speaker: voice.speaker, words: entry.words, ipa: ipa.get(key) });
           if (!framed) log?.warn({ key }, "clip remake: the TTS server didn't cut the edges (old version?)");
           const file = path.join(clipDir, voice.folder, `${key}-${revision}.mp3`);
@@ -227,24 +235,21 @@ export function createWordClips({ contentDir, clipDir, maker = null, log = null 
           const tmp = `${file}.${process.pid}.tmp`;
           await fs.writeFile(tmp, audio, { mode: 0o644 });
           await fs.rename(tmp, file);
-        }
-        await queued(async () => {
-          // Asked for again meanwhile: that newer remake puts it back.
-          if (Number((await readRemakes()).keys[key]) !== revision) return;
-          const manifest = await readManifest();
-          manifest.revisions = manifest.revisions && typeof manifest.revisions === "object" ? manifest.revisions : {};
-          for (const voice of VOICES) {
+          await queued(async () => {
+            if (making.get(id) !== revision) return;
+            const manifest = await readManifest();
+            manifest.revisions = manifest.revisions && typeof manifest.revisions === "object" ? manifest.revisions : {};
             const live = Array.isArray(manifest.voices[voice.folder]) ? manifest.voices[voice.folder] : [];
             if (!live.includes(key)) manifest.voices[voice.folder] = [...live, key];
             manifest.revisions[voice.folder] = { ...(manifest.revisions[voice.folder] || {}), [key]: revision };
-          }
-          await writeJson("index.json", manifest);
-        });
-        log?.info({ key, revision }, "clip remade on the TTS server");
-      } catch (err) {
-        log?.warn({ key, err: err.message }, "clip remake on the TTS server failed; left to Content publish");
-      } finally {
-        making.delete(key);
+            await writeJson("index.json", manifest);
+          });
+          log?.info({ key, revision, voice: voice.speaker }, "clip remade on the TTS server");
+        } catch (err) {
+          log?.warn({ key, voice: voice.speaker, err: err.message }, "clip remake on the TTS server failed; left to Content publish");
+        } finally {
+          if (making.get(id) === revision) making.delete(id);
+        }
       }
     }
   }
@@ -318,7 +323,7 @@ export function createWordClips({ contentDir, clipDir, maker = null, log = null 
       const perVoice = {};
       for (const v of voices) {
         const live = v.live.has(key);
-        const entry = { state: live ? "live" : making.has(key) ? "making" : remakes[key] ? "remaking" : "missing" };
+        const entry = { state: live ? "live" : making.has(`${v.folder}/${key}`) ? "making" : remakes[key] ? "remaking" : "missing" };
         const revision = Number(v.revisions[key]) || 0;
         if (live && revision) entry.revision = revision;
         const versions = v.files.get(key);
@@ -394,6 +399,13 @@ export function createWordClips({ contentDir, clipDir, maker = null, log = null 
     // Whether remakes are made on the TTS server, and (for tests) when the
     // ones asked for so far are done.
     makesNow: Boolean(maker),
+    // The remade clips not back yet: [{ key, voice, text, words }], in order.
+    pending: () =>
+      [...making.keys()].map((id) => {
+        const [folder, key] = id.split("/");
+        const entry = known?.texts.get(key);
+        return { key, voice: voiceOf(folder)?.speaker ?? null, text: entry?.text ?? null, words: Boolean(entry?.words) };
+      }),
     idle: () => made,
   };
 }

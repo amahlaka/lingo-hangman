@@ -42,7 +42,7 @@ export function isAdmin(db, config, user) {
   return true;
 }
 
-export default async function adminRoutes(app, { db, config, wordClips }) {
+export default async function adminRoutes(app, { db, config, wordClips, ttsService, ttsCache }) {
   const session = requireSession(db);
   app.addHook("preHandler", async (req, reply) => {
     await session(req, reply);
@@ -66,14 +66,18 @@ export default async function adminRoutes(app, { db, config, wordClips }) {
     return { changed: setStatus(db, "reports", ids, status) };
   });
 
-  // A bad recorded clip: { text } -> { keys, making }. The clip leaves the
+  // A bad recorded clip: { text, folder? } -> { keys, making }. The clip (in
+  // the voice `folder` names, else both) leaves the
   // live list now and is made again on the TTS server in the background
   // (making: true), or else by the next Content publish (lib/wordClips.js).
   app.post("/api/admin/clips/remake", async (req, reply) => {
     if (!wordClips) return reply.code(503).send({ error: "clips_unavailable" });
     const text = ttsText(req.body?.text);
     if (!text) return reply.code(400).send({ error: "bad_request" });
-    const keys = await wordClips.remake(text);
+    const folder = req.body?.folder;
+    if (folder != null && typeof folder !== "string") return reply.code(400).send({ error: "bad_request" });
+    const keys = await wordClips.remake(text, "en", folder ?? null);
+    if (keys?.error) return reply.code(400).send({ error: keys.error });
     if (!keys) return reply.code(404).send({ error: "not_word_base" });
     req.log.info({ keys }, "clip remake");
     return { text, keys, making: wordClips.makesNow };
@@ -130,6 +134,43 @@ export default async function adminRoutes(app, { db, config, wordClips }) {
     if (res.error) return reply.code(CLIP_ERRORS[res.error] || 400).send(res);
     req.log.info({ folder, key, revision }, "clip version");
     return { folder, key, revision };
+  });
+
+  // The Speech server page: the TTS service's status, its queue now, the
+  // last requests, counts per day and learners' on-demand use. On-demand
+  // texts are never part of it.
+  app.get("/api/admin/tts", async () => {
+    const days = 14;
+    const since = ttsDay(Date.now() - (days - 1) * 86400_000);
+    const usage = db
+      .prepare("SELECT day, COUNT(*) AS learners, SUM(count) AS clips FROM tts_usage WHERE day >= ? GROUP BY day ORDER BY day DESC")
+      .all(since);
+    const requested = db.prepare("SELECT COUNT(*) AS n FROM users WHERE tts_requested_at IS NOT NULL AND role = 'learner'").get().n;
+    let cacheBytes = null;
+    try {
+      cacheBytes = ttsCache ? await ttsCache.size() : null;
+    } catch {
+      // Unreadable cache folder: shown as unknown.
+    }
+    return {
+      status: ttsService ? await ttsService.check() : { configured: false },
+      queue: ttsService ? ttsService.snapshot() : { jobs: [], recent: [] },
+      // Clips asked to be made again that aren't back yet (each makes one
+      // request per voice, in turn).
+      remakes: wordClips?.pending ? wordClips.pending() : [],
+      daily: ttsService ? ttsService.daily(days) : [],
+      usage,
+      settings: {
+        dailyLimit: config.ttsDailyLimit,
+        verifiedLimit: config.ttsVerifiedLimit,
+        queueMax: config.ttsQueueMax,
+        timeoutMs: config.ttsTimeoutMs,
+        cacheMaxBytes: config.ttsCacheBytes,
+        remakesOnServer: Boolean(wordClips?.makesNow),
+      },
+      cacheBytes,
+      requested,
+    };
   });
 
   app.get("/api/admin/suggestions", async (req, reply) => {

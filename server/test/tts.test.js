@@ -15,7 +15,7 @@ function fakeTts({ fail = false, delay = 0 } = {}) {
     fetchImpl: async (url, opts) => {
       calls.push({ url, headers: opts.headers, body: JSON.parse(opts.body) });
       if (delay) await new Promise((r) => setTimeout(r, delay));
-      if (fail) return { ok: false, status: 500, arrayBuffer: async () => new ArrayBuffer(0) };
+      if (typeof fail === "function" ? fail(JSON.parse(opts.body)) : fail) return { ok: false, status: 500, arrayBuffer: async () => new ArrayBuffer(0) };
       return { ok: true, status: 200, arrayBuffer: async () => new TextEncoder().encode(`mp3:${JSON.parse(opts.body).text}`).buffer };
     },
     cache: { get: async (h) => files.get(h) || null, put: async (h, d) => void files.set(h, d) },
@@ -400,4 +400,88 @@ test("a remake the TTS server can't make is left to the Content publish workflow
   assert.equal(clip.voices[NOVA].state, "remaking");
   await t.close();
   await base.done();
+});
+
+test("a remake of one voice's clip makes only that voice, and one voice failing doesn't hold back the other", async () => {
+  const base = await wordBase();
+  await base.fs.writeFile(
+    base.path.join(base.path.dirname(base.audio), "packs", "basics.json"),
+    JSON.stringify({ id: "basics", items: [{ type: "word", text: { en: "kitchen", fi: "keittiö" } }, { type: "word", text: { en: "storyboard", fi: "kuvakäsikirjoitus" } }] })
+  );
+  const fake = fakeTts({ fail: (body) => body.voice === "am_liam" && body.text === "storyboard" });
+  const t = setup({ ...TTS, ...base.env }, { tts: fake });
+  const { clipKey } = await import("../../src/lib/speechClips.js");
+  const NOVA = "kokoro-1.0-v5-af_nova";
+  const LIAM = "kokoro-1.0-v5-am_liam";
+  const word = clipKey("kitchen", "en");
+  const other = clipKey("storyboard", "en");
+  const readJson = async (name) => JSON.parse(await base.fs.readFile(base.path.join(base.audio, name), "utf8"));
+  await base.fs.writeFile(base.path.join(base.audio, "index.json"), JSON.stringify({ voices: { [NOVA]: [word, other], [LIAM]: [word, other] } }));
+  await t.signIn("boss@example.com");
+
+  const res = await t.call("POST", "/api/admin/clips/remake", { text: "kitchen", folder: LIAM });
+  assert.deepEqual(res.json(), { text: "kitchen", keys: [word], making: true });
+  const clip = (await t.call("GET", "/api/admin/clips")).json().clips.find((c) => c.key === word);
+  assert.equal(clip.voices[NOVA].state, "live");
+  assert.equal(clip.voices[LIAM].state, "making");
+  assert.deepEqual(t.app.wordClips.pending(), [{ key: word, voice: "am_liam", text: "kitchen", words: false }]);
+  await t.app.wordClips.idle();
+  assert.deepEqual(fake.calls.map((c) => c.body.voice), ["am_liam"]);
+  let index = await readJson("index.json");
+  assert.deepEqual(index.revisions, { [LIAM]: { [word]: 1 } });
+  assert.ok(index.voices[NOVA].includes(word) && index.voices[LIAM].includes(word));
+
+  // Both voices, Liam's fails: Nova's goes back, Liam's waits for Content publish.
+  await t.call("POST", "/api/admin/clips/remake", { text: "storyboard" });
+  await t.app.wordClips.idle();
+  index = await readJson("index.json");
+  assert.ok(index.voices[NOVA].includes(other));
+  assert.ok(!index.voices[LIAM].includes(other));
+  assert.equal((await t.call("GET", "/api/admin/clips")).json().clips.find((c) => c.key === other).voices[LIAM].state, "remaking");
+
+  assert.equal((await t.call("POST", "/api/admin/clips/remake", { text: "kitchen", folder: "nope" })).json().error, "bad_voice");
+  await t.close();
+  await base.done();
+});
+
+test("the Speech server page shows the service, the queue, recent requests and counts, never a learner's text", async () => {
+  const base = await wordBase();
+  const fake = fakeTts();
+  const fetchImpl = async (url, opts = {}) => {
+    if (url.endsWith("/health")) return { ok: true, status: 200, json: async () => ({ status: "ok" }) };
+    if (url.endsWith("/voices")) return { ok: true, status: 200, json: async () => ({ voices: ["af_nova", "am_liam"] }) };
+    return fake.fetchImpl(url, opts);
+  };
+  const t = setup({ ...TTS, ...base.env }, { tts: { fetchImpl, cache: fake.cache } });
+  await t.signIn();
+  assert.equal((await t.call("POST", "/api/tts", { text: "My secret sentence" })).statusCode, 200);
+  assert.equal((await t.call("POST", "/api/tts/clip", { text: "kitchen" })).statusCode, 200);
+  assert.equal((await t.call("GET", "/api/admin/tts")).statusCode, 403);
+
+  await t.signIn("boss@example.com");
+  const page = (await t.call("GET", "/api/admin/tts")).json();
+  assert.equal(page.status.reachable, true);
+  assert.equal(page.status.voices, 2);
+  assert.deepEqual(page.queue.jobs, []);
+  assert.deepEqual(page.queue.recent.map((r) => [r.kind, r.label, r.ok]), [["clip", "kitchen", true], ["speech", null, true]]);
+  assert.ok(!JSON.stringify(page).includes("secret"));
+  const today = new Date().toISOString().slice(0, 10);
+  assert.deepEqual(page.daily.map((d) => [d.day, d.kind, d.ok, d.failed]), [[today, "clip", 1, 0], [today, "speech", 1, 0]]);
+  assert.deepEqual(page.usage, [{ day: today, learners: 1, clips: 1 }]);
+  assert.equal(page.settings.remakesOnServer, true);
+  await t.close();
+  await base.done();
+});
+
+test("the Speech server page says when the service doesn't answer or isn't set", async () => {
+  const down = setup(TTS, { tts: { fetchImpl: async () => ({ ok: false, status: 502, json: async () => ({}) }) } });
+  await down.signIn("boss@example.com");
+  const status = (await down.call("GET", "/api/admin/tts")).json().status;
+  assert.equal(status.reachable, false);
+  assert.equal(status.error, "answered 502");
+  await down.close();
+  const off = setup({});
+  await off.signIn("boss@example.com");
+  assert.deepEqual((await off.call("GET", "/api/admin/tts")).json().status, { configured: false });
+  await off.close();
 });

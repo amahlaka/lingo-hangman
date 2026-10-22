@@ -58,7 +58,7 @@ function Status({ status, settings }) {
 
 function Queue({ jobs, remakes: all = [] }) {
   // The one being made now is already in the queue above.
-  const remakes = all.filter((r) => !jobs.some((j) => j.kind === "remake" && j.label === r.text));
+  const remakes = all.filter((r) => !jobs.some((j) => j.kind === "remake" && j.label === r.text && j.voice === r.voice));
   if (!jobs.length && !remakes.length) return <p className="lg-caption">Nothing waiting.</p>;
   return (
     <>
@@ -76,10 +76,12 @@ function Queue({ jobs, remakes: all = [] }) {
     {remakes.length > 0 && (
       <div className="tt-remakes">
         <strong>Clips to make again ({remakes.length})</strong>
-        <span className="lg-caption">Each is one request per voice, made in turn; it goes back on the live site when both are done.</span>
+        <span className="lg-caption">Made in turn; each goes back on the live site when it is done.</span>
         <ul className="tt-remakes__list">
           {remakes.map((r) => (
-            <li key={r.key}>{jobLabel({ label: r.text, words: r.words })}</li>
+            <li key={`${r.voice}/${r.key}`}>
+              {jobLabel({ label: r.text, words: r.words })} · {VOICES[r.voice] || r.voice}
+            </li>
           ))}
         </ul>
       </div>

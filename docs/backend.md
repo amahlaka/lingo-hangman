@@ -271,8 +271,10 @@ replaces an existing clip, so a saved one stays.
 
 A clip that sounds wrong (a report with *Bad audio*) can be made again without
 remaking every clip: *Remake the clip* on the report in `/admin/reports`, the
-admin AI tool `remake_clip`, or `POST /api/admin/clips/remake { text }`. Both
-voices' clips of the text, and its word-by-word clip, leave
+admin AI tool `remake_clip { text, voice? }`, or
+`POST /api/admin/clips/remake { text, folder? }`. The clip of the text, and its
+word-by-word clip, in that one voice (*Make it again* on the Recordings page
+sends the voice being edited) or else both voices, leave
 `CLIP_DIR/index.json` (the app reads the text another way meanwhile), and their
 keys go on `CLIP_DIR/remake.json` with a revision number. `/api/tts/clip`
 won't save those keys either. The next Content publish run (a word base change,
@@ -287,7 +289,8 @@ clips straight away, in the background (`server/src/lib/clipMaker.js`), with
 `frame: true` (the service cuts off the stray sounds at the edges, as the
 workflow does), `dict_ipa` for a single word the word base gives IPA for, and
 `words: true` for the word-by-word clip. It saves them as
-`<key>-<revision>.mp3` in both voices and puts the keys back on the live list;
+`<key>-<revision>.mp3` in each voice asked for and puts each back on its
+voice's live list as soon as it is made;
 the Recordings page shows "Being made on the TTS server" meanwhile. A clip the
 service couldn't make stays off the list for the next Content publish. The
 service needs a version with those options; an older one says the text

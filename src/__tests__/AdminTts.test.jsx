@@ -27,7 +27,7 @@ const page = {
     { day: today, kind: "remake", ok: 2, failed: 0, avgMs: 5000, maxMs: 6000, avgWaitMs: 0 },
   ],
   usage: [{ day: today, learners: 2, clips: 4 }],
-  remakes: [{ key: "k1", text: "kitchen", words: false }, { key: "k2", text: "storyboard", words: false }],
+  remakes: [{ key: "k1", voice: "af_nova", text: "kitchen", words: false }, { key: "k1", voice: "am_liam", text: "kitchen", words: false }, { key: "k2", voice: "af_nova", text: "storyboard", words: false }],
   settings: { dailyLimit: 10, verifiedLimit: 200, queueMax: 20, timeoutMs: 30000, cacheMaxBytes: 2048 * 1024 * 1024, remakesOnServer: true },
   cacheBytes: 5 * 1024 * 1024,
   requested: 1,
@@ -46,7 +46,9 @@ test("the Speech server page shows the status, the queue, the last requests and 
   expect(screen.getByText("✕ timed out")).toBeInTheDocument();
   expect(screen.getByText("requests today").previousSibling).toHaveTextContent("6");
   expect(screen.getByText("2 (4)")).toBeInTheDocument();
-  expect(screen.getByText("Clips to make again (1)")).toBeInTheDocument();
+  // Nova's kitchen is the one being made; Liam's still waits.
+  expect(screen.getByText("Clips to make again (2)")).toBeInTheDocument();
+  expect(screen.getByText("“kitchen” · Liam")).toBeInTheDocument();
 });
 
 test("the Speech server page says when the service isn't answering", async () => {

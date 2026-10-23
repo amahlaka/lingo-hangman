@@ -4,12 +4,14 @@ import { ArrowLeft } from "lucide-react";
 import { useSettings } from "../../app/SettingsContext";
 import { HeaderProgress } from "./DailyProgress";
 import SettingsMenu from "./SettingsMenu";
+import BottomNav from "./BottomNav";
 
 // The frame every game screen uses. Three zones top to bottom: this header
 // (back to games, title, streak and goal ring, `score`, settings), then the
 // game's own board and controls as `children`.
 // menuActions: extra settings-menu entries, e.g. [{ label: "Restart", onClick }].
-export default function GameScreen({ title, score, menuActions, children, className = "" }) {
+// bottomNav: show the app's bottom tab bar (top-level screens only, not games).
+export default function GameScreen({ title, score, menuActions, bottomNav = false, children, className = "" }) {
   const { t } = useSettings();
   return (
     <div className={`lg-screen ${className}`}>
@@ -25,6 +27,7 @@ export default function GameScreen({ title, score, menuActions, children, classN
         </div>
       </header>
       {children}
+      {bottomNav && <BottomNav />}
     </div>
   );
 }

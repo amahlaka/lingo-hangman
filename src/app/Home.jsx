@@ -7,7 +7,7 @@ import { fill } from "../i18n";
 import { GAMES, PLAYABLE_GAME_IDS } from "../games/registry";
 import { achievementList, answerSummary } from "../lib/progress";
 import { wordStanding } from "../lib/adaptive";
-import { Achievements, DailyProgress, Feedback, GameCard, RoundCard, SettingsMenu } from "../components/lingo";
+import { Achievements, BottomNav, DailyProgress, Feedback, GameCard, RoundCard, SettingsMenu } from "../components/lingo";
 import { ShopCard } from "./Shop";
 import { RemindersOffer } from "./Reminders";
 import AccountOffer from "./AccountOffer";
@@ -183,6 +183,7 @@ export default function Home() {
           <Achievements items={achievementList(state, { gameIds: PLAYABLE_GAME_IDS })} soFarLabel={t.soFar} lang={lang} />
         </section>
       </main>
+      <BottomNav />
     </div>
   );
 }

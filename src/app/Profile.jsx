@@ -215,7 +215,7 @@ export default function Profile() {
   );
 
   return (
-    <GameScreen title={p.title}>
+    <GameScreen title={p.title} bottomNav>
       <main className="lg-board lg-page pf-page">
         <p className="lg-body-lg">{p.intro}</p>
 

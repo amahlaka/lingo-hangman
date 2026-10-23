@@ -75,7 +75,7 @@ function LessonList() {
   const next = nextLesson(lessons, read);
   let n = 0;
   return (
-    <GameScreen title={l.title}>
+    <GameScreen title={l.title} bottomNav>
       <main className="lg-board lg-page ls-home">
         <p className="lg-body-lg">{l.intro}</p>
         {next && (

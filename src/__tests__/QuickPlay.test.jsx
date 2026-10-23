@@ -9,7 +9,7 @@ const read = (storage) => JSON.parse(storage.data[STORAGE_KEY]);
 describe("Quick play", () => {
   it("has a card on the home screen", () => {
     renderApp("/");
-    fireEvent.click(screen.getByRole("link", { name: /Quick play/ }));
+    fireEvent.click(screen.getByRole("link", { name: /Quick play.*Pikapeli/ }));
     expect(screen.getByText("1 of 10")).toBeInTheDocument();
   });
 

@@ -5,6 +5,8 @@ const i18n = {
     homeTitle: "Let's practice English",
     chooseGame: "Choose a game",
     allGames: "All games",
+    // Bottom navigation bar on Home and the other top-level screens.
+    nav: { label: "Main", home: "Home", lessons: "Lessons", play: "Play", playName: "Quick play", shop: "Shop", profile: "Profile" },
     settings: "Settings",
     themeLabel: "Theme",
     preferencesTitle: "Practice settings",
@@ -1028,6 +1030,7 @@ const i18n = {
     homeTitle: "Harjoitellaan englantia",
     chooseGame: "Valitse peli",
     allGames: "Kaikki pelit",
+    nav: { label: "Päävalikko", home: "Koti", lessons: "Oppitunnit", play: "Pelaa", playName: "Pikapeli", shop: "Kauppa", profile: "Profiili" },
     settings: "Asetukset",
     themeLabel: "Teema",
     preferencesTitle: "Harjoitus\u00adasetukset",

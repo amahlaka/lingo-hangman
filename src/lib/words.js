@@ -342,7 +342,9 @@ export function getSentences({
       );
     }
     if (item.type === "text" && learningLang.startsWith("en")) {
-      item.sentences.forEach((line, i) => add(`${item.id}#${i + 1}`, line.en, line[nativeLang], item.categories));
+      // Sentences split into phrases are retold classics for Translate the
+      // story, too old-fashioned for the everyday sentence games.
+      item.sentences.forEach((line, i) => !line.phrases && add(`${item.id}#${i + 1}`, line.en, line[nativeLang], item.categories));
     }
     if (item.type === "gap" && item.lang.split("-")[0] === learningLang.split("-")[0]) {
       add(item.id, item.sentence.replace("___", item.answers[0]), item.translation?.[nativeLang], item.categories, item.level);

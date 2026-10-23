@@ -8,8 +8,8 @@ import StoryQuestion from "./StoryQuestion";
 import { STORY_ROUND, buildStoryRound, isStoryText } from "./storyLogic";
 import { useRounds } from "../../lib/rounds";
 
-// Story words: a short story read part by part, picking the Finnish meaning
-// of each word or phrase. `?set=<text id>` reads one story.
+// Translate the story: a piece of a classic story translated into Finnish
+// phrase by phrase. `?set=<text id>` reads one story.
 export default function StoryGame() {
   const [params] = useSearchParams();
   const rounds = useRounds(STORY_ROUND, { max: 3 });

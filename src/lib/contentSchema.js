@@ -69,9 +69,9 @@ export function sentenceWords(text) {
 // Multi-sentence `text` items.
 export const TEXT_KINDS = ["dialogue", "story", "message", "email", "notice", "instructions", "description"];
 
-// Wrong Finnish meanings on an asked part of a text sentence (`parts`, Story
-// words): with the right one the game offers two or three options.
-export const PART_WRONG_MAX = 2;
+// Wrong Finnish translations on a phrase of a text sentence (`phrases`,
+// Translate the story): with the right one the game offers two or three.
+export const PHRASE_WRONG_MAX = 2;
 
 // IPA between slashes: "/ˈkɪtʃɪn/".
 const IPA_PATTERN = /^\/[^/]+\/$/;
@@ -189,33 +189,30 @@ function checkDecoyPool(value, problems) {
   }
 }
 
-// `parts` of a text sentence: the sentence cut into words and phrases, in
-// order, for Story words. A part with `fi` (its meaning in this sentence) is
-// asked, with one or two `wrong` meanings; one without (a name, "the") is only
-// shown. Together the parts are the words of the sentence.
-function checkParts(parts, en, name, problems) {
-  if (!Array.isArray(parts) || parts.length === 0) return problems.push(`${name} must be a list of { "en": "...", "fi": "...", "wrong": [...] }`);
-  let asked = 0;
-  parts.forEach((part, i) => {
+// `phrases` of a text sentence: the sentence cut into phrases, in order, for
+// Translate the story. Each has its Finnish translation `fi` and one or two
+// believable `wrong` ones. Together the phrases are the words of the sentence
+// in both languages, so the picked translations build the Finnish sentence.
+function checkPhrases(phrases, text, name, problems) {
+  if (!Array.isArray(phrases) || phrases.length === 0) return problems.push(`${name} must be a list of { "en": "...", "fi": "...", "wrong": [...] }`);
+  const filled = phrases.every((p) => isObject(p) && isText(p.en) && isText(p.fi));
+  phrases.forEach((phrase, i) => {
     const at = `${name}[${i + 1}]`;
-    if (!isObject(part) || !isText(part.en)) return problems.push(`${at}.en is empty`);
-    if (part.fi === undefined) {
-      if (part.wrong !== undefined) problems.push(`${at}: wrong is only for a part with fi`);
-      return;
-    }
-    asked += 1;
-    if (!isText(part.fi)) return problems.push(`${at}.fi is empty`);
-    if (!checkWordList(part.wrong, `${at}.wrong`, problems)) return;
-    if (part.wrong.length > PART_WRONG_MAX) problems.push(`${at}.wrong has ${part.wrong.length} meanings; give one or two`);
-    const wrong = part.wrong.map(norm);
-    if (wrong.includes(norm(part.fi))) problems.push(`${at}: "${part.fi}" is also a wrong meaning`);
-    if (new Set(wrong).size !== wrong.length) problems.push(`${at}.wrong has the same meaning twice`);
+    if (!isObject(phrase)) return problems.push(`${at} must be like { "en": "...", "fi": "...", "wrong": [...] }`);
+    if (!isText(phrase.en)) problems.push(`${at}.en is empty`);
+    if (!isText(phrase.fi)) return problems.push(`${at}.fi is empty`);
+    if (!checkWordList(phrase.wrong, `${at}.wrong`, problems)) return;
+    if (phrase.wrong.length > PHRASE_WRONG_MAX) problems.push(`${at}.wrong has ${phrase.wrong.length} translations; give one or two`);
+    const wrong = phrase.wrong.map(norm);
+    if (wrong.includes(norm(phrase.fi))) problems.push(`${at}: "${phrase.fi}" is also a wrong translation`);
+    if (new Set(wrong).size !== wrong.length) problems.push(`${at}.wrong has the same translation twice`);
   });
-  if (!asked) problems.push(`${name} has no part with fi to ask`);
-  if (isText(en) && parts.every((p) => isObject(p) && isText(p.en))) {
-    const words = (t) => sentenceWords(t).join(" ").toLowerCase();
-    const joined = parts.map((p) => p.en).join(" ");
-    if (words(joined) !== words(en)) problems.push(`${name} make "${joined}", not the sentence "${en}"`);
+  if (!filled) return;
+  const words = (t) => sentenceWords(t).join(" ").toLowerCase();
+  for (const lang of ["en", "fi"]) {
+    const joined = phrases.map((p) => p[lang]).join(" ");
+    if (!isText(text[lang])) problems.push(`${name}: the sentence needs "${lang}" for its phrases`);
+    else if (words(joined) !== words(text[lang])) problems.push(`${name} make "${joined}", not the sentence "${text[lang]}"`);
   }
 }
 
@@ -486,9 +483,9 @@ const CHECKS = {
       item.sentences.forEach((line, i) => {
         const name = `sentences[${i + 1}]`;
         if (!isObject(line)) return problems.push(`${name} must be like { "en": "...", "fi": "..." }`);
-        const { speaker, parts, ...text } = line;
+        const { speaker, phrases, ...text } = line;
         checkTextMap(text, name, problems, { mustHave: ["en"] });
-        if (parts !== undefined) checkParts(parts, text.en, `${name}.parts`, problems);
+        if (phrases !== undefined) checkPhrases(phrases, text, `${name}.phrases`, problems);
         if (item.kind === "dialogue" && !isText(speaker)) problems.push(`${name}.speaker is missing (dialogue lines name who speaks)`);
         if (speaker !== undefined && !isText(speaker)) problems.push(`${name}.speaker is empty`);
       });
@@ -519,6 +516,8 @@ const CHECKS = {
       }
     }
     checkTextMap(item.note, "note", problems, { required: false });
+    // Where a retold classic comes from: title, author and year.
+    checkTextMap(item.source, "source", problems, { required: false, mustHave: ["en"] });
   },
 
   // A textbook lesson: a short read on how English works, letters and their

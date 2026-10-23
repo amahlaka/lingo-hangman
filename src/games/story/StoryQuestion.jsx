@@ -1,23 +1,24 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useSettings } from "../../app/SettingsContext";
 import { fill } from "../../i18n";
-import { keepInView, useConfetti } from "../../components/lingo";
+import { ExampleText, keepInView, useConfetti } from "../../components/lingo";
 import { sounds } from "../../lib/sounds";
 import { speak, stopSpeaking } from "../../lib/speech";
 import { maxMissesFor } from "../gap/gapLogic";
 import { storyAsks } from "./storyLogic";
 
-// A story read one part at a time. The sentences appear one by one; in each,
-// the learner picks the Finnish meaning of every highlighted word or phrase
-// from two or three. A found meaning stays under its part, and a finished
-// sentence shows its whole Finnish and is read aloud. Each part is recorded on
-// its own (onItem); the story is done after the last.
+// A classic story translated phrase by phrase. The English sentences appear
+// one by one; for the highlighted phrase the learner picks its Finnish from
+// two or three, and the picked phrases build the Finnish sentence under the
+// English one, as words build a sentence in Build the phrase. A finished
+// sentence is read aloud and cheered. Each phrase is recorded on its own
+// (onItem); the story is done after the last.
 export default function StoryQuestion({ question, onItem, onDone }) {
   const { t, lang } = useSettings();
   const k = t.story;
   const asks = useMemo(() => storyAsks(question), [question]);
   const [step, setStep] = useState(0);
-  // Each asked piece's result by "sentence-piece": "right" or "shown".
+  // Each phrase's result by "sentence-phrase": "right", "found" or "shown".
   const [results, setResults] = useState({});
   const [missed, setMissed] = useState([]);
   const [wobble, setWobble] = useState(null);
@@ -27,13 +28,8 @@ export default function StoryQuestion({ question, onItem, onDone }) {
   const firstStep = useRef(true);
 
   const done = step >= asks.length;
-  const [atSentence, atPiece] = done ? [question.sentences.length - 1, -1] : asks[step];
-  const piece = done ? null : question.sentences[atSentence].pieces[atPiece];
-  // Sentences up to the one being asked; a sentence with nothing to ask
-  // comes along with the one before it.
-  let shown = atSentence + 1;
-  while (!done && shown < question.sentences.length && !question.sentences[shown].pieces.some((p) => p.fi)) shown += 1;
-  const finished = (si) => question.sentences[si].pieces.every((p, pi) => !p.fi || results[`${si}-${pi}`]);
+  const [atSentence, atPhrase] = done ? [question.sentences.length - 1, -1] : asks[step];
+  const phrase = done ? null : question.sentences[atSentence].phrases[atPhrase];
 
   useEffect(() => {
     if (firstStep.current) {
@@ -49,25 +45,24 @@ export default function StoryQuestion({ question, onItem, onDone }) {
 
   const finish = (solved, wrongs) => {
     const misses = wrongs.length;
-    const max = maxMissesFor(piece.options);
+    const max = maxMissesFor(phrase.options);
     onItem({
       solved,
       wrong: wrongs,
       firstTry: solved && misses === 0,
       tries: misses + 1,
       triesLeft: solved ? max - misses : 0,
-      answer: piece.en,
-      meaning: piece.fi,
+      // Recorded without the quotes and punctuation at its ends.
+      answer: phrase.en.replace(/^[^\p{L}\p{N}']+|[^\p{L}\p{N}']+$/gu, ""),
+      meaning: phrase.fi,
     });
-    const key = `${atSentence}-${atPiece}`;
-    const next = { ...results, [key]: solved && !misses ? "right" : solved ? "found" : "shown" };
+    const next = { ...results, [`${atSentence}-${atPhrase}`]: solved && !misses ? "right" : solved ? "found" : "shown" };
     setResults(next);
     setMissed([]);
     const sentence = question.sentences[atSentence];
-    const sentenceDone = sentence.pieces.every((p, pi) => !p.fi || next[`${atSentence}-${pi}`]);
-    if (sentenceDone) {
-      const clean = sentence.pieces.every((p, pi) => !p.fi || next[`${atSentence}-${pi}`] === "right");
-      setCheer({ sentence: atSentence, text: k.cheers[atSentence % k.cheers.length], clean });
+    if (atPhrase === sentence.phrases.length - 1) {
+      const clean = sentence.phrases.every((_, pi) => next[`${atSentence}-${pi}`] === "right");
+      setCheer({ sentence: atSentence, clean });
       if (clean) celebrate("medium");
       hear(sentence.en);
     }
@@ -76,14 +71,14 @@ export default function StoryQuestion({ question, onItem, onDone }) {
   };
 
   const choose = (option) => {
-    if (!piece || missed.includes(option)) return;
-    if (option === piece.fi) {
+    if (!phrase || missed.includes(option)) return;
+    if (option === phrase.fi) {
       finish(true, missed);
       return;
     }
     const nextMissed = [...missed, option];
     setWobble(option);
-    if (nextMissed.length >= maxMissesFor(piece.options)) {
+    if (nextMissed.length >= maxMissesFor(phrase.options)) {
       finish(false, nextMissed);
       return;
     }
@@ -91,49 +86,70 @@ export default function StoryQuestion({ question, onItem, onDone }) {
     setMissed(nextMissed);
   };
 
+  const source = question.source && ((lang === "fi" && question.source.fi) || question.source.en);
+  const note = done && question.note && (lang === "fi" ? question.note.fi || question.note.en : question.note.en);
+
   return (
     <div className="lg-stack pg-question st-question">
       <article className="st-story" aria-label={question.title}>
-        <span className="lg-caption">
-          {t.read.kinds[question.kind] || ""}
-          {t.read.kinds[question.kind] ? " · " : ""}
-          {question.title}
-          {question.titleFi && <span lang="fi"> · {question.titleFi}</span>}
-        </span>
+        <header className="st-head">
+          <h2 className="st-head__title">{question.title}</h2>
+          {question.titleFi && <span className="st-head__fi" lang="fi">{question.titleFi}</span>}
+          {source && <span className="lg-caption">{source}</span>}
+        </header>
         <div className="st-lines">
           {confetti}
-          {question.sentences.slice(0, shown).map((s, si) => {
-            const complete = finished(si);
+          {question.sentences.slice(0, atSentence + 1).map((s, si) => {
+            const now = !done && si === atSentence;
+            const placed = s.phrases.filter((_, pi) => results[`${si}-${pi}`]);
+            const complete = placed.length === s.phrases.length;
             return (
-              <div key={si} className={`st-sentence${si === atSentence && !done ? " st-sentence--now" : ""} lg-reveal`}>
+              <div key={si} className={`st-sentence${now ? " st-sentence--now" : ""} lg-reveal`}>
                 <p className="st-sentence__en" lang="en">
-                  {s.speaker && <strong className="st-who">{s.speaker}: </strong>}
-                  {s.pieces.map((p, pi) => {
+                  {s.phrases.map((p, pi) => {
                     const result = results[`${si}-${pi}`];
-                    const now = si === atSentence && pi === atPiece;
-                    const cls = `st-piece${p.fi ? " st-piece--asked" : ""}${now ? " st-piece--now" : ""}${result ? ` st-piece--${result}` : ""}`;
+                    const current = now && pi === atPhrase;
                     return (
                       <React.Fragment key={pi}>
                         {pi > 0 && " "}
-                        <span className={cls}>
-                          <button type="button" className="st-piece__en" onClick={() => hear(p.en)} aria-current={now ? "true" : undefined}>
-                            {p.text}
-                          </button>
-                          {result && <span className="st-piece__fi lg-pop" lang="fi">{p.fi}</span>}
+                        {/* A span, not a button, so a long phrase wraps with the sentence. */}
+                        <span
+                          role="button"
+                          tabIndex={0}
+                          className={`st-phrase${current ? " st-phrase--now" : ""}${result ? ` st-phrase--${result}` : ""}`}
+                          onClick={() => hear(p.en)}
+                          onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), hear(p.en))}
+                          aria-current={current ? "true" : undefined}
+                        >
+                          {p.en}
                         </span>
                       </React.Fragment>
                     );
                   })}
                 </p>
-                {complete && s.fi && (
-                  <p className="st-sentence__fi lg-reveal" lang="fi">
+                {complete ? (
+                  <p className="st-sentence__fi" lang="fi">
                     <button type="button" className="st-sentence__hear" onClick={() => hear(s.en)} aria-label={fill(k.hearSentence, { sentence: s.en })}>
-                      {s.fi}
+                      {s.phrases.map((p, pi) => (
+                        <React.Fragment key={pi}>
+                          {pi > 0 && " "}
+                          <span className={`st-fi st-fi--${results[`${si}-${pi}`]}`}>{p.fi}</span>
+                        </React.Fragment>
+                      ))}
                     </button>
                   </p>
+                ) : (
+                  <div className="st-build" lang="fi" aria-label={k.yourTranslation}>
+                    {placed.map((p, pi) => (
+                      <span key={pi} className={`pg-chip pg-chip--placed st-chip st-chip--${results[`${si}-${pi}`]} lg-pop`}>{p.fi}</span>
+                    ))}
+                    <span className="pg-chip pg-chip--gap st-chip st-chip--next" aria-hidden="true">…</span>
+                  </div>
                 )}
                 {cheer?.sentence === si && (
-                  <p className={`st-cheer${cheer.clean ? " st-cheer--clean" : ""} lg-pop`} role="status">{cheer.clean ? k.cleanSentence : cheer.text}</p>
+                  <p className={`st-cheer${cheer.clean ? " st-cheer--clean" : ""} lg-pop`} role="status">
+                    {cheer.clean ? k.cleanSentence : k.cheers[si % k.cheers.length]}
+                  </p>
                 )}
               </div>
             );
@@ -142,42 +158,40 @@ export default function StoryQuestion({ question, onItem, onDone }) {
         <p className="lg-caption">{k.tapHelp}</p>
       </article>
 
-      {piece && (
+      {phrase && (
         <div className="st-ask" ref={askRef}>
           <div className="st-ask__count">
-            <span className="lg-caption">{fill(k.partOf, { n: step + 1, total: asks.length })}</span>
+            <span className="lg-caption">{fill(k.phraseOf, { n: step + 1, total: asks.length })}</span>
             <div className="lg-bar" aria-hidden="true">
               <div className="lg-bar__fill" style={{ width: `${(step / asks.length) * 100}%` }} />
             </div>
           </div>
-          <p className="st-ask__q">
-            {k.askBefore}
-            <span className="st-ask__part" lang="en">{piece.en}</span>
-            {k.askAfter}
-          </p>
-          {lang === "en" && <p className="st-ask__fi" lang="fi">{k.askFi}</p>}
-          <div className="pg-choices st-choices" role="group" aria-label={k.answers}>
-            {piece.options.map((option) => {
+          <p className="st-ask__q">{k.ask}</p>
+          <p className="st-ask__part" lang="en">{phrase.en}</p>
+          <div className="pg-bank st-options" role="group" aria-label={k.answers} lang="fi">
+            {phrase.options.map((option) => {
               const miss = missed.includes(option);
               return (
                 <button
                   key={`${step}-${option}`}
                   type="button"
-                  lang="fi"
-                  className={`pg-choice${miss ? " pg-choice--miss" : ""}${miss && wobble === option ? " lg-wobble" : ""}`}
+                  className={`pg-chip st-option${miss ? " st-option--miss" : " lg-pop"}${miss && wobble === option ? " lg-wobble" : ""}`}
                   onClick={() => choose(option)}
                   disabled={miss}
                   aria-label={miss ? `${option}, ${t.practice.notThisOne}` : undefined}
                 >
-                  <span className="pg-choice__mark" aria-hidden="true" />
-                  <span className="pg-choice__words">
-                    <span className="pg-choice__text">{option}</span>
-                  </span>
+                  {option}
                 </button>
               );
             })}
           </div>
           {missed.length > 0 && <p className="pg-hint" role="status">{k.lookAgain}</p>}
+        </div>
+      )}
+      {note && (
+        <div className="gp-why">
+          <p className="gp-why__text"><ExampleText text={note} /></p>
+          {lang === "en" && question.note.fi && <p className="gp-why__fi" lang="fi"><ExampleText text={question.note.fi} /></p>}
         </div>
       )}
     </div>

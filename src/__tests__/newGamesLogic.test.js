@@ -4,7 +4,7 @@ import { comboBonus, comboMultiplier, readBest, rushPoints, rushPool, rushSecond
 import {
   dailyCandidates, dailyFor, emptyDaily, finishDaily, freeWord, letterStates, scoreGuess, shareGrid, wordForDay,
 } from '../games/daily/dailyLogic';
-import { buildReadRound, readQuestion } from '../games/read/readLogic';
+import { buildReadRound, isReadText, readQuestion } from '../games/read/readLogic';
 import { getGapItems, getItems, getTexts, getTopics } from '../lib/words';
 import { memoryStorage } from '../test-utils';
 import { validateItem } from '../lib/contentSchema';
@@ -185,8 +185,8 @@ describe('Daily word', () => {
 });
 
 describe('Read and understand', () => {
-  it('turns every word bank text into questions with the answer among the options', () => {
-    const texts = getTexts();
+  it('turns every word bank text with questions into questions with the answer among the options', () => {
+    const texts = getTexts().filter(isReadText);
     const round = buildReadRound(texts, { count: texts.length });
     expect(round.length).toBe(texts.length);
     round.forEach((q) => {

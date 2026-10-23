@@ -415,6 +415,15 @@ The rules are pure functions in `src/lib/insights.js`. Days also keep
 - **Read and understand** (`read/`, `/read`): texts with `questions`; tap a
   sentence to hear it and see the Finnish, then answer the questions one at a
   time (each recorded with `onItem`). `?set=<text id>`.
+- **Translate the story** (`story/`, `/story`): short pieces of public-domain
+  classic stories (word base pack `classic-stories`) whose sentences have
+  `phrases`. The story appears sentence by sentence; for the highlighted
+  phrase the learner picks its Finnish from two or three (`storyLogic.js`),
+  and the picked chips build the Finnish sentence under the English, as in
+  Build the phrase. A finished sentence is read aloud and cheered, with
+  confetti when it was all right on the first try. Each phrase is recorded
+  with `onItem` and has a recorded clip (`spokenTexts`). Sentences with
+  phrases stay out of `getSentences()`. `?set=<text id>`.
 
 ## Extra tries
 

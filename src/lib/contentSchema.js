@@ -69,6 +69,10 @@ export function sentenceWords(text) {
 // Multi-sentence `text` items.
 export const TEXT_KINDS = ["dialogue", "story", "message", "email", "notice", "instructions", "description"];
 
+// Wrong Finnish meanings on an asked part of a text sentence (`parts`, Story
+// words): with the right one the game offers two or three options.
+export const PART_WRONG_MAX = 2;
+
 // IPA between slashes: "/ˈkɪtʃɪn/".
 const IPA_PATTERN = /^\/[^/]+\/$/;
 
@@ -182,6 +186,36 @@ function checkDecoyPool(value, problems) {
   for (const w of value) {
     if (seen.has(norm(w))) problems.push(`decoyPool: "${w}" is listed twice`);
     seen.add(norm(w));
+  }
+}
+
+// `parts` of a text sentence: the sentence cut into words and phrases, in
+// order, for Story words. A part with `fi` (its meaning in this sentence) is
+// asked, with one or two `wrong` meanings; one without (a name, "the") is only
+// shown. Together the parts are the words of the sentence.
+function checkParts(parts, en, name, problems) {
+  if (!Array.isArray(parts) || parts.length === 0) return problems.push(`${name} must be a list of { "en": "...", "fi": "...", "wrong": [...] }`);
+  let asked = 0;
+  parts.forEach((part, i) => {
+    const at = `${name}[${i + 1}]`;
+    if (!isObject(part) || !isText(part.en)) return problems.push(`${at}.en is empty`);
+    if (part.fi === undefined) {
+      if (part.wrong !== undefined) problems.push(`${at}: wrong is only for a part with fi`);
+      return;
+    }
+    asked += 1;
+    if (!isText(part.fi)) return problems.push(`${at}.fi is empty`);
+    if (!checkWordList(part.wrong, `${at}.wrong`, problems)) return;
+    if (part.wrong.length > PART_WRONG_MAX) problems.push(`${at}.wrong has ${part.wrong.length} meanings; give one or two`);
+    const wrong = part.wrong.map(norm);
+    if (wrong.includes(norm(part.fi))) problems.push(`${at}: "${part.fi}" is also a wrong meaning`);
+    if (new Set(wrong).size !== wrong.length) problems.push(`${at}.wrong has the same meaning twice`);
+  });
+  if (!asked) problems.push(`${name} has no part with fi to ask`);
+  if (isText(en) && parts.every((p) => isObject(p) && isText(p.en))) {
+    const words = (t) => sentenceWords(t).join(" ").toLowerCase();
+    const joined = parts.map((p) => p.en).join(" ");
+    if (words(joined) !== words(en)) problems.push(`${name} make "${joined}", not the sentence "${en}"`);
   }
 }
 
@@ -452,8 +486,9 @@ const CHECKS = {
       item.sentences.forEach((line, i) => {
         const name = `sentences[${i + 1}]`;
         if (!isObject(line)) return problems.push(`${name} must be like { "en": "...", "fi": "..." }`);
-        const { speaker, ...text } = line;
+        const { speaker, parts, ...text } = line;
         checkTextMap(text, name, problems, { mustHave: ["en"] });
+        if (parts !== undefined) checkParts(parts, text.en, `${name}.parts`, problems);
         if (item.kind === "dialogue" && !isText(speaker)) problems.push(`${name}.speaker is missing (dialogue lines name who speaks)`);
         if (speaker !== undefined && !isText(speaker)) problems.push(`${name}.speaker is empty`);
       });

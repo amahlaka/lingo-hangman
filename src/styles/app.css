@@ -1033,6 +1033,37 @@ textarea.lg-input { padding: var(--space-2) var(--space-3); resize: vertical; }
 .rd-ask__q { margin: 0; font: 600 20px/28px var(--font-display); }
 .rd-ask__fi { margin: 0; color: var(--ink-muted); }
 
+/* Story words: a story read part by part, each part's Finnish under it */
+.st-story { display: flex; flex-direction: column; gap: var(--space-2); }
+.st-lines { position: relative; display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-3); border-radius: var(--radius-md); background: var(--surface-sunken); }
+.st-sentence { display: flex; flex-direction: column; gap: var(--space-1); padding: var(--space-1) var(--space-2); border-radius: var(--radius-sm); }
+.st-sentence--now { background: var(--surface-raised); box-shadow: var(--shadow-raised); }
+.st-sentence__en { margin: 0; font: 400 19px/30px var(--font-sans); color: var(--ink); }
+.st-who { font-weight: 700; }
+.st-piece { display: inline-flex; flex-direction: column; align-items: flex-start; vertical-align: top; margin-bottom: var(--space-1); }
+.st-piece__en { padding: 0 2px; border: 0; border-bottom: 2px solid transparent; border-radius: 4px; background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.st-piece__en:hover { background: var(--lake-soft); }
+.st-piece--asked .st-piece__en { border-bottom-color: var(--line); }
+.st-piece--now .st-piece__en { background: var(--lake-soft); border-bottom-color: var(--lake); font-weight: 700; color: var(--lake-strong); }
+.st-piece--right .st-piece__en { border-bottom-color: var(--pine); }
+.st-piece--found .st-piece__en { border-bottom-color: var(--lake); }
+.st-piece--shown .st-piece__en { border-bottom-color: var(--cloudberry); }
+.st-piece__fi { padding: 0 2px; font: 600 13px/18px var(--font-sans); color: var(--pine); }
+.st-piece--found .st-piece__fi { color: var(--lake); }
+.st-piece--shown .st-piece__fi { color: var(--cloudberry-ink); }
+.st-sentence__fi { margin: 0; }
+.st-sentence__hear { padding: 2px var(--space-1); border: 0; border-left: 3px solid var(--pine); border-radius: 0 var(--radius-sm) var(--radius-sm) 0; background: var(--pine-soft); color: var(--ink); font: 400 16px/24px var(--font-sans); text-align: left; cursor: pointer; }
+.st-cheer { align-self: flex-start; margin: 0; padding: 2px var(--space-2); border-radius: var(--radius-pill); background: var(--lake-soft); color: var(--lake-strong); font: 700 13px/18px var(--font-sans); }
+.st-cheer--clean { background: var(--pine); color: var(--on-pine); }
+.st-ask { display: flex; flex-direction: column; gap: var(--space-2); }
+.st-ask__count { display: flex; flex-direction: column; gap: 2px; }
+.st-ask__count .lg-caption { margin: 0; }
+.st-ask__count .lg-bar__fill { transition: width .3s ease-out; }
+.st-ask__q { margin: 0; font: 600 20px/28px var(--font-display); }
+.st-ask__part { padding: 0 var(--space-1); border-radius: var(--radius-sm); background: var(--lake-soft); color: var(--lake-strong); font-weight: 700; }
+.st-ask__fi { margin: 0; color: var(--ink-muted); }
+.st-choices { grid-template-columns: 1fr; }
+
 /* Out of tries: keep going with an extra try from the shop */
 .xt-offer { width: 100%; }
 .xt-offer__body { flex: 1; }

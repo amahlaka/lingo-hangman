@@ -22,4 +22,5 @@ export const GAME_LIST = [
   { id: "rush", name: "Word rush", nameFi: "Sanakiire", skill: "Vocabulary", path: "/word-rush" },
   { id: "daily", name: "Daily word", nameFi: "Päivän sana", skill: "Spelling", path: "/daily", noPath: true },
   { id: "read", name: "Read and understand", nameFi: "Lue ja ymmärrä", skill: "Reading", path: "/read" },
+  { id: "story", name: "Story words", nameFi: "Tarinan sanat", skill: "Reading", path: "/story" },
 ];

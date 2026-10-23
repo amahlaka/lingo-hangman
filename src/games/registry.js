@@ -20,6 +20,7 @@ import MistakeGame from "./mistake/MistakeGame";
 import RushGame from "./rush/RushGame";
 import DailyGame, { DailyFreeGame } from "./daily/DailyGame";
 import ReadGame from "./read/ReadGame";
+import StoryGame from "./story/StoryGame";
 
 export const GAMES = [
   {
@@ -269,6 +270,19 @@ export const GAMES = [
     path: "/read",
     rounds: { options: [1, 2, 3], unit: "text" },
     routes: [{ path: "/read", Component: ReadGame }],
+  },
+  {
+    id: "story",
+    name: "Story words",
+    nameFi: "Tarinan sanat",
+    description: "Read a short story and pick the Finnish meaning of each word or phrase.",
+    descriptionFi: "Lue lyhyt tarina ja valitse jokaiselle sanalle tai fraasille sen suomenkielinen merkitys.",
+    art: "gets up · herää",
+    minutes: 4,
+    skill: "Reading",
+    path: "/story",
+    rounds: { options: [1, 2, 3], unit: "text" },
+    routes: [{ path: "/story", Component: StoryGame }],
   },
 ];
 

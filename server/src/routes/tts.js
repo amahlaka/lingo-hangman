@@ -12,8 +12,11 @@ import { createWordClips } from "../lib/wordClips.js";
 import { requireSession } from "../sessions.js";
 
 export const MAX_TTS_TEXT = 200;
-// New word-base clips one address can have made in an hour (saved ones are free).
-const CLIPS_PER_HOUR = 30;
+// New word-base clips one address can have made in an hour (saved ones are
+// free). Every listen to a missing clip asks for one, and a story has a few
+// dozen phrases, but only word-base texts can be made, so the folder can't
+// grow past the word base.
+const CLIPS_PER_HOUR = 120;
 const HOUR = 3600_000;
 // Latin letters (with accents, for names and loanwords), digits, spaces and
 // everyday punctuation, with at least one letter.
@@ -58,23 +61,29 @@ export default async function ttsRoutes(app, { db, config, limiter, service, cac
       .speak({ kind, label: kind === "speech" ? null : text, body: { text, voice: speaker, speed: CLIP_SPEED, format: "mp3" } })
       .then((r) => r.audio);
 
-  // A word-base text without a recorded clip, for anyone (Hangman's Listen
-  // hint): { text, voice } -> { folder, key }, after which the clip is at
-  // /content/audio/<folder>/<key>.mp3 like every recorded one. 404 when the
-  // text isn't in the word base; the app then uses on-demand speech or the
-  // browser voice.
+  // A word-base text without a recorded clip, for anyone: the app asks for it
+  // the first time a learner listens to it. { text, voice, words? } ->
+  // { folder, key }, after which the clip is at
+  // /content/audio/<folder>/<key>.mp3 like every recorded one and everybody
+  // gets it from there. `words: true` asks for the slow word-by-word clip.
+  // With a TTS server's clip maker it is made as the workflow makes it, else
+  // read plainly (and no word-by-word clip). 404 when the text isn't in the
+  // word base; the app then uses on-demand speech or the browser voice.
   const savingClip = new Map(); // "folder/key" -> Promise
   app.post("/api/tts/clip", async (req, reply) => {
     if (!config.ttsUrl || !clips) return reply.code(503).send({ error: "tts_unavailable" });
     const b = req.body || {};
     const text = ttsText(b.text);
-    if (!text || (b.voice !== undefined && b.voice !== "female" && b.voice !== "male")) {
+    if (!text || (b.voice !== undefined && b.voice !== "female" && b.voice !== "male") || (b.words !== undefined && typeof b.words !== "boolean")) {
       return reply.code(400).send({ error: "bad_request" });
     }
+    const words = b.words === true;
+    // Pauses between the words need the clip maker.
+    if (words && !clips.makesNow) return reply.code(404).send({ error: "no_word_by_word" });
     const { folder, speaker } = voiceById(b.voice);
     let key;
     try {
-      key = await clips.keyFor(text);
+      key = await clips.keyFor(text, "en", { words });
     } catch (err) {
       req.log.warn({ err: err.message }, "word base not readable");
       return reply.code(503).send({ error: "tts_unavailable" });
@@ -89,7 +98,11 @@ export default async function ttsRoutes(app, { db, config, limiter, service, cac
     if (!job) {
       if (!limiter.allow(`tts-clip:${req.ip}`, CLIPS_PER_HOUR, HOUR)) return reply.code(429).send({ error: "tts_limit" });
       if (service.waiting() >= config.ttsQueueMax) return reply.code(503).send({ error: "tts_queue_full" });
-      job = generate(text, speaker, "clip").then((audio) => clips.save(folder, key, audio));
+      const audio = clips.makesNow ? clips.makeAudio(key, speaker, "clip") : generate(text, speaker, "clip");
+      job = audio.then((mp3) => {
+        if (!mp3) throw new Error("not made");
+        return clips.save(folder, key, mp3);
+      });
       savingClip.set(id, job);
       job.catch(() => {}).finally(() => savingClip.delete(id));
     }

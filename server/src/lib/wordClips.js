@@ -102,11 +102,29 @@ export function createWordClips({ contentDir, clipDir, maker = null, log = null 
 
   const knownKeys = async () => (await loadKnown()).keys;
 
-  // The clip's key when `text` is in the word base, else null.
-  async function keyFor(text, lang = "en") {
+  // The clip's key when `text` is in the word base, else null. With `words`,
+  // the key of its slow word-by-word clip (texts of more than one word).
+  async function keyFor(text, lang = "en", { words = false } = {}) {
     if (!CLIP_LANGS.includes(lang)) return null;
+    if (words) {
+      const key = wordsKey(text, lang);
+      return (await loadKnown()).texts.get(key)?.words ? key : null;
+    }
     const key = clipKey(text, lang);
     return (await knownKeys()).has(key) ? key : null;
+  }
+
+  // A word-base clip made on the TTS server the way the Content publish
+  // workflow makes it (edges cut, a single word read from its IPA, the
+  // word-by-word pauses): its MP3, or null without a TTS server or when the
+  // key isn't in the word base.
+  async function makeAudio(key, speaker, kind = "clip") {
+    if (!maker) return null;
+    const { texts, ipa } = await loadKnown();
+    const entry = texts.get(key);
+    if (!entry) return null;
+    const { audio } = await maker.make({ text: entry.text, speaker, words: entry.words, ipa: ipa.get(key), kind });
+    return audio;
   }
 
   const fileFor = (folder, key) => path.join(clipDir, folder, `${key}.mp3`);
@@ -390,6 +408,7 @@ export function createWordClips({ contentDir, clipDir, maker = null, log = null 
     keyFor,
     has,
     save,
+    makeAudio,
     remake,
     remaking,
     list,

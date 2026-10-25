@@ -171,7 +171,8 @@ test("a word-base text without a clip gets one saved like a recorded clip, for a
   const made = await t.call("POST", "/api/tts/clip", { text: " kitchen ", voice: "male" });
   assert.equal(made.statusCode, 200);
   assert.deepEqual(made.json(), { folder: "kokoro-1.0-v5-am_liam", key, made: true });
-  assert.deepEqual(fake.calls[0].body, { text: "kitchen", voice: "am_liam", speed: 0.8, format: "mp3" });
+  // Made as the Content publish workflow makes it: edges cut.
+  assert.deepEqual(fake.calls[0].body, { text: "kitchen", voice: "am_liam", speed: 0.8, format: "mp3", frame: true });
   const file = base.path.join(base.audio, "kokoro-1.0-v5-am_liam", `${key}.mp3`);
   assert.equal(await base.fs.readFile(file, "utf8"), "mp3:kitchen");
   const index = JSON.parse(await base.fs.readFile(base.path.join(base.audio, "index.json"), "utf8"));
@@ -188,6 +189,15 @@ test("a word-base text without a clip gets one saved like a recorded clip, for a
   assert.equal(other.statusCode, 404);
   assert.equal(other.json().error, "not_word_base");
   assert.equal(fake.calls.length, 2);
+
+  // The slow word-by-word clip of a sentence, under its own key.
+  const { wordsKey } = await import("../../src/lib/speechClips.js");
+  const slow = await t.call("POST", "/api/tts/clip", { text: "The kitchen is warm.", words: true });
+  assert.deepEqual(slow.json(), { folder: "kokoro-1.0-v5-af_nova", key: wordsKey("The kitchen is warm.", "en"), made: true });
+  assert.equal(fake.calls[2].body.words, true);
+  // A single word has none, and words must be true or false.
+  assert.equal((await t.call("POST", "/api/tts/clip", { text: "kitchen", words: true })).statusCode, 404);
+  assert.equal((await t.call("POST", "/api/tts/clip", { text: "kitchen", words: "yes" })).statusCode, 400);
   await t.close();
   await base.done();
 });

@@ -247,20 +247,23 @@ IPA sounds in it. The app scores them against the word's IPA itself
 
 ### Saved word-base clips
 
-Hangman's *Listen* hint says the answer with its recorded clip. When a
-word-base text has no clip yet (new content the Content publish workflow
-hasn't voiced), the app asks `POST /api/tts/clip { text, voice }`, signed in or
-not, and the API makes it with the TTS service and saves it where the workflow
-puts clips: `CLIP_DIR/<voice folder>/<key>.mp3`, with the key added to
+Every game says word-base texts with their recorded clips. When a word-base
+text has no clip yet (new content the Content publish workflow hasn't voiced),
+the first listen asks `POST /api/tts/clip { text, voice, words? }`, signed in
+or not, and the API makes it with the TTS service and saves it where the
+workflow puts clips: `CLIP_DIR/<voice folder>/<key>.mp3`, with the key added to
 `CLIP_DIR/index.json`. It answers `{ folder, key, made }` and the app plays
-`/content/audio/<folder>/<key>.mp3` like any recorded clip. The workflow never
-replaces an existing clip, so a saved one stays.
+`/content/audio/<folder>/<key>.mp3` like any recorded clip; everyone after
+gets that file. The workflow never replaces an existing clip, so a saved one
+stays. `words: true` asks for the slow word-by-word clip (`speakWords`).
 
-- Only texts the published word base says (`spokenTexts()` over
-  `CONTENT_DIR`, reread when its `index.json` changes) can be made, so nobody
-  can fill the folder with text of their own. Anything else is a 404 and the
-  app falls back to on-demand speech or the browser voice.
-- 30 new clips an hour per address; saved ones are free. It shares the
+- The API makes it with the clip maker (lib/clipMaker.js) as the workflow
+  does: edges cut, a single word read from its word-base IPA, pauses between
+  the words of a word-by-word clip.
+- The app waits up to `SAVE_WAIT_MS` (6 s) for it; slower, it says the text
+  another way that time and plays the saved clip next time. A clip the API
+  won't make is not asked for again that visit.
+- 120 new clips an hour per address; saved ones are free. It shares the
   service queue with on-demand speech.
 - Off unless `TTS_URL`, `CONTENT_DIR` and `CLIP_DIR` are all set. On the
   server, bind-mount the live content folder read-only as `CONTENT_DIR` and its

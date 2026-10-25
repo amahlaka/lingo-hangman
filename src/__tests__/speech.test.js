@@ -2,7 +2,7 @@ import { getContent } from '../lib/content';
 import { getSentences, getSoundLessons, filterCommonWords, sentenceFor } from '../lib/words';
 import { lessonWords } from '../games/sounds/soundsLogic';
 import { clipKey, spokenTexts, wordByWordTexts, wordsKey } from '../lib/speechClips';
-import { RATE_SLOW, loadSpeechClips, resetSpeechClips, setClipMaker, setOnDemandSpeech, setSpeechVoice, speak, speakOnDemand, speakSaved, speakWords, stopSpeaking } from '../lib/speech';
+import { RATE_SLOW, loadSpeechClips, resetSpeechClips, setClipMaker, setOnDemandSpeech, setSpeechVoice, speak, speakOnDemand, speakWords, SAVE_WAIT_MS, stopSpeaking } from '../lib/speech';
 
 describe('spokenTexts', () => {
   const texts = new Set(spokenTexts(getContent().raw, 'en').values());
@@ -133,30 +133,70 @@ describe('speak', () => {
   });
 
   describe('saved clips', () => {
-    it('has a missing word-base clip made, then plays it like a recorded one', async () => {
+    afterEach(() => jest.useRealTimers());
+
+    it('has a missing word-base clip made on the first listen, then plays it like a recorded one', async () => {
       install();
       await loadSpeechClips({ fetchImpl: fetchImpl([knife]) });
       const fork = clipKey('fork', 'en');
       const maker = jest.fn(async () => ({ folder: NOVA, key: fork }));
       setClipMaker(maker);
-      await speakSaved('knife');
+      speak('knife');
+      await flush();
       expect(maker).not.toHaveBeenCalled();
-      await speakSaved(' fork ');
-      await speakSaved('fork');
-      expect(maker.mock.calls).toEqual([['fork', 'female']]);
+      speak(' fork ');
+      await flush();
+      speak('fork');
+      await flush();
+      expect(maker.mock.calls).toEqual([['fork', 'female', { words: false }]]);
       expect(players[0].played).toEqual([
         `/content/audio/${NOVA}/${knife}.mp3`,
         `/content/audio/${NOVA}/${fork}.mp3`,
         `/content/audio/${NOVA}/${fork}.mp3`,
       ]);
+      expect(spoken).toEqual([]);
     });
 
-    it('falls back to speak when no clip can be made', async () => {
+    it('asks once for a clip that cannot be made, and uses the browser voice', async () => {
       install();
       await loadSpeechClips({ fetchImpl: fetchImpl([]) });
-      setClipMaker(async () => null);
-      await speakSaved('spoon');
-      expect(spoken.map((u) => u.text)).toEqual(['spoon']);
+      const maker = jest.fn(async () => null);
+      setClipMaker(maker);
+      speak('spoon');
+      await flush();
+      speak('spoon');
+      await flush();
+      expect(maker).toHaveBeenCalledTimes(1);
+      expect(spoken.map((u) => u.text)).toEqual(['spoon', 'spoon']);
+    });
+
+    it('uses another voice when making takes too long, and plays the saved clip next time', async () => {
+      install();
+      await loadSpeechClips({ fetchImpl: fetchImpl([]) });
+      const cup = clipKey('cup', 'en');
+      let finish;
+      setClipMaker(() => new Promise((r) => { finish = r; }));
+      jest.useFakeTimers();
+      speak('cup');
+      await jest.advanceTimersByTimeAsync(SAVE_WAIT_MS + 10);
+      expect(spoken.map((u) => u.text)).toEqual(['cup']);
+      finish({ folder: NOVA, key: cup });
+      await jest.advanceTimersByTimeAsync(10);
+      speak('cup');
+      await jest.advanceTimersByTimeAsync(10);
+      expect(players[0].played).toEqual([`/content/audio/${NOVA}/${cup}.mp3`]);
+    });
+
+    it('has a missing word-by-word clip made too', async () => {
+      install();
+      await loadSpeechClips({ fetchImpl: fetchImpl([]) });
+      const slow = wordsKey('bus stop', 'en');
+      const maker = jest.fn(async () => ({ folder: NOVA, key: slow }));
+      setClipMaker(maker);
+      speakWords('bus stop');
+      await flush();
+      expect(maker.mock.calls).toEqual([['bus stop', 'female', { words: true }]]);
+      expect(players[0].played).toEqual([`/content/audio/${NOVA}/${slow}.mp3`]);
     });
   });
 

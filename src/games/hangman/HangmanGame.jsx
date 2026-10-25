@@ -6,7 +6,7 @@ import { useRoundFinished } from "../../app/PlayTracking";
 import { fill } from "../../i18n";
 import { ACHIEVEMENTS, badgeText } from "../../lib/progress";
 import { sounds } from "../../lib/sounds";
-import { canSpeak, speakSaved } from "../../lib/speech";
+import { canSpeak, speak } from "../../lib/speech";
 import { getAlphabet, guessPromptText, loadWordSet, meaningLabel, shuffle, wordInfo } from "../../lib/words";
 import {
   DailyProgress, ExtraTryOffer, Feedback, GameScreen, ResumeOffer, ScorePill, TriesMeter, WordRecap, WordTiles, resumeDetail, useConfetti,
@@ -342,7 +342,7 @@ export default function HangmanGame() {
   // The game's free hints go first, then hints cost this session's points.
   const handleHint = (id) => {
     if (!hintAvailable[id]) return;
-    const listen = () => speakSaved(answer, { lang: guessLang });
+    const listen = () => speak(answer, { lang: guessLang });
     if (id === "listen" && heard) {
       listen();
       return;

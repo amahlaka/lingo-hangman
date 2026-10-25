@@ -3,10 +3,12 @@
 //
 // Texts from the word base have recorded clips (made with an open voice
 // model, see scripts/speech-audio.mjs), so every device hears the same voice.
-// For English without a clip, a signed-in learner's app asks the optional
-// backend to make one with the same voice (on-demand speech, src/lib/tts.js).
-// Anything else, or a clip that won't play (offline, say), falls back to the
-// browser's own speech synthesis.
+// A word-base text whose clip isn't made yet (new content) is made and saved
+// by the backend the first time anyone listens to it, and from then on it is
+// an ordinary recorded clip for everybody. For other English, a signed-in
+// learner's app asks the optional backend to make a clip with the same voice
+// (on-demand speech, src/lib/tts.js). Anything else, or a clip that won't
+// play (offline, say), falls back to the browser's own speech synthesis.
 
 import { AUDIO_BASE, CLIP_LANGS, DEFAULT_VOICE, clipKey, normalizeSpeech, voiceById, wordsKey } from "./speechClips";
 
@@ -35,9 +37,18 @@ let player = null;
 let turn = 0; // bumps on every speak/stop, so a clip that was stopped never falls back
 // (text, voiceId) => Promise<{ blob, left, error }>, while on-demand speech is on.
 let onDemand = null;
-// (text, voiceId) => Promise<{ folder, key } | null>: has the backend make a
-// word-base text's missing recorded clip (src/lib/tts.js, makeWordClip).
+// (text, voiceId, { words }) => Promise<{ folder, key } | null>: has the
+// backend make and save a word-base text's missing recorded clip
+// (src/lib/tts.js, makeWordClip).
 let clipMaker = null;
+// Missing clips being made: "folder/key" -> Promise<boolean>.
+const saving = new Map();
+// Clips the backend wouldn't make this visit (not word-base text, over the
+// limit, no backend), so they aren't asked for again.
+const unsaved = new Set();
+// How long a listen waits for a missing clip to be made before it uses
+// another voice; the clip is still saved for next time.
+export const SAVE_WAIT_MS = 6000;
 // Clips made on demand this visit: "voice|text" -> Promise<{ url, left, error }>.
 const made = new Map();
 const MAX_MADE = 60;
@@ -188,27 +199,52 @@ function onDemandClip(text) {
 
 export function setClipMaker(fn) {
   clipMaker = typeof fn === "function" ? fn : null;
+  saving.clear();
+  unsaved.clear();
 }
 
-// Says a word-base text with its recorded clip. Without one yet (new content
-// the publish workflow hasn't voiced), the backend makes and saves it as a
-// recorded clip first (Hangman's Listen hint); if it can't, as speak().
-export async function speakSaved(text, { lang = "en", rate = RATE_NORMAL } = {}) {
-  if (!text) return false;
-  const key = clipKey(text, lang);
-  if (!clips || !clipMaker || !CLIP_LANGS.includes(lang) || !canPlayClips() || clipKeys()?.has(key)) {
-    return speak(text, { lang, rate });
-  }
-  stopSpeaking();
-  const mine = turn;
+// Has the backend make and save the missing clip `key` of `text` in the
+// current voice: a promise of whether it is now on the clip list, or null
+// when it can't be asked for (no backend, the clip list not loaded, or it
+// said no before). One request per clip, however often it is listened to.
+function saveClip(text, key, lang, { words = false } = {}) {
+  if (!clips || !clipMaker || !CLIP_LANGS.includes(lang) || !canPlayClips()) return null;
   const folder = voiceById(voiceId).folder;
-  const made = await clipMaker(normalizeSpeech(text), voiceId).catch(() => null);
-  if (mine !== turn) return true;
-  if (made?.folder === folder && made.key === key) {
-    if (!clips.folders.has(folder)) clips.folders.set(folder, new Set());
-    clips.folders.get(folder).add(key);
+  const id = `${folder}/${key}`;
+  if (unsaved.has(id)) return null;
+  if (!saving.has(id)) {
+    const job = Promise.resolve()
+      .then(() => clipMaker(normalizeSpeech(text), voiceId, { words }))
+      .catch(() => null)
+      .then((made) => {
+        saving.delete(id);
+        if (made?.folder === folder && made.key === key) {
+          if (!clips.folders.has(folder)) clips.folders.set(folder, new Set());
+          clips.folders.get(folder).add(key);
+          return true;
+        }
+        unsaved.add(id);
+        return false;
+      });
+    saving.set(id, job);
   }
-  return speak(text, { lang, rate });
+  return saving.get(id);
+}
+
+// `job`'s answer, or false when it takes longer than `ms`.
+const within = (job, ms) => Promise.race([job, new Promise((r) => setTimeout(() => r(false), ms))]);
+
+// Plays a missing clip once it is saved (`job`); if it can't be made in
+// time, says it with `other` instead. Nothing plays when something else was
+// said meanwhile.
+function whenSaved(job, key, other, rate) {
+  const mine = turn;
+  within(job, SAVE_WAIT_MS).then((ok) => {
+    if (mine !== turn) return;
+    if (ok) playClip(key, other, rate);
+    else other();
+  });
+  return true;
 }
 
 // Says `text` with a clip made on demand, for the "Hear any sentence" page.
@@ -270,6 +306,14 @@ export function speak(text, { lang = "en", rate = RATE_NORMAL } = {}) {
     playClip(key, () => speakWithBrowser(text, langTag, rate), rate);
     return true;
   }
+  const saved = saveClip(text, key, lang);
+  if (saved) return whenSaved(saved, key, () => speakUnsaved(text, lang, rate), rate);
+  return speakUnsaved(text, lang, rate);
+}
+
+// Text with no recorded clip: on demand, or the browser voice.
+function speakUnsaved(text, lang, rate) {
+  const langTag = speechLang(lang);
   if (onDemandSpeechOn() && CLIP_LANGS.includes(lang)) {
     const mine = turn;
     onDemandClip(text).then((r) => {
@@ -292,6 +336,8 @@ export function speakWords(text, { lang = "en" } = {}) {
     playClip(key, () => speakWordsWithBrowser(text, langTag), RATE_NORMAL);
     return true;
   }
+  const saved = normalizeSpeech(text).split(" ").length > 1 ? saveClip(text, key, lang, { words: true }) : null;
+  if (saved) return whenSaved(saved, key, () => speakWordsWithBrowser(text, langTag), RATE_NORMAL);
   return speakWordsWithBrowser(text, langTag);
 }
 
@@ -313,4 +359,6 @@ export function resetSpeechClips() {
   onDemand = null;
   clipMaker = null;
   made.clear();
+  saving.clear();
+  unsaved.clear();
 }

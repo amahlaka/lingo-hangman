@@ -69,6 +69,10 @@ export function sentenceWords(text) {
 // Multi-sentence `text` items.
 export const TEXT_KINDS = ["dialogue", "story", "message", "email", "notice", "instructions", "description"];
 
+// Wrong Finnish translations on a phrase of a text sentence (`phrases`,
+// Translate the story): with the right one the game offers two or three.
+export const PHRASE_WRONG_MAX = 2;
+
 // IPA between slashes: "/ˈkɪtʃɪn/".
 const IPA_PATTERN = /^\/[^/]+\/$/;
 
@@ -182,6 +186,33 @@ function checkDecoyPool(value, problems) {
   for (const w of value) {
     if (seen.has(norm(w))) problems.push(`decoyPool: "${w}" is listed twice`);
     seen.add(norm(w));
+  }
+}
+
+// `phrases` of a text sentence: the sentence cut into phrases, in order, for
+// Translate the story. Each has its Finnish translation `fi` and one or two
+// believable `wrong` ones. Together the phrases are the words of the sentence
+// in both languages, so the picked translations build the Finnish sentence.
+function checkPhrases(phrases, text, name, problems) {
+  if (!Array.isArray(phrases) || phrases.length === 0) return problems.push(`${name} must be a list of { "en": "...", "fi": "...", "wrong": [...] }`);
+  const filled = phrases.every((p) => isObject(p) && isText(p.en) && isText(p.fi));
+  phrases.forEach((phrase, i) => {
+    const at = `${name}[${i + 1}]`;
+    if (!isObject(phrase)) return problems.push(`${at} must be like { "en": "...", "fi": "...", "wrong": [...] }`);
+    if (!isText(phrase.en)) problems.push(`${at}.en is empty`);
+    if (!isText(phrase.fi)) return problems.push(`${at}.fi is empty`);
+    if (!checkWordList(phrase.wrong, `${at}.wrong`, problems)) return;
+    if (phrase.wrong.length > PHRASE_WRONG_MAX) problems.push(`${at}.wrong has ${phrase.wrong.length} translations; give one or two`);
+    const wrong = phrase.wrong.map(norm);
+    if (wrong.includes(norm(phrase.fi))) problems.push(`${at}: "${phrase.fi}" is also a wrong translation`);
+    if (new Set(wrong).size !== wrong.length) problems.push(`${at}.wrong has the same translation twice`);
+  });
+  if (!filled) return;
+  const words = (t) => sentenceWords(t).join(" ").toLowerCase();
+  for (const lang of ["en", "fi"]) {
+    const joined = phrases.map((p) => p[lang]).join(" ");
+    if (!isText(text[lang])) problems.push(`${name}: the sentence needs "${lang}" for its phrases`);
+    else if (words(joined) !== words(text[lang])) problems.push(`${name} make "${joined}", not the sentence "${text[lang]}"`);
   }
 }
 
@@ -452,8 +483,9 @@ const CHECKS = {
       item.sentences.forEach((line, i) => {
         const name = `sentences[${i + 1}]`;
         if (!isObject(line)) return problems.push(`${name} must be like { "en": "...", "fi": "..." }`);
-        const { speaker, ...text } = line;
+        const { speaker, phrases, ...text } = line;
         checkTextMap(text, name, problems, { mustHave: ["en"] });
+        if (phrases !== undefined) checkPhrases(phrases, text, `${name}.phrases`, problems);
         if (item.kind === "dialogue" && !isText(speaker)) problems.push(`${name}.speaker is missing (dialogue lines name who speaks)`);
         if (speaker !== undefined && !isText(speaker)) problems.push(`${name}.speaker is empty`);
       });
@@ -484,6 +516,8 @@ const CHECKS = {
       }
     }
     checkTextMap(item.note, "note", problems, { required: false });
+    // Where a retold classic comes from: title, author and year.
+    checkTextMap(item.source, "source", problems, { required: false, mustHave: ["en"] });
   },
 
   // A textbook lesson: a short read on how English works, letters and their

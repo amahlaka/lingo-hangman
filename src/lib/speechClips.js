@@ -84,7 +84,11 @@ export function spokenTexts({ languages = [], packs = [] }, lang = "en") {
         for (const ex of item.examples || []) add(ex?.[lang] || (english ? ex?.en : undefined));
       }
       if (item.type === "text" && english) {
-        for (const line of item.sentences || []) add(line?.en);
+        for (const line of item.sentences || []) {
+          add(line?.en);
+          // Translate the story reads each phrase on its own too.
+          for (const phrase of line?.phrases || []) add(phrase?.en);
+        }
       }
       if (item.type === "gap" && typeof item.lang === "string" && item.lang.split("-")[0] === lang.split("-")[0]) {
         if (typeof item.sentence === "string" && item.answers?.length) add(item.sentence.replace("___", item.answers[0]));

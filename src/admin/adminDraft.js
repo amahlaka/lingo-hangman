@@ -140,8 +140,10 @@ export function tidyItem(item) {
   }
   if (out.type === "text") {
     if (Array.isArray(out.sentences)) {
-      out.sentences = out.sentences.map(({ speaker, ...text }) => {
+      out.sentences = out.sentences.map(({ speaker, phrases, ...text }) => {
         const line = tidyMap(text);
+        // Translate the story's phrases aren't in the form yet; keep them as they are.
+        if (Array.isArray(phrases)) line.phrases = phrases;
         return typeof speaker === "string" && speaker.trim() ? { ...line, speaker } : line;
       });
     }

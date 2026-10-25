@@ -20,6 +20,7 @@ import MistakeGame from "./mistake/MistakeGame";
 import RushGame from "./rush/RushGame";
 import DailyGame, { DailyFreeGame } from "./daily/DailyGame";
 import ReadGame from "./read/ReadGame";
+import StoryGame from "./story/StoryGame";
 
 export const GAMES = [
   {
@@ -269,6 +270,19 @@ export const GAMES = [
     path: "/read",
     rounds: { options: [1, 2, 3], unit: "text" },
     routes: [{ path: "/read", Component: ReadGame }],
+  },
+  {
+    id: "story",
+    name: "Translate the story",
+    nameFi: "Käännä tarina",
+    description: "Translate a piece of a classic story into Finnish, phrase by phrase.",
+    descriptionFi: "Käännä pätkä klassista tarinaa suomeksi fraasi kerrallaan.",
+    art: "Once upon a time",
+    minutes: 5,
+    skill: "Reading",
+    path: "/story",
+    rounds: { options: [1, 2, 3], unit: "text" },
+    routes: [{ path: "/story", Component: StoryGame }],
   },
 ];
 
